@@ -1,83 +1,87 @@
-import { supabase, Post } from "@/lib/supabase";
+import { supabase, Post } from './supabase';
 
-/**
- * Convert a post title into the URL slug used by the site.
- *
- * Example:
- * "Tinubu Announces New Economic Reforms!"
- * -> "tinubu-announces-new-economic-reforms"
- */
-export function slugify(value: string): string {
-  return value
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
+export function slugify(title: string | null | undefined): string {
+  if (!title) return 'article';
+  return title
     .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
     .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 80);
 }
 
-/**
- * Get a published post by category and title-derived slug.
- *
- * The Supabase `posts` table does not contain a slug column,
- * so we retrieve published posts in the requested category and
- * find the post whose title produces the requested slug.
- */
+export function categorySlug(category: string | null | undefined): string {
+  if (!category) return 'news';
+  return (
+    String(category)
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-') || 'news'
+  );
+}
+
+export function postPath(post: Pick<Post, 'id' | 'title' | 'category'>): string {
+  return `/article/${categorySlug(post.category)}/${slugify(post.title)}-${String(
+    post.id
+  ).slice(-6)}`;
+}
+
 export async function getPostBySlug(
-  category: string,
-  slug: string
+  categoryParam: string,
+  slugParam: string
 ): Promise<Post | null> {
+  const idSuffix = slugParam.slice(-6).toLowerCase();
+  if (idSuffix.length !== 6) return null;
+
   try {
-    const { data, error } = await supabase
-      .from("posts")
-      .select("*")
-      .eq("category", category)
-      .eq("published", true)
-      .order("created_at", { ascending: false });
+    const { data: candidates, error } = await supabase
+      .from('posts')
+      .select('id, category')
+      .eq('published', true)
+      .order('created_at', { ascending: false })
+      .limit(3000);
 
-    if (error || !data) {
-      console.error("Error fetching post:", error);
-      return null;
-    }
+    if (error || !candidates) return null;
 
-    const post = (data as Post[]).find(
-      (item) => slugify(item.title) === slug
+    const match = candidates.find(
+      (p) =>
+        categorySlug(p.category) === categoryParam &&
+        String(p.id).slice(-6).toLowerCase() === idSuffix
     );
+    if (!match) return null;
 
-    return post ?? null;
-  } catch (error) {
-    console.error("Unexpected error fetching post:", error);
+    const { data: post, error: fetchError } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('id', match.id)
+      .single();
+
+    if (fetchError || !post) return null;
+    return post as Post;
+  } catch {
     return null;
   }
 }
 
-/**
- * Return paths for published posts so Next.js can pre-render them.
- */
-export async function getAllPublishedPostPaths(): Promise<
-  Array<{ category: string; slug: string }>
+export async function getAllPublishedPostPaths(): Promise
+  { category: string; slug: string }[]
 > {
   try {
-    const { data, error } = await supabase
-      .from("posts")
-      .select("category, title")
-      .eq("published", true)
-      .order("created_at", { ascending: false });
+    const { data } = await supabase
+      .from('posts')
+      .select('id, title, category')
+      .eq('published', true)
+      .order('created_at', { ascending: false })
+      .limit(200);
 
-    if (error || !data) {
-      console.error("Error fetching post paths:", error);
-      return [];
-    }
-
-    return data
-      .map((post) => ({
-        category: post.category,
-        slug: slugify(post.title),
-      }))
-      .filter((post) => post.category && post.slug);
-  } catch (error) {
-    console.error("Unexpected error fetching post paths:", error);
+    return (data ?? []).map((p) => ({
+      category: categorySlug(p.category),
+      slug: `${slugify(p.title)}-${String(p.id).slice(-6)}`,
+    }));
+  } catch {
     return [];
   }
 }
