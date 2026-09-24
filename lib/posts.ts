@@ -66,9 +66,7 @@ export async function getPostBySlug(
   }
 }
 
-export async function getAllPublishedPostPaths(): Promise
-  { category: string; slug: string }[]
-> {
+export async function getAllPublishedPostPaths() {
   try {
     const { data } = await supabase
       .from('posts')
@@ -77,11 +75,13 @@ export async function getAllPublishedPostPaths(): Promise
       .order('created_at', { ascending: false })
       .limit(200);
 
-    return (data ?? []).map((p) => ({
+    const paths: { category: string; slug: string }[] = (data ?? []).map((p) => ({
       category: categorySlug(p.category),
       slug: `${slugify(p.title)}-${String(p.id).slice(-6)}`,
     }));
+
+    return paths;
   } catch {
-    return [];
+    return [] as { category: string; slug: string }[];
   }
 }
