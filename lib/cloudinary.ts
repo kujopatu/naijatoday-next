@@ -1,28 +1,21 @@
-const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!;
-
 /**
- * Builds a Cloudinary delivery URL, optionally applying the same
- * watermark overlay currently added to article images.
- *
- * Replace `naijatoday_watermark` below with the actual public_id of
- * your watermark asset in Cloudinary.
+ * The `image` column in Supabase already stores a full Cloudinary
+ * delivery URL (e.g. https://res.cloudinary.com/<cloud>/image/upload/<path>),
+ * not a bare public_id. This inserts resize/format transformations into
+ * that existing URL rather than building one from scratch.
  */
-export function cloudinaryUrl(
-  publicId: string,
-  opts: { width?: number; height?: number; watermark?: boolean } = {}
-) {
-  const { width, height, watermark = true } = opts;
+export function cloudinaryTransform(
+  url: string | null | undefined,
+  opts: { width?: number; height?: number } = {}
+): string | undefined {
+  if (!url) return undefined;
+  const { width, height } = opts;
 
   const transforms: string[] = ['f_auto', 'q_auto'];
   if (width) transforms.push(`w_${width}`);
   if (height) transforms.push(`h_${height}`);
   if (width || height) transforms.push('c_fill');
 
-  if (watermark) {
-    transforms.push('l_naijatoday_watermark,g_south_east,x_10,y_10,o_70');
-  }
-
-  return `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${transforms.join(
-    ','
-  )}/${publicId}`;
+  if (!url.includes('/upload/')) return url; // not a Cloudinary URL, leave as-is
+  return url.replace('/upload/', `/upload/${transforms.join(',')}/`);
 }
