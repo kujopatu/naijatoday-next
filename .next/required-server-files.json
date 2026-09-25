@@ -105,7 +105,7 @@
         "transform": "lodash/{{member}}"
       }
     },
-    "outputFileTracingRoot": "/home/kujopatu/naijatoday-next",
+    "outputFileTracingRoot": "/workspaces/naijatoday-next",
     "enablePrerenderSourceMaps": true,
     "cacheComponents": false,
     "cacheLife": {
@@ -175,7 +175,7 @@
       "proxyPrefetch": "flexible",
       "optimisticClientCache": true,
       "manualClientBasePath": false,
-      "cpus": 3,
+      "cpus": 1,
       "memoryBasedWorkersCount": false,
       "imgOptConcurrency": null,
       "imgOptOperationCache": null,
@@ -320,14 +320,14 @@
     "htmlLimitedBots": "[\\w-]+-Google|Google-[\\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight",
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.ts",
-    "repoRoot": "/home/kujopatu/naijatoday-next",
+    "repoRoot": "/workspaces/naijatoday-next",
     "turbopack": {
-      "root": "/home/kujopatu/naijatoday-next"
+      "root": "/workspaces/naijatoday-next"
     },
     "distDirRoot": ".next",
     "supportsImmutableAssets": false
   },
-  "appDir": "/home/kujopatu/naijatoday-next",
+  "appDir": "/workspaces/naijatoday-next",
   "relativeAppDir": "",
   "files": [
     ".next/package.json",

@@ -7,6 +7,9 @@ type Props = {
   params: Promise<{ category: string; slug: string }>;
 };
 
+// Replaces the old og.cjs Netlify Function's bot-detection + OG tag
+// serving. Next.js serves the correct meta tags to every crawler
+// automatically — no user-agent whitelist needed.
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { category, slug } = await params;
   const post = await getPostBySlug(category, slug);
@@ -36,11 +39,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+// Pre-render the most recent published posts at build time; anything
+// older or newer falls back to on-demand server rendering and gets
+// cached — the built-in replacement for the manual prerendering setup
+// on the Vite SPA.
 export const dynamicParams = true;
-export const revalidate = 3600;
+export const revalidate = 3600; // ISR: refresh each page at most hourly
 
 export async function generateStaticParams() {
-  return getAllPublishedPostPaths();
+  const paths = await getAllPublishedPostPaths();
+  return paths;
 }
 
 export default async function ArticlePage({ params }: Props) {
@@ -61,7 +69,11 @@ export default async function ArticlePage({ params }: Props) {
 
       {image && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={image} alt={post.title} className="mt-6 w-full rounded-lg" />
+        <img
+          src={image}
+          alt={post.title}
+          className="mt-6 w-full rounded-lg"
+        />
       )}
 
       <div

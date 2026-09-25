@@ -1,4 +1,4 @@
-// File: /home/kujopatu/naijatoday-next/app/article/[category]/[slug]/page.tsx
+// File: /workspaces/naijatoday-next/app/article/[category]/[slug]/page.tsx
 import * as entry from '../../../../../../app/article/[category]/[slug]/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
