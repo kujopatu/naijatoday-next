@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 import { G } from '@/lib/theme';
 import { useTheme } from './ThemeProvider';
+import SearchBox from './SearchBox';
 
 // Home is wired to a real page. The rest point at routes that don't
 // exist yet (search, auth, forum, jobs, admin, etc. are all separate,
@@ -180,25 +182,10 @@ export default function SiteHeader({
             </div>
           </div>
 
-          {/* Search is visual-only for now — wiring it to real results is a
-              separate piece of work, deferred to a later phase. */}
           <div style={{ flex: 1, maxWidth: 320, minWidth: 160 }}>
-            <input
-              placeholder="🔍  Search Nigerian news, topics…"
-              disabled
-              style={{
-                width: '100%',
-                padding: '10px 16px',
-                borderRadius: 24,
-                border: `1.5px solid ${border}`,
-                background: darkMode ? '#111520' : '#f7fbf9',
-                color: text,
-                fontSize: 13,
-                outline: 'none',
-                boxSizing: 'border-box',
-                opacity: 0.7,
-              }}
-            />
+            <Suspense fallback={<div style={{ height: 40 }} />}>
+              <SearchBox />
+            </Suspense>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
