@@ -6,9 +6,12 @@ import { postPath } from '@/lib/posts';
 import { findCategory, G } from '@/lib/theme';
 import { cloudinaryTransform } from '@/lib/cloudinary';
 import { useTheme } from './ThemeProvider';
+import { useSavedPosts } from './SavedPostsProvider';
 
 export default function PostCard({ post }: { post: Post }) {
   const { card, border, text, muted, darkMode } = useTheme();
+  const { isSaved, toggleSaved } = useSavedPosts();
+  const saved = isSaved(post.id);
   const cat = findCategory(post.category);
   const views = typeof post.views === 'number' ? post.views : 0;
   const image = cloudinaryTransform(post.image, { width: 160, height: 160 });
@@ -139,10 +142,30 @@ export default function PostCard({ post }: { post: Post }) {
           >
             {post.excerpt}
           </div>
-          <div style={{ display: 'flex', gap: 12, fontSize: 11, color: muted, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 12, fontSize: 11, color: muted, flexWrap: 'wrap', alignItems: 'center' }}>
             <span>✍️ {post.author || 'NaijaToday Desk'}</span>
             <span>⏱ {post.read_time || '3 min'}</span>
             <span>👁 {views.toLocaleString()}</span>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleSaved(post);
+              }}
+              style={{
+                marginLeft: 'auto',
+                background: saved ? G.green : 'none',
+                color: saved ? '#fff' : muted,
+                border: `1px solid ${saved ? G.green : border}`,
+                borderRadius: 6,
+                padding: '3px 9px',
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              🔖 {saved ? 'Saved' : 'Save'}
+            </button>
           </div>
         </div>
       </div>

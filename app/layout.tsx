@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import Script from "next/script";
 import MetaPixelTracker from "@/components/MetaPixelTracker";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { SavedPostsProvider } from "@/components/SavedPostsProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -48,7 +49,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Suspense fallback={null}>
           <MetaPixelTracker />
         </Suspense>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <SavedPostsProvider>{children}</SavedPostsProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
