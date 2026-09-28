@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { G } from '@/lib/theme';
 import { useTheme } from './ThemeProvider';
 import SearchBox from './SearchBox';
+import UserMenu from './UserMenu';
 
 // Home is wired to a real page. The rest point at routes that don't
 // exist yet (search, auth, forum, jobs, admin, etc. are all separate,
@@ -208,40 +209,7 @@ export default function SiteHeader({
               {darkMode ? '☀️' : '🌙'}
               <span style={{ fontSize: 8, color: muted, letterSpacing: 0.5 }}>{darkMode ? 'LIGHT' : 'DARK'}</span>
             </button>
-            {/* Login/Join are visual-only — auth isn't ported yet. */}
-            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-              <button
-                style={{
-                  background: 'none',
-                  border: `1px solid ${G.green}`,
-                  color: G.green,
-                  borderRadius: 20,
-                  padding: '7px 16px',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                Login
-              </button>
-              <button
-                style={{
-                  background: `linear-gradient(135deg,${G.green},${G.greenDark})`,
-                  border: 'none',
-                  color: '#fff',
-                  borderRadius: 20,
-                  padding: '7px 16px',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  boxShadow: `0 2px 8px ${G.green}44`,
-                }}
-              >
-                Join Free
-              </button>
-            </div>
+            <UserMenu />
           </div>
         </div>
 

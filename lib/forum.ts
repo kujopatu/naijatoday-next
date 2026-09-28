@@ -15,3 +15,12 @@ export type ForumThread = {
   upvotes: number | null;
   created_at: string;
 };
+
+export type ForumReply = {
+  id: number;
+  thread_id: number;
+  user: string | null;
+  text: string;
+  upvotes: number | null;
+  created_at: string;
+};

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { ForumThread } from '@/lib/forum';
 import { CATEGORIES, G } from '@/lib/theme';
+import { useAuth } from './AuthProvider';
 import { useTheme } from './ThemeProvider';
 
 function timeAgo(iso: string): string {
@@ -16,6 +17,7 @@ function timeAgo(iso: string): string {
 
 export default function ForumList({ threads: allThreads }: { threads: ForumThread[] }) {
   const { card, border, text, muted, darkMode } = useTheme();
+  const { loggedIn, openModal } = useAuth();
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
 
@@ -69,7 +71,7 @@ export default function ForumList({ threads: allThreads }: { threads: ForumThrea
           fontWeight: 600,
         }}
       >
-        💬 Browsing is open to everyone. Posting requires an account — sign-in isn&apos;t live yet, coming soon.
+        💬 Browsing is open to everyone. Sign in to save your spot — starting new threads is coming very soon.
       </div>
 
       <div style={{ position: 'relative', marginBottom: 16 }}>
@@ -117,7 +119,11 @@ export default function ForumList({ threads: allThreads }: { threads: ForumThrea
           })}
         </div>
         <button
-          onClick={() => alert('Sign-in is coming soon — you\'ll be able to start threads once accounts are live.')}
+          onClick={() =>
+            loggedIn
+              ? alert("Starting new threads is coming very soon — you're signed in and ready for it.")
+              : openModal('login')
+          }
           style={{
             background: G.green,
             color: '#fff',

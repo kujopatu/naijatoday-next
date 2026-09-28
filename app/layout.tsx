@@ -5,6 +5,9 @@ import Script from "next/script";
 import MetaPixelTracker from "@/components/MetaPixelTracker";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { SavedPostsProvider } from "@/components/SavedPostsProvider";
+import { ToastProvider } from "@/components/ToastProvider";
+import { AuthProvider } from "@/components/AuthProvider";
+import AuthModals from "@/components/AuthModals";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -50,7 +53,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <MetaPixelTracker />
         </Suspense>
         <ThemeProvider>
-          <SavedPostsProvider>{children}</SavedPostsProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <SavedPostsProvider>{children}</SavedPostsProvider>
+              <AuthModals />
+            </AuthProvider>
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>
