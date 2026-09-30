@@ -3,6 +3,16 @@
   "/_global-error/page": "/_global-error",
   "/favicon.ico/route": "/favicon.ico",
   "/sitemap.xml/route": "/sitemap.xml",
+  "/reset-password/page": "/reset-password",
+  "/search/page": "/search",
+  "/forum/page": "/forum",
+  "/jobs/page": "/jobs",
   "/page": "/",
-  "/article/[category]/[slug]/page": "/article/[category]/[slug]"
+  "/resources/page": "/resources",
+  "/saved/page": "/saved",
+  "/category/[slug]/page": "/category/[slug]",
+  "/trending/page": "/trending",
+  "/article/[category]/[slug]/page": "/article/[category]/[slug]",
+  "/contact/page": "/contact",
+  "/scores/page": "/scores"
 }

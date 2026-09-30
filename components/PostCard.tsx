@@ -54,7 +54,7 @@ export default function PostCard({ post }: { post: Post }) {
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           ) : (
-            '📰'
+            post.image || '📰'
           )}
         </div>
         <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>

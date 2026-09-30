@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 import { G } from '@/lib/theme';
+import { useAuth } from './AuthProvider';
 import { useTheme } from './ThemeProvider';
 import SearchBox from './SearchBox';
 import UserMenu from './UserMenu';
@@ -31,6 +32,7 @@ export default function SiteHeader({
   memberCount: number | null;
 }) {
   const { darkMode, toggleDarkMode, border, muted, text } = useTheme();
+  const { canModerate } = useAuth();
   const pathname = usePathname();
 
   return (
@@ -214,7 +216,7 @@ export default function SiteHeader({
         </div>
 
         <div style={{ display: 'flex', gap: 0, overflowX: 'auto' }}>
-          {NAV_TABS.map(([href, label]) => {
+          {[...NAV_TABS, ...(canModerate ? ([['/admin', '⚡ Admin']] as [string, string][]) : [])].map(([href, label]) => {
             const active = pathname === href;
             return (
               <Link key={href} href={href} style={{ textDecoration: 'none' }}>
