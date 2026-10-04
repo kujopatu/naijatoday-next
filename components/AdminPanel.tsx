@@ -14,6 +14,9 @@ import ForumManager from './admin/ForumManager';
 import TrendManagerPanel from './admin/TrendManagerPanel';
 import DataPlansManagerPanel from './admin/DataPlansManagerPanel';
 import FuelPriceManagerPanel from './admin/FuelPriceManagerPanel';
+import SocialLinksManagerPanel from './admin/SocialLinksManagerPanel';
+import ProductsManagerPanel from './admin/ProductsManagerPanel';
+import FixturesManagerPanel from './admin/FixturesManagerPanel';
 
 const CLOUDINARY_CLOUD = 'dywtb9ky3';
 const CLOUDINARY_PRESET = 'naijatorday_upload';
@@ -77,7 +80,7 @@ const TABS: [string, string][] = [
 // Tabs with a real implementation below. Everything else in TABS renders
 // a plain "coming soon" placeholder — kept visible so the panel's shape
 // matches the original, but honest about what's actually built.
-const BUILT_TABS = new Set(['overview', 'new', 'manage', 'moderators', 'reports', 'breaking', 'jobs', 'forum', 'trends', 'dataplans', 'fuel']);
+const BUILT_TABS = new Set(['overview', 'new', 'manage', 'moderators', 'reports', 'breaking', 'jobs', 'forum', 'trends', 'dataplans', 'fuel', 'social', 'products', 'fixtures']);
 
 export default function AdminPanel() {
   const { userEmail, isAdmin } = useAuth();
@@ -1093,6 +1096,9 @@ export default function AdminPanel() {
       {activeSection === 'trends' && <TrendManagerPanel />}
       {activeSection === 'dataplans' && <DataPlansManagerPanel />}
       {activeSection === 'fuel' && <FuelPriceManagerPanel />}
+      {activeSection === 'social' && <SocialLinksManagerPanel />}
+      {activeSection === 'products' && <ProductsManagerPanel />}
+      {activeSection === 'fixtures' && <FixturesManagerPanel />}
     </div>
   );
 }
