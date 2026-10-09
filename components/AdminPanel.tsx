@@ -17,6 +17,10 @@ import FuelPriceManagerPanel from './admin/FuelPriceManagerPanel';
 import SocialLinksManagerPanel from './admin/SocialLinksManagerPanel';
 import ProductsManagerPanel from './admin/ProductsManagerPanel';
 import FixturesManagerPanel from './admin/FixturesManagerPanel';
+import PollAnalyticsPanel from './admin/PollAnalyticsPanel';
+import UserManagementPanel from './admin/UserManagementPanel';
+import AdminDiagnostic from './admin/AdminDiagnostic';
+import AdminToolsHub from './admin/AdminToolsHub';
 
 const CLOUDINARY_CLOUD = 'dywtb9ky3';
 const CLOUDINARY_PRESET = 'naijatorday_upload';
@@ -80,7 +84,7 @@ const TABS: [string, string][] = [
 // Tabs with a real implementation below. Everything else in TABS renders
 // a plain "coming soon" placeholder — kept visible so the panel's shape
 // matches the original, but honest about what's actually built.
-const BUILT_TABS = new Set(['overview', 'new', 'manage', 'moderators', 'reports', 'breaking', 'jobs', 'forum', 'trends', 'dataplans', 'fuel', 'social', 'products', 'fixtures']);
+const BUILT_TABS = new Set(['overview', 'new', 'manage', 'moderators', 'reports', 'breaking', 'jobs', 'forum', 'trends', 'dataplans', 'fuel', 'social', 'products', 'fixtures', 'polls', 'users', 'tools']);
 
 export default function AdminPanel() {
   const { userEmail, isAdmin } = useAuth();
@@ -515,6 +519,8 @@ export default function AdminPanel() {
           <div style={{ background: G.green, borderRadius: 8, padding: '8px 16px', fontSize: 13, color: '#fff', fontWeight: 600 }}>{posts.length} Articles</div>
         </div>
       </div>
+
+      <AdminDiagnostic userEmail={userEmail} />
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
         {TABS.map(([key, label]) => (
@@ -1099,6 +1105,9 @@ export default function AdminPanel() {
       {activeSection === 'social' && <SocialLinksManagerPanel />}
       {activeSection === 'products' && <ProductsManagerPanel />}
       {activeSection === 'fixtures' && <FixturesManagerPanel />}
+      {activeSection === 'polls' && <PollAnalyticsPanel />}
+      {activeSection === 'users' && <UserManagementPanel />}
+      {activeSection === 'tools' && <AdminToolsHub />}
     </div>
   );
 }
