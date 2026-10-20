@@ -2,4 +2,4 @@
         .scores-columns { column-count: 3; column-gap: 20px; }
         @media (max-width: 1000px) { .scores-columns { column-count: 2; } }
         @media (max-width: 700px) { .scores-columns { column-count: 1; } }
-      `})]})}},2828:(e,s,t)=>{Promise.resolve().then(t.bind(t,7522)),Promise.resolve().then(t.bind(t,8163)),Promise.resolve().then(t.bind(t,1575)),Promise.resolve().then(t.bind(t,9311))}},e=>{e.O(0,[730,225,500,749,441,794,358],()=>e(e.s=2828)),_N_E=e.O()}]);
+      `})]})}},2828:(e,s,t)=>{Promise.resolve().then(t.bind(t,7522)),Promise.resolve().then(t.bind(t,8163)),Promise.resolve().then(t.bind(t,1575)),Promise.resolve().then(t.bind(t,9311))}},e=>{e.O(0,[730,953,756,749,441,794,358],()=>e(e.s=2828)),_N_E=e.O()}]);
