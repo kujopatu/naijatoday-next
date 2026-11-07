@@ -6,24 +6,35 @@ import CategoryPills from '@/components/CategoryPills';
 import PostCard from '@/components/PostCard';
 
 type Props = {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; tag?: string }>;
 };
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const { q } = await searchParams;
+  const { q, tag } = await searchParams;
+  if (tag) return { title: `#${tag} — NaijaToday` };
   return { title: q ? `Search: ${q} — NaijaToday` : 'Search — NaijaToday' };
 }
 
 export default async function SearchPage({ searchParams }: Props) {
-  const { q } = await searchParams;
+  const { q, tag } = await searchParams;
   const query = (q ?? '').trim();
+  const tagQuery = (tag ?? '').trim();
 
   // Server-side search against the real posts table — matches across
   // title, excerpt, category and author, same fields the original
   // client-side filter checked, but done as a proper database query
   // instead of loading every article into the browser first.
   let results: Post[] = [];
-  if (query.length > 1) {
+  if (tagQuery) {
+    const { data } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('published', true)
+      .contains('tags', [tagQuery])
+      .order('created_at', { ascending: false })
+      .limit(100);
+    results = (data ?? []) as Post[];
+  } else if (query.length > 1) {
     const escaped = query.replace(/[%_]/g, '\\$&');
     const { data } = await supabase
       .from('posts')
@@ -50,7 +61,7 @@ export default async function SearchPage({ searchParams }: Props) {
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px' }}>
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Georgia,serif', marginBottom: 6 }}>
-            🔍 Search Results for &quot;{query}&quot;
+            {tagQuery ? `#${tagQuery}` : <>🔍 Search Results for &quot;{query}&quot;</>}
           </div>
           <div style={{ fontSize: 13, color: '#8892a4' }}>
             {results.length} article{results.length !== 1 ? 's' : ''} found
