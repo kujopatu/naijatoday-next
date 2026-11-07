@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { CATEGORIES } from '@/lib/theme';
 import { categorySlug } from '@/lib/posts';
@@ -7,6 +8,7 @@ import BreakingNewsBar from '@/components/BreakingNewsBar';
 import CategoryPills from '@/components/CategoryPills';
 import HomeFeed from '@/components/HomeFeed';
 import MostReadSidebar from '@/components/MostReadSidebar';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -35,6 +37,7 @@ export async function generateStaticParams() {
 export default async function CategoryPage({ params }: Props) {
   const { slug } = await params;
   const cat = findCategoryBySlug(slug);
+  if (!cat) notFound();
 
   const { data: posts } = await supabase
     .from('posts')
@@ -56,6 +59,7 @@ export default async function CategoryPage({ params }: Props) {
       <CategoryPills />
       <div className="home-grid" style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 16px' }}>
         <main style={{ minWidth: 0 }}>
+          <Breadcrumbs items={[{ label: cat ? cat.name : 'Category' }]} />
           <HomeFeed posts={allPosts} title={cat ? `${cat.icon} ${cat.name}` : 'Category'} />
         </main>
         <aside>

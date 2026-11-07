@@ -33,7 +33,7 @@ export default function SiteHeader({
   memberCount: number | null;
 }) {
   const { darkMode, toggleDarkMode, border, muted, text } = useTheme();
-  const { canModerate } = useAuth();
+  const { canModerate, loggedIn } = useAuth();
   const pathname = usePathname();
 
   return (
@@ -218,8 +218,8 @@ export default function SiteHeader({
         </div>
 
         <div style={{ display: 'flex', gap: 0, overflowX: 'auto' }}>
-          {[...NAV_TABS, ...(canModerate ? ([['/admin', '⚡ Admin']] as [string, string][]) : [])].map(([href, label]) => {
-            const active = pathname === href;
+          {[...NAV_TABS, ...(loggedIn ? ([['/profile', '👤 Profile']] as [string, string][]) : []), ...(canModerate ? ([['/admin', '⚡ Admin']] as [string, string][]) : [])].map(([href, label]) => {
+            const active = pathname === href || (href !== '/' && !!pathname?.startsWith(href + '/'));
             return (
               <Link key={href} href={href} style={{ textDecoration: 'none' }}>
                 <span

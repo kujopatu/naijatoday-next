@@ -7,6 +7,8 @@ import { findCategory, G } from '@/lib/theme';
 import { postPath } from '@/lib/posts';
 import { toCloudinaryWm } from '@/lib/watermark';
 import { getStreakInfo, recordReadToday, streakMessage } from '@/lib/streak';
+import { categorySlug } from '@/lib/posts';
+import Breadcrumbs from '../Breadcrumbs';
 import { useAuth } from '../AuthProvider';
 import { useToast } from '../ToastProvider';
 import { useTheme } from '../ThemeProvider';
@@ -51,6 +53,7 @@ export default function ArticleView({ post, html, related }: { post: Post; html:
     <>
       <ReadingProgressBar />
       <article style={{ maxWidth: 760, margin: '0 auto', padding: '24px 16px' }}>
+        <Breadcrumbs items={[{ label: post.category ?? 'News', href: `/category/${categorySlug(post.category ?? '')}` }, { label: post.title }]} />
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
           <Link href={`/category/${(post.category ?? '').toLowerCase().replace(/\s+/g, '-')}`} style={{ background: cat?.color ?? G.green, color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textDecoration: 'none' }}>
             {cat?.icon} {post.category}

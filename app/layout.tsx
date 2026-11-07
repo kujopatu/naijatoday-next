@@ -9,6 +9,9 @@ import { SavedPostsProvider } from "@/components/SavedPostsProvider";
 import { ToastProvider } from "@/components/ToastProvider";
 import { AuthProvider } from "@/components/AuthProvider";
 import AuthModals from "@/components/AuthModals";
+import SiteFooter from "@/components/SiteFooter";
+import CookieBanner from "@/components/CookieBanner";
+import ScrollButtons from "@/components/ScrollButtons";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -82,6 +85,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <ToastProvider>
             <AuthProvider>
               <SavedPostsProvider>{children}</SavedPostsProvider>
+              <SiteFooter />
+              <ScrollButtons />
+              <CookieBanner />
               <AuthModals />
             </AuthProvider>
           </ToastProvider>

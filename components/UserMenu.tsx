@@ -4,11 +4,14 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { G } from '@/lib/theme';
 import { useAuth } from './AuthProvider';
+import { supabase } from '@/lib/supabase';
 import { useTheme } from './ThemeProvider';
+import { useToast } from './ToastProvider';
 
 export default function UserMenu() {
   const { loading, loggedIn, username, userEmail, isAdmin, isModerator, logout, openModal } = useAuth();
   const { card, border, text, muted } = useTheme();
+  const { showToast } = useToast();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -64,6 +67,13 @@ export default function UserMenu() {
       </div>
     );
   }
+
+  const applyModerator = async () => {
+    setOpen(false);
+    const { error } = await supabase.from('mod_requests').insert([{ email: userEmail, username, requested_at: new Date().toISOString() }]);
+    if (error) showToast(error.code === '23505' ? 'You already have a pending moderator request' : 'Error: ' + error.message);
+    else showToast('Moderator request submitted! The admin will review it. 🛡️');
+  };
 
   const ring = isAdmin ? G.gold : isModerator ? '#6366f1' : G.green;
   const roleLabel = isAdmin ? '⚡ Site Administrator' : isModerator ? '🛡️ Moderator' : 'NaijaToday Member';
@@ -128,6 +138,14 @@ export default function UserMenu() {
           >
             🔖 Saved Articles
           </Link>
+          {!isAdmin && !isModerator && (
+            <button
+              onClick={applyModerator}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '11px 16px', fontSize: 13, color: text, background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              🛡️ Apply as Moderator
+            </button>
+          )}
           <button
             onClick={() => {
               setOpen(false);
