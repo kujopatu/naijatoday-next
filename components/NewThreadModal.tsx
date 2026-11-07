@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { CATEGORIES, G } from '@/lib/theme';
 import { useTheme } from './ThemeProvider';
 
-export type NewThreadInput = { title: string; body: string; category: string };
+export type NewThreadInput = { title: string; body: string; category: string; poll?: { question: string; options: string[] } | null };
 
 export default function NewThreadModal({
   onClose,
@@ -20,6 +20,9 @@ export default function NewThreadModal({
   const [body, setBody] = useState('');
   const [category, setCategory] = useState('Entertainment');
   const [sending, setSending] = useState(false);
+  const [showPoll, setShowPoll] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState('');
+  const [pollOptions, setPollOptions] = useState(['', '']);
 
   const inp: React.CSSProperties = {
     width: '100%',
@@ -38,7 +41,9 @@ export default function NewThreadModal({
   const submit = async () => {
     if (!title.trim() || !body.trim() || sending) return;
     setSending(true);
-    const ok = await onSubmit({ title: title.trim(), body: body.trim(), category });
+    const valid = pollOptions.map((o) => o.trim()).filter(Boolean);
+    const poll = showPoll && pollQuestion.trim() && valid.length >= 2 ? { question: pollQuestion.trim(), options: valid } : null;
+    const ok = await onSubmit({ title: title.trim(), body: body.trim(), category, poll });
     setSending(false);
     if (ok) onClose();
   };
@@ -100,6 +105,31 @@ export default function NewThreadModal({
           value={body}
           onChange={(e) => setBody(e.target.value)}
         />
+        {!showPoll ? (
+          <button onClick={() => setShowPoll(true)} style={{ background: 'none', border: `1px solid ${border}`, color: muted, borderRadius: 8, padding: '8px 16px', fontSize: 12, cursor: 'pointer', marginBottom: 12 }}>
+            🗳️ + Add a Poll (optional)
+          </button>
+        ) : (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: muted }}>🗳️ Poll</span>
+              <button onClick={() => { setShowPoll(false); setPollQuestion(''); setPollOptions(['', '']); }} style={{ background: 'none', border: 'none', color: G.red, fontSize: 12, cursor: 'pointer' }}>Remove poll</button>
+            </div>
+            <input type="text" placeholder="Poll question" style={inp} value={pollQuestion} maxLength={150} onChange={(e) => setPollQuestion(e.target.value)} />
+            {pollOptions.map((opt, i) => (
+              <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <input type="text" placeholder={`Option ${i + 1}`} style={{ ...inp, marginBottom: 0, flex: 1 }} value={opt} maxLength={80}
+                  onChange={(e) => setPollOptions((o) => o.map((x, xi) => (xi === i ? e.target.value : x)))} />
+                {pollOptions.length > 2 && (
+                  <button onClick={() => setPollOptions((o) => o.filter((_, xi) => xi !== i))} style={{ background: 'none', border: `1px solid ${G.red}`, color: G.red, borderRadius: 8, padding: '0 14px', cursor: 'pointer' }}>✕</button>
+                )}
+              </div>
+            ))}
+            {pollOptions.length < 6 && (
+              <button onClick={() => setPollOptions((o) => [...o, ''])} style={{ background: 'none', border: `1px solid ${border}`, color: muted, borderRadius: 8, padding: '8px 16px', fontSize: 12, cursor: 'pointer' }}>+ Add Option</button>
+            )}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 10 }}>
           <button
             onClick={submit}

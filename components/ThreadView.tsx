@@ -10,6 +10,7 @@ import { getVoterKey } from '@/lib/voter';
 import { CATEGORIES, G } from '@/lib/theme';
 import { useAuth } from './AuthProvider';
 import ReportModal from './ReportModal';
+import ThreadPoll from './ThreadPoll';
 import { useTheme } from './ThemeProvider';
 import { useToast } from './ToastProvider';
 
@@ -70,6 +71,29 @@ export default function ThreadView({ thread: initial }: { thread: ForumThread })
   useEffect(() => {
     loadReplies();
   }, [loadReplies]);
+
+  // Count one view per visitor per browser session. Old threads hold the
+  // placeholder "New" (or text), so anything non-numeric counts as 0.
+  useEffect(() => {
+    const key = `naija_thread_viewed_${initial.id}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, '1');
+    } catch {
+      /* no sessionStorage: just count it */
+    }
+    (async () => {
+      try {
+        const { data } = await supabase.from('forum_threads').select('views').eq('id', initial.id).maybeSingle();
+        const n = Number.parseInt(String(data?.views ?? '0'), 10);
+        const next = (Number.isFinite(n) ? n : 0) + 1;
+        const { error } = await supabase.from('forum_threads').update({ views: String(next) }).eq('id', initial.id);
+        if (!error) setThread((t) => ({ ...t, views: next }));
+      } catch {
+        /* view counting is best-effort */
+      }
+    })();
+  }, [initial.id]);
 
   const handlePostReply = async () => {
     const body = reply.trim();
@@ -266,6 +290,8 @@ export default function ThreadView({ thread: initial }: { thread: ForumThread })
       >
         {thread.body || thread.preview}
       </div>
+
+      <ThreadPoll threadId={thread.id} />
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         <button onClick={handleThreadUpvote} style={{ fontSize: 12, padding: '5px 14px', borderRadius: 6, border: `1px solid ${threadUpvoted ? G.green : border}`, color: threadUpvoted ? G.green : muted, background: 'none', cursor: 'pointer' }}>

@@ -62,6 +62,9 @@ export default function ForumList({ threads: serverThreads }: { threads: ForumTh
         showToast('Error: ' + error.message);
         return false;
       }
+      if (t.poll && data?.[0]) {
+        await supabase.from('polls').insert([{ thread_id: data[0].id, question: t.poll.question, options: t.poll.options }]);
+      }
       if (canModerate && data?.[0]) {
         setAdded((a) => [data[0] as ForumThread, ...a]);
         showToast('Thread posted! 🎉');
