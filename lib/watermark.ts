@@ -4,9 +4,9 @@ const NT_WATERMARK =
   'l_text:Arial_16_bold:NaijaToday%20-%20naijatodayblog.com.ng,co_white,b_rgb:008751,g_south,y_10';
 const FETCH_BASE = 'https://res.cloudinary.com/dywtb9ky3/image/fetch/';
 
-export function toCloudinaryWm(url: string | null | undefined, width = 800): string | undefined {
+export function toCloudinaryWm(url: string | null | undefined, width = 800, format: 'auto' | 'jpg' = 'auto'): string | undefined {
   if (!url || !url.startsWith('http')) return undefined;
-  const transforms = `q_auto,f_auto,w_${width},c_limit/`;
+  const transforms = `q_auto,f_${format},w_${width},c_limit/`;
 
   if (url.includes('cloudinary.com')) {
     if (url.includes('NaijaToday')) return url; // already watermarked

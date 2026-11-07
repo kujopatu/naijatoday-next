@@ -1,8 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getPostBySlug, getAllPublishedPostPaths } from '@/lib/posts';
-import { cloudinaryTransform } from '@/lib/cloudinary';
-import { watermarkHtml } from '@/lib/watermark';
+import { toCloudinaryWm, watermarkHtml } from '@/lib/watermark';
 import { supabase, Post } from '@/lib/supabase';
 import SiteHeader from '@/components/SiteHeader';
 import BreakingNewsBar from '@/components/BreakingNewsBar';
@@ -18,7 +17,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = await getPostBySlug(category, slug);
   if (!post) return {};
 
-  const image = cloudinaryTransform(post.image, { width: 1200, height: 630 });
+  // Link previews (WhatsApp, Facebook, X) carry the NaijaToday watermark, as on the old site.
+  const image = toCloudinaryWm(post.image, 1200, 'jpg') ?? '/og-image.jpg';
 
   return {
     title: post.title,
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: post.title,
       description: post.excerpt ?? undefined,
-      images: image ? [{ url: image, width: 1200, height: 630 }] : undefined,
+      images: [{ url: image }],
       type: 'article',
       publishedTime: post.created_at,
     },
@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       card: 'summary_large_image',
       title: post.title,
       description: post.excerpt ?? undefined,
-      images: image ? [image] : undefined,
+      images: [image],
     },
     alternates: { canonical: `/article/${category}/${slug}` },
   };
