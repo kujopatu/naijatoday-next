@@ -6,6 +6,8 @@ import { Job, Scholarship } from '@/lib/jobs';
 import { G } from '@/lib/theme';
 import { useToast } from '../ToastProvider';
 import { useTheme } from '../ThemeProvider';
+import BulkImport from './BulkImport';
+import { jobsSpec, scholarshipsSpec } from '@/lib/bulkSpecs';
 
 type JobForm = {
   title: string;
@@ -72,6 +74,8 @@ export default function JobsScholarshipsManager() {
   const [showJobForm, setShowJobForm] = useState(false);
   const [showScholarshipForm, setShowScholarshipForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [bulkJobs, setBulkJobs] = useState(false);
+  const [bulkSch, setBulkSch] = useState(false);
   const [jobForm, setJobForm] = useState<JobForm>(emptyJob);
   const [scholarshipForm, setScholarshipForm] = useState<ScholarshipForm>(emptyScholarship);
 
@@ -278,6 +282,17 @@ export default function JobsScholarshipsManager() {
 
       {tab === 'jobs' && (
         <div>
+          {!showJobForm && (
+            <div>
+              <button
+                onClick={() => setBulkJobs((v) => !v)}
+                style={{ background: 'none', color: G.gold, border: `1px solid ${G.gold}`, borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 16, marginRight: 10 }}
+              >
+                {bulkJobs ? '✕ Cancel bulk upload' : '📤 Bulk Upload (Excel/CSV)'}
+              </button>
+              {bulkJobs && <BulkImport spec={jobsSpec} onDone={() => { loadJobs(); setBulkJobs(false); }} />}
+            </div>
+          )}
           {!showJobForm ? (
             <button
               onClick={() => {
@@ -347,6 +362,17 @@ export default function JobsScholarshipsManager() {
 
       {tab === 'scholarships' && (
         <div>
+          {!showScholarshipForm && (
+            <div>
+              <button
+                onClick={() => setBulkSch((v) => !v)}
+                style={{ background: 'none', color: G.gold, border: `1px solid ${G.gold}`, borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 16, marginRight: 10 }}
+              >
+                {bulkSch ? '✕ Cancel bulk upload' : '📤 Bulk Upload (Excel/CSV)'}
+              </button>
+              {bulkSch && <BulkImport spec={scholarshipsSpec} onDone={() => { loadScholarships(); setBulkSch(false); }} />}
+            </div>
+          )}
           {!showScholarshipForm ? (
             <button
               onClick={() => {

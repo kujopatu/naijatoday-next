@@ -6,6 +6,8 @@ import { Fixture } from '@/lib/fixtures';
 import { G } from '@/lib/theme';
 import { useToast } from '../ToastProvider';
 import { useTheme } from '../ThemeProvider';
+import BulkImport from './BulkImport';
+import { fixturesSpec } from '@/lib/bulkSpecs';
 
 type FixtureForm = {
   competition: string;
@@ -35,6 +37,7 @@ export default function FixturesManagerPanel() {
   const { card, border, text, muted, darkMode } = useTheme();
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showBulkImport, setShowBulkImport] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -182,6 +185,15 @@ export default function FixturesManagerPanel() {
 
   return (
     <div>
+      <div style={{ marginBottom: showBulkImport ? 0 : 12 }}>
+        <button
+          onClick={() => setShowBulkImport((v) => !v)}
+          style={{ background: 'none', color: G.gold, border: `1px solid ${G.gold}`, borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 12 }}
+        >
+          {showBulkImport ? '✕ Cancel bulk upload' : '📤 Bulk Upload (Excel/CSV)'}
+        </button>
+        {showBulkImport && <BulkImport spec={fixturesSpec} onDone={() => { loadFixtures(); setShowBulkImport(false); }} />}
+      </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ fontSize: 18, fontWeight: 700, color: text, fontFamily: 'Georgia,serif' }}>⚽ Fixtures &amp; Scores Manager ({fixtures.length})</div>
         <button
