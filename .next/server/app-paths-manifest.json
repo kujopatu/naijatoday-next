@@ -6,14 +6,14 @@
   "/admin/page": "app/admin/page.js",
   "/reset-password/page": "app/reset-password/page.js",
   "/search/page": "app/search/page.js",
+  "/article/[category]/[slug]/page": "app/article/[category]/[slug]/page.js",
   "/contact/page": "app/contact/page.js",
+  "/category/[slug]/page": "app/category/[slug]/page.js",
+  "/forum/page": "app/forum/page.js",
   "/jobs/page": "app/jobs/page.js",
   "/page": "app/page.js",
   "/resources/page": "app/resources/page.js",
   "/saved/page": "app/saved/page.js",
   "/scores/page": "app/scores/page.js",
-  "/article/[category]/[slug]/page": "app/article/[category]/[slug]/page.js",
-  "/forum/page": "app/forum/page.js",
-  "/category/[slug]/page": "app/category/[slug]/page.js",
   "/trending/page": "app/trending/page.js"
 }

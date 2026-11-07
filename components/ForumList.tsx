@@ -1,30 +1,79 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import { ForumThread } from '@/lib/forum';
+import { isBanned, timeAgo } from '@/lib/forumActions';
 import { CATEGORIES, G } from '@/lib/theme';
 import { useAuth } from './AuthProvider';
+import NewThreadModal, { NewThreadInput } from './NewThreadModal';
 import { useTheme } from './ThemeProvider';
+import { useToast } from './ToastProvider';
 
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const h = Math.floor(diff / 3600000);
-  if (h < 1) return 'Just now';
-  if (h < 24) return `${h} hour${h > 1 ? 's' : ''} ago`;
-  const d = Math.floor(h / 24);
-  return `${d} day${d > 1 ? 's' : ''} ago`;
-}
-
-export default function ForumList({ threads: allThreads }: { threads: ForumThread[] }) {
+export default function ForumList({ threads: serverThreads }: { threads: ForumThread[] }) {
   const { card, border, text, muted, darkMode } = useTheme();
-  const { loggedIn, openModal } = useAuth();
+  const { loggedIn, username, userEmail, canModerate, openModal } = useAuth();
+  const { showToast } = useToast();
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
+  const [showNew, setShowNew] = useState(false);
+  // Threads a moderator just posted, shown straight away (the server page is cached for a short while).
+  const [added, setAdded] = useState<ForumThread[]>([]);
+
+  const allThreads = useMemo(
+    () => [...added.filter((a) => !serverThreads.some((s) => s.id === a.id)), ...serverThreads],
+    [added, serverThreads]
+  );
 
   const sorted = useMemo(
     () => [...allThreads].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)),
     [allThreads]
   );
+
+  // Moderators publish immediately; everyone else's thread waits in the
+  // pending queue (Admin → Forum Manager) until approved — as in the original.
+  const handleNewThread = async (t: NewThreadInput): Promise<boolean> => {
+    if (await isBanned(userEmail)) {
+      showToast('Your account has been restricted from posting.');
+      return false;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('forum_threads')
+        .insert([
+          {
+            title: t.title,
+            body: t.body,
+            preview: t.body.slice(0, 120) + '…',
+            category: t.category,
+            author: username || 'Anonymous',
+            author_email: userEmail,
+            replies: 0,
+            views: 'New',
+            hot: false,
+            pinned: false,
+            closed: false,
+            status: canModerate ? 'approved' : 'pending',
+          },
+        ])
+        .select();
+      if (error) {
+        showToast('Error: ' + error.message);
+        return false;
+      }
+      if (canModerate && data?.[0]) {
+        setAdded((a) => [data[0] as ForumThread, ...a]);
+        showToast('Thread posted! 🎉');
+      } else {
+        showToast('Thread submitted for review! 📋 It will go live once approved.');
+      }
+      return true;
+    } catch {
+      showToast('Connection error');
+      return false;
+    }
+  };
   const catFiltered = filter === 'All' ? sorted : sorted.filter((t) => t.category === filter);
   const threads = search.trim()
     ? catFiltered.filter(
@@ -71,7 +120,7 @@ export default function ForumList({ threads: allThreads }: { threads: ForumThrea
           fontWeight: 600,
         }}
       >
-        💬 Browsing is open to everyone. Sign in to save your spot — starting new threads is coming very soon.
+        💬 Browsing is open to everyone. Sign in to reply and start new threads.
       </div>
 
       <div style={{ position: 'relative', marginBottom: 16 }}>
@@ -119,11 +168,7 @@ export default function ForumList({ threads: allThreads }: { threads: ForumThrea
           })}
         </div>
         <button
-          onClick={() =>
-            loggedIn
-              ? alert("Starting new threads is coming very soon — you're signed in and ready for it.")
-              : openModal('login')
-          }
+          onClick={() => (loggedIn ? setShowNew(true) : openModal('login'))}
           style={{
             background: G.green,
             color: '#fff',
@@ -147,9 +192,13 @@ export default function ForumList({ threads: allThreads }: { threads: ForumThrea
         </div>
       ) : (
         threads.map((thread) => (
-          <div
+          <Link
             key={thread.id}
+            href={`/forum/${thread.id}`}
             style={{
+              display: 'block',
+              textDecoration: 'none',
+              color: 'inherit',
               background: card,
               border: `1px solid ${thread.pinned ? G.gold : border}`,
               borderRadius: 10,
@@ -205,8 +254,11 @@ export default function ForumList({ threads: allThreads }: { threads: ForumThrea
               <span>⏰ {timeAgo(thread.created_at)}</span>
               {typeof thread.upvotes === 'number' && thread.upvotes > 0 && <span>👍 {thread.upvotes}</span>}
             </div>
-          </div>
+          </Link>
         ))
+      )}
+      {showNew && (
+        <NewThreadModal canModerate={canModerate} onClose={() => setShowNew(false)} onSubmit={handleNewThread} />
       )}
     </div>
   );
