@@ -21,6 +21,7 @@ import PollAnalyticsPanel from './admin/PollAnalyticsPanel';
 import UserManagementPanel from './admin/UserManagementPanel';
 import AdminDiagnostic from './admin/AdminDiagnostic';
 import AdminToolsHub from './admin/AdminToolsHub';
+import RichTextEditor from './admin/RichTextEditor';
 
 const CLOUDINARY_CLOUD = 'dywtb9ky3';
 const CLOUDINARY_PRESET = 'naijatorday_upload';
@@ -732,14 +733,9 @@ export default function AdminPanel() {
           />
 
           <label style={{ fontSize: 13, fontWeight: 600, color: muted, display: 'block', marginBottom: 6 }}>
-            Full Article Content * <span style={{ fontWeight: 400 }}>(HTML — shown when a reader opens the article)</span>
+            Full Article Content * <span style={{ fontWeight: 400 }}>(formatted text — use the toolbar, or &lt;/&gt; HTML to edit the code)</span>
           </label>
-          <textarea
-            placeholder="<p>Write the full article here. Basic HTML tags (p, b, i, a, ul/li) are supported.</p>"
-            style={{ ...inp, minHeight: 220, resize: 'vertical', fontFamily: 'monospace', fontSize: 13 }}
-            value={form.content}
-            onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
-          />
+          <RichTextEditor key={editId || 'new'} value={form.content} onChange={(html) => setForm((f) => ({ ...f, content: html }))} />
 
           <label style={{ fontSize: 13, fontWeight: 600, color: muted, display: 'block', marginBottom: 6 }}>
             Tags <span style={{ fontWeight: 400 }}>(comma-separated — helps with related articles &amp; discovery)</span>

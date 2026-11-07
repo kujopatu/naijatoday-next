@@ -6,14 +6,18 @@
   "/admin/page": "/admin",
   "/reset-password/page": "/reset-password",
   "/search/page": "/search",
-  "/article/[category]/[slug]/page": "/article/[category]/[slug]",
   "/contact/page": "/contact",
   "/category/[slug]/page": "/category/[slug]",
   "/forum/page": "/forum",
+  "/author/[name]/page": "/author/[name]",
   "/jobs/page": "/jobs",
   "/page": "/",
-  "/resources/page": "/resources",
+  "/profile/page": "/profile",
   "/saved/page": "/saved",
+  "/resources/page": "/resources",
   "/scores/page": "/scores",
-  "/trending/page": "/trending"
+  "/trending/page": "/trending",
+  "/forum/[id]/page": "/forum/[id]",
+  "/user/[name]/page": "/user/[name]",
+  "/article/[category]/[slug]/page": "/article/[category]/[slug]"
 }
