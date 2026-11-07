@@ -115,6 +115,13 @@ export default function UserMenu() {
             <div style={{ fontSize: 11, color: ring, marginTop: 4, fontWeight: 600 }}>{roleLabel}</div>
           </div>
           <Link
+            href="/profile"
+            onClick={() => setOpen(false)}
+            style={{ display: 'block', padding: '11px 16px', fontSize: 13, color: text, textDecoration: 'none' }}
+          >
+            👤 My Profile
+          </Link>
+          <Link
             href="/saved"
             onClick={() => setOpen(false)}
             style={{ display: 'block', padding: '11px 16px', fontSize: 13, color: text, textDecoration: 'none' }}

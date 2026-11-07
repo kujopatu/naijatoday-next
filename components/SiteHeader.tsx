@@ -8,6 +8,7 @@ import { useAuth } from './AuthProvider';
 import { useTheme } from './ThemeProvider';
 import SearchBox from './SearchBox';
 import UserMenu from './UserMenu';
+import NotificationBell from './NotificationBell';
 
 // Home is wired to a real page. The rest point at routes that don't
 // exist yet (search, auth, forum, jobs, admin, etc. are all separate,
@@ -211,6 +212,7 @@ export default function SiteHeader({
               {darkMode ? '☀️' : '🌙'}
               <span style={{ fontSize: 8, color: muted, letterSpacing: 0.5 }}>{darkMode ? 'LIGHT' : 'DARK'}</span>
             </button>
+            <NotificationBell />
             <UserMenu />
           </div>
         </div>

@@ -6,7 +6,9 @@ import { Post, supabase } from '@/lib/supabase';
 import { findCategory, G } from '@/lib/theme';
 import { postPath } from '@/lib/posts';
 import { toCloudinaryWm } from '@/lib/watermark';
+import { getStreakInfo, recordReadToday, streakMessage } from '@/lib/streak';
 import { useAuth } from '../AuthProvider';
+import { useToast } from '../ToastProvider';
 import { useTheme } from '../ThemeProvider';
 import { ADMIN_EMAIL } from '@/lib/auth';
 import CommentsSection from '../CommentsSection';
@@ -16,27 +18,19 @@ import PollWidget from './PollWidget';
 import ProductCTA from './ProductCTA';
 import ReadingProgressBar from './ReadingProgressBar';
 
-// Same keys as the original app so existing streaks carry over.
-function recordReadToday() {
-  try {
-    const today = new Date().toISOString().slice(0, 10);
-    const dates: string[] = JSON.parse(localStorage.getItem('naija_streak_dates') || '[]');
-    if (!dates.includes(today)) {
-      dates.push(today);
-      localStorage.setItem('naija_streak_dates', JSON.stringify(dates.slice(-400)));
-    }
-    localStorage.setItem('naija_streak_last', today);
-  } catch {}
-}
-
 export default function ArticleView({ post, html, related }: { post: Post; html: string; related: Post[] }) {
   const { card, border, text, muted } = useTheme();
   const { loggedIn, userEmail } = useAuth();
+  const { showToast } = useToast();
 
   // Count the view once per mount, update streak, log reading history.
   useEffect(() => {
     supabase.rpc('increment_post_views', { p_id: post.id }).then(() => {});
+    const before = getStreakInfo();
     recordReadToday();
+    const after = getStreakInfo();
+    if (after.current > before.current && after.current > 1) setTimeout(() => showToast(streakMessage(after.current)), 800);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.id]);
 
   useEffect(() => {
@@ -102,7 +96,9 @@ export default function ArticleView({ post, html, related }: { post: Post; html:
             {(post.author || 'N')[0].toUpperCase()}
           </div>
           <div>
-            <div style={{ fontWeight: 700, color: text }}>{post.author || 'NaijaToday Desk'}</div>
+            <div style={{ fontWeight: 700, color: text }}>
+              {post.author ? <Link href={`/author/${encodeURIComponent(post.author)}`} style={{ color: 'inherit', textDecoration: 'none' }}>{post.author}</Link> : 'NaijaToday Desk'}
+            </div>
             <div style={{ fontSize: 12.5, color: muted, marginTop: 2 }}>
               {isDesk ? 'The NaijaToday newsroom — Staff Writers based in Lagos, Nigeria.' : 'Staff Writer · NaijaToday'}
             </div>
