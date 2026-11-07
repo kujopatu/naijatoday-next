@@ -6,8 +6,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ForumReply, ForumThread } from '@/lib/forum';
 import { isBanned, timeAgo } from '@/lib/forumActions';
+import { getVoterKey } from '@/lib/voter';
 import { CATEGORIES, G } from '@/lib/theme';
 import { useAuth } from './AuthProvider';
+import ReportModal from './ReportModal';
 import { useTheme } from './ThemeProvider';
 import { useToast } from './ToastProvider';
 
@@ -24,6 +26,9 @@ export default function ThreadView({ thread: initial }: { thread: ForumThread })
   const [loadingReplies, setLoadingReplies] = useState(true);
   const [reply, setReply] = useState('');
   const [posting, setPosting] = useState(false);
+  const [threadUpvoted, setThreadUpvoted] = useState(false);
+  const [replyUpvoted, setReplyUpvoted] = useState<Record<number, boolean>>({});
+  const [reportTarget, setReportTarget] = useState<{ type: 'thread' | 'reply'; id: number } | null>(null);
 
   const cat = CATEGORIES.find((c) => c.name === thread.category);
 
@@ -34,12 +39,33 @@ export default function ThreadView({ thread: initial }: { thread: ForumThread })
         .select('*')
         .eq('thread_id', initial.id)
         .order('created_at', { ascending: true });
-      if (!error && data) setReplies(data as ForumReply[]);
+      if (!error && data) {
+        setReplies(data as ForumReply[]);
+        loadReplyVotes((data as ForumReply[]).map((r) => r.id));
+      }
     } catch {
       /* leave empty */
     }
     setLoadingReplies(false);
-  }, [initial.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial.id, userEmail]);
+
+  // Which of these has this member / device already upvoted?
+  const loadReplyVotes = async (ids: number[]) => {
+    const voterKey = getVoterKey(userEmail);
+    try {
+      const { data } = await supabase.from('forum_votes').select('target_type, target_id').eq('voter_key', voterKey).in('target_type', ['thread', 'reply']);
+      if (!data) return;
+      setThreadUpvoted(data.some((v) => v.target_type === 'thread' && v.target_id === initial.id));
+      const map: Record<number, boolean> = {};
+      data.forEach((v) => {
+        if (v.target_type === 'reply' && ids.includes(v.target_id)) map[v.target_id] = true;
+      });
+      setReplyUpvoted(map);
+    } catch {
+      /* votes are best-effort */
+    }
+  };
 
   useEffect(() => {
     loadReplies();
@@ -78,6 +104,64 @@ export default function ThreadView({ thread: initial }: { thread: ForumThread })
       showToast('Connection error');
     }
     setPosting(false);
+  };
+
+  const handleThreadUpvote = async () => {
+    const voterKey = getVoterKey(userEmail);
+    const was = threadUpvoted;
+    setThreadUpvoted(!was);
+    setThread((t) => ({ ...t, upvotes: Math.max(0, (t.upvotes || 0) + (was ? -1 : 1)) }));
+    try {
+      if (was) {
+        await supabase.from('forum_votes').delete().eq('target_type', 'thread').eq('target_id', thread.id).eq('voter_key', voterKey);
+        await supabase.rpc('decrement_thread_upvotes', { t_id: thread.id });
+        showToast('Vote removed');
+      } else {
+        const { error } = await supabase.from('forum_votes').insert([{ target_type: 'thread', target_id: thread.id, voter_key: voterKey }]);
+        if (!error) await supabase.rpc('increment_thread_upvotes', { t_id: thread.id });
+        showToast('Upvoted! 👍');
+      }
+    } catch {
+      /* the screen already shows the change */
+    }
+  };
+
+  const handleReplyUpvote = async (r: ForumReply) => {
+    const voterKey = getVoterKey(userEmail);
+    const was = !!replyUpvoted[r.id];
+    setReplyUpvoted((u) => ({ ...u, [r.id]: !was }));
+    setReplies((rs) => rs.map((x) => (x.id === r.id ? { ...x, upvotes: Math.max(0, (x.upvotes || 0) + (was ? -1 : 1)) } : x)));
+    try {
+      if (was) {
+        await supabase.from('forum_votes').delete().eq('target_type', 'reply').eq('target_id', r.id).eq('voter_key', voterKey);
+        await supabase.rpc('decrement_reply_upvotes', { r_id: r.id });
+      } else {
+        const { error } = await supabase.from('forum_votes').insert([{ target_type: 'reply', target_id: r.id, voter_key: voterKey }]);
+        if (!error) await supabase.rpc('increment_reply_upvotes', { r_id: r.id });
+      }
+    } catch {
+      /* best-effort */
+    }
+  };
+
+  const submitReport = async (reason: string) => {
+    if (!reportTarget) return;
+    try {
+      const { error } = await supabase.from('forum_reports').insert([
+        {
+          target_type: reportTarget.type,
+          target_id: reportTarget.id,
+          thread_id: thread.id,
+          reason: reason || 'No reason given',
+          reported_by: username || getVoterKey(userEmail),
+          status: 'pending',
+        },
+      ]);
+      if (error) showToast('Error: ' + error.message);
+      else showToast('Reported. A moderator will review it. 🚩');
+    } catch {
+      showToast('Connection error');
+    }
   };
 
   const togglePin = async () => {
@@ -183,6 +267,15 @@ export default function ThreadView({ thread: initial }: { thread: ForumThread })
         {thread.body || thread.preview}
       </div>
 
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <button onClick={handleThreadUpvote} style={{ fontSize: 12, padding: '5px 14px', borderRadius: 6, border: `1px solid ${threadUpvoted ? G.green : border}`, color: threadUpvoted ? G.green : muted, background: 'none', cursor: 'pointer' }}>
+          👍 {thread.upvotes || 0}
+        </button>
+        <button onClick={() => setReportTarget({ type: 'thread', id: thread.id })} style={{ fontSize: 12, padding: '5px 14px', borderRadius: 6, border: `1px solid ${border}`, color: muted, background: 'none', cursor: 'pointer' }}>
+          🚩 Report
+        </button>
+      </div>
+
       {canModerate && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingBottom: 16, marginBottom: 20, borderBottom: `1px solid ${border}` }}>
           <button onClick={togglePin} style={{ fontSize: 12, padding: '6px 14px', borderRadius: 6, border: `1px solid ${G.gold}`, color: G.gold, background: 'none', cursor: 'pointer' }}>
@@ -246,10 +339,19 @@ export default function ThreadView({ thread: initial }: { thread: ForumThread })
                 {new Date(r.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
               </span>
             </div>
-            <div style={{ fontSize: 14, color: D ? '#c8d0dc' : '#2d3748', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{r.text}</div>
+            <div style={{ fontSize: 14, color: D ? '#c8d0dc' : '#2d3748', lineHeight: 1.6, whiteSpace: 'pre-wrap', marginBottom: 8 }}>{r.text}</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => handleReplyUpvote(r)} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: `1px solid ${replyUpvoted[r.id] ? G.green : border}`, color: replyUpvoted[r.id] ? G.green : muted, background: 'none', cursor: 'pointer' }}>
+                👍 {r.upvotes || 0}
+              </button>
+              <button onClick={() => setReportTarget({ type: 'reply', id: r.id })} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: `1px solid ${border}`, color: muted, background: 'none', cursor: 'pointer' }}>
+                🚩 Report
+              </button>
+            </div>
           </div>
         ))
       )}
+      {reportTarget && <ReportModal kind={reportTarget.type} onClose={() => setReportTarget(null)} onSubmit={submitReport} />}
     </div>
   );
 }
