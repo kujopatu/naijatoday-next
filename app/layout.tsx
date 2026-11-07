@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import Script from "next/script";
 import MetaPixelTracker from "@/components/MetaPixelTracker";
+import ThirdPartyScripts from "@/components/ThirdPartyScripts";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { SavedPostsProvider } from "@/components/SavedPostsProvider";
 import { ToastProvider } from "@/components/ToastProvider";
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Suspense fallback={null}>
           <MetaPixelTracker />
         </Suspense>
+        <ThirdPartyScripts />
         <ThemeProvider>
           <ToastProvider>
             <AuthProvider>

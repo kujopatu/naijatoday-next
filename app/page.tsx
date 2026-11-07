@@ -6,6 +6,8 @@ import FeaturedCarousel from '@/components/FeaturedCarousel';
 import TrendingTicker from '@/components/TrendingTicker';
 import HomeFeed from '@/components/HomeFeed';
 import MostReadSidebar from '@/components/MostReadSidebar';
+import SubscribeBox from '@/components/SubscribeBox';
+import SidebarWidgets from '@/components/SidebarWidgets';
 
 // Refresh homepage data at most every 5 minutes (ISR) rather than on
 // every single request.
@@ -40,6 +42,8 @@ export default async function HomePage() {
         </main>
         <aside>
           <MostReadSidebar posts={allPosts} />
+          <SubscribeBox />
+          <SidebarWidgets />
         </aside>
       </div>
       <style>{`

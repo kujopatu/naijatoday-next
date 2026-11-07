@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getPostBySlug, getAllPublishedPostPaths } from '@/lib/posts';
 import { cloudinaryTransform } from '@/lib/cloudinary';
+import ArticleEngagement from '@/components/ArticleEngagement';
 
 type Props = {
   params: Promise<{ category: string; slug: string }>;
@@ -59,6 +60,7 @@ export default async function ArticlePage({ params }: Props) {
   const image = cloudinaryTransform(post.image, { width: 1200 });
 
   return (
+    <>
     <article className="mx-auto max-w-3xl px-4 py-8">
       <p className="text-sm uppercase tracking-wide text-gray-500">
         {post.category}
@@ -81,5 +83,7 @@ export default async function ArticlePage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: post.content }}
       />
     </article>
+    <ArticleEngagement postId={post.id} title={post.title} author={post.author} />
+    </>
   );
 }
