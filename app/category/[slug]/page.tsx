@@ -16,7 +16,12 @@ type Props = {
 
 export const revalidate = 300;
 
-function findCategoryBySlug(slug: string) {
+// Accepts the old site's URLs too, e.g. /category/Entertainment or
+// /category/Relationship%20Advice, by normalising before matching.
+function findCategoryBySlug(raw: string) {
+  let decoded = raw;
+  try { decoded = decodeURIComponent(raw); } catch { /* keep raw */ }
+  const slug = categorySlug(decoded);
   return CATEGORIES.find((c) => categorySlug(c.name) === slug);
 }
 
