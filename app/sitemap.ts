@@ -1,30 +1,34 @@
 import type { MetadataRoute } from 'next';
 import { supabase } from '@/lib/supabase';
-import { postPath } from '@/lib/posts';
+import { categorySlug, postPath } from '@/lib/posts';
+import { CATEGORIES } from '@/lib/theme';
+import { SITE_URL } from '@/lib/site';
 
-const SITE_URL = 'https://naijatodayblog.com.ng';
+export const revalidate = 3600;
+
+type Freq = NonNullable<MetadataRoute.Sitemap[number]['changeFrequency']>;
+const STATIC: [string, Freq, number][] = [
+  ['', 'hourly', 1], ['/trending', 'hourly', 0.9], ['/forum', 'daily', 0.8], ['/jobs', 'daily', 0.8],
+  ['/resources', 'weekly', 0.7], ['/scores', 'daily', 0.6], ['/about', 'monthly', 0.5], ['/contact', 'monthly', 0.4],
+  ['/privacy', 'yearly', 0.3], ['/terms', 'yearly', 0.3], ['/disclaimer', 'yearly', 0.3],
+];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  let posts: { id: string; title: string; category: string; updated_at: string }[] = [];
-
+  let posts: { id: string; title: string; category: string; image: string | null; created_at: string; updated_at: string | null }[] = [];
   try {
-    const { data } = await supabase
-      .from('posts')
-      .select('id, title, category, updated_at')
-      .eq('published', true)
-      .order('created_at', { ascending: false });
+    const { data } = await supabase.from('posts').select('id, title, category, image, created_at, updated_at').eq('published', true).order('created_at', { ascending: false });
     posts = data ?? [];
-  } catch {}
-
-  const postEntries: MetadataRoute.Sitemap = posts.map((p) => ({
-    url: `${SITE_URL}${postPath(p)}`,
-    lastModified: p.updated_at,
-    changeFrequency: 'daily',
-    priority: 0.8,
-  }));
+  } catch { /* fall back to static pages only */ }
 
   return [
-    { url: SITE_URL, lastModified: new Date(), changeFrequency: 'hourly', priority: 1 },
-    ...postEntries,
+    ...STATIC.map(([path, changeFrequency, priority]) => ({ url: `${SITE_URL}${path}`, lastModified: new Date(), changeFrequency, priority })),
+    ...CATEGORIES.map((c) => ({ url: `${SITE_URL}/category/${categorySlug(c.name)}`, lastModified: new Date(), changeFrequency: 'daily' as Freq, priority: 0.7 })),
+    ...posts.map((p) => ({
+      url: `${SITE_URL}${postPath(p)}`,
+      lastModified: p.updated_at || p.created_at,
+      changeFrequency: 'weekly' as Freq,
+      priority: 0.9,
+      images: p.image && /^https?:\/\//.test(p.image.trim()) ? [p.image.trim()] : undefined,
+    })),
   ];
 }

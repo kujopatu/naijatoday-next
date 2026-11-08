@@ -7,6 +7,9 @@ import SiteHeader from '@/components/SiteHeader';
 import BreakingNewsBar from '@/components/BreakingNewsBar';
 import CategoryPills from '@/components/CategoryPills';
 import ArticleView from '@/components/article/ArticleView';
+import JsonLd from '@/components/JsonLd';
+import { SITE_URL } from '@/lib/site';
+import { categorySlug, postPath } from '@/lib/posts';
 
 type Props = {
   params: Promise<{ category: string; slug: string }>;
@@ -75,6 +78,34 @@ export default async function ArticlePage({ params }: Props) {
       <SiteHeader articleCount={articleCount ?? 0} memberCount={memberCount ?? null} />
       <BreakingNewsBar />
       <CategoryPills />
+      <JsonLd
+        data={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'NewsArticle',
+            headline: post.title,
+            description: post.excerpt ?? '',
+            image: post.image && post.image.startsWith('http') ? [post.image] : [],
+            datePublished: post.created_at,
+            dateModified: post.updated_at || post.created_at,
+            author: { '@type': 'Person', name: post.author || 'NaijaToday Desk' },
+            publisher: { '@type': 'Organization', name: 'NaijaToday', logo: { '@type': 'ImageObject', url: `${SITE_URL}/icon-512.png` } },
+            url: `${SITE_URL}${postPath(post)}`,
+            mainEntityOfPage: `${SITE_URL}${postPath(post)}`,
+            articleSection: post.category || 'News',
+            keywords: (post.tags ?? []).join(', '),
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+              { '@type': 'ListItem', position: 2, name: post.category || 'News', item: `${SITE_URL}/category/${categorySlug(post.category)}` },
+              { '@type': 'ListItem', position: 3, name: post.title, item: `${SITE_URL}${postPath(post)}` },
+            ],
+          },
+        ]}
+      />
       <ArticleView post={post} html={watermarkHtml(post.content ?? '')} related={related} />
     </>
   );

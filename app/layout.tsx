@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import Script from "next/script";
@@ -12,6 +12,8 @@ import AuthModals from "@/components/AuthModals";
 import SiteFooter from "@/components/SiteFooter";
 import CookieBanner from "@/components/CookieBanner";
 import ScrollButtons from "@/components/ScrollButtons";
+import InstallPrompt from "@/components/InstallPrompt";
+import JsonLd from "@/components/JsonLd";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,6 +33,13 @@ const SITE_TITLE = "NaijaToday — Nigeria's #1 Digital Media";
 const SITE_DESC =
   "NaijaToday — Nigeria's #1 news and entertainment blog. Breaking news, politics, sports, celebrity gist, jobs and scholarships.";
 
+export const viewport: Viewport = {
+  themeColor: "#008751",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: SITE_TITLE,
@@ -38,6 +47,9 @@ export const metadata: Metadata = {
   keywords: ["Nigeria news", "Naija news today", "Nigerian entertainment", "celebrity gist", "Nigerian politics", "Lagos news", "Abuja news", "Afrobeats", "Nollywood", "jobs in Nigeria", "scholarships for Nigerians"],
   authors: [{ name: "NaijaToday Media" }],
   robots: { index: true, follow: true },
+  applicationName: "NaijaToday",
+  appleWebApp: { capable: true, title: "NaijaToday", statusBarStyle: "black-translucent" },
+  icons: { icon: [{ url: "/icon-192.png", sizes: "192x192" }, { url: "/icon-512.png", sizes: "512x512" }], apple: "/apple-touch-icon.png" },
   openGraph: {
     type: "website",
     siteName: "NaijaToday",
@@ -81,6 +93,26 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <MetaPixelTracker />
         </Suspense>
         <ThirdPartyScripts />
+        <JsonLd
+          data={[
+            {
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "NaijaToday",
+              url: SITE_URL,
+              description: "Nigeria's most trusted digital media platform",
+              potentialAction: { "@type": "SearchAction", target: `${SITE_URL}/search?q={search_term_string}`, "query-input": "required name=search_term_string" },
+            },
+            {
+              "@context": "https://schema.org",
+              "@type": "NewsMediaOrganization",
+              name: "NaijaToday",
+              url: SITE_URL,
+              logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png` },
+              address: { "@type": "PostalAddress", addressLocality: "Lagos", addressCountry: "NG" },
+            },
+          ]}
+        />
         <ThemeProvider>
           <ToastProvider>
             <AuthProvider>
@@ -88,6 +120,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <SiteFooter />
               <ScrollButtons />
               <CookieBanner />
+              <InstallPrompt />
               <AuthModals />
             </AuthProvider>
           </ToastProvider>

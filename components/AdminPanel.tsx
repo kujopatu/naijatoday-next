@@ -22,6 +22,7 @@ import UserManagementPanel from './admin/UserManagementPanel';
 import AdminDiagnostic from './admin/AdminDiagnostic';
 import AdminToolsHub from './admin/AdminToolsHub';
 import RichTextEditor from './admin/RichTextEditor';
+import SitemapPanel from './admin/SitemapPanel';
 
 const CLOUDINARY_CLOUD = 'dywtb9ky3';
 const CLOUDINARY_PRESET = 'naijatorday_upload';
@@ -85,7 +86,7 @@ const TABS: [string, string][] = [
 // Tabs with a real implementation below. Everything else in TABS renders
 // a plain "coming soon" placeholder — kept visible so the panel's shape
 // matches the original, but honest about what's actually built.
-const BUILT_TABS = new Set(['overview', 'new', 'manage', 'moderators', 'reports', 'breaking', 'jobs', 'forum', 'trends', 'dataplans', 'fuel', 'social', 'products', 'fixtures', 'polls', 'users', 'tools']);
+const BUILT_TABS = new Set(['overview', 'new', 'manage', 'moderators', 'reports', 'breaking', 'jobs', 'forum', 'trends', 'dataplans', 'fuel', 'social', 'products', 'fixtures', 'polls', 'users', 'tools', 'sitemap']);
 
 export default function AdminPanel() {
   const { userEmail, isAdmin } = useAuth();
@@ -1104,6 +1105,7 @@ export default function AdminPanel() {
       {activeSection === 'polls' && <PollAnalyticsPanel />}
       {activeSection === 'users' && <UserManagementPanel />}
       {activeSection === 'tools' && <AdminToolsHub />}
+      {activeSection === 'sitemap' && <SitemapPanel />}
     </div>
   );
 }

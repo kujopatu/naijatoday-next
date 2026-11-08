@@ -8,6 +8,9 @@ import HomeFeed from '@/components/HomeFeed';
 import MostReadSidebar from '@/components/MostReadSidebar';
 import SubscribeBox from '@/components/SubscribeBox';
 import SidebarWidgets from '@/components/SidebarWidgets';
+import JsonLd from '@/components/JsonLd';
+import { SITE_URL } from '@/lib/site';
+import { postPath } from '@/lib/posts';
 
 // Refresh homepage data at most every 5 minutes (ISR) rather than on
 // every single request.
@@ -31,6 +34,15 @@ export default async function HomePage() {
 
   return (
     <>
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'ItemList',
+          name: 'Latest News from NaijaToday',
+          url: SITE_URL,
+          itemListElement: allPosts.slice(0, 10).map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: `${SITE_URL}${postPath(p)}`, name: p.title })),
+        }}
+      />
       <SiteHeader articleCount={allPosts.length} memberCount={memberCount ?? null} />
       <BreakingNewsBar />
       <CategoryPills />
