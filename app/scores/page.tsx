@@ -18,7 +18,7 @@ export default async function ScoresPage() {
   const [{ data: fixtures }, { count: articleCount }, { count: memberCount }] = await Promise.all([
     supabase.from('fixtures').select('*').eq('active', true).order('sort_order', { ascending: true }).limit(500),
     supabase.from('posts').select('*', { count: 'exact', head: true }).eq('published', true),
-    supabase.from('subscribers').select('*', { count: 'exact', head: true }),
+    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'user'),
   ]);
 
   return (
