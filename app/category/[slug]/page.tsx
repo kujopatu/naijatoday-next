@@ -54,8 +54,9 @@ export default async function CategoryPage({ params }: Props) {
 
   const allPosts = posts ?? [];
   const { count: memberCount } = await supabase
-    .from('subscribers')
-    .select('*', { count: 'exact', head: true });
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+    .eq('role', 'user');
 
   return (
     <>
