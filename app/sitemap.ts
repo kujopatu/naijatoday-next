@@ -10,6 +10,7 @@ type Freq = NonNullable<MetadataRoute.Sitemap[number]['changeFrequency']>;
 const STATIC: [string, Freq, number][] = [
   ['', 'hourly', 1], ['/trending', 'hourly', 0.9], ['/forum', 'daily', 0.8], ['/jobs', 'daily', 0.8],
   ['/resources', 'weekly', 0.7], ['/scores', 'daily', 0.6], ['/about', 'monthly', 0.5], ['/contact', 'monthly', 0.4],
+  ['/advertise', 'monthly', 0.4], ['/submit-story', 'monthly', 0.4],
   ['/privacy', 'yearly', 0.3], ['/terms', 'yearly', 0.3], ['/disclaimer', 'yearly', 0.3],
 ];
 
@@ -28,7 +29,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: p.updated_at || p.created_at,
       changeFrequency: 'weekly' as Freq,
       priority: 0.9,
-      images: p.image && /^https?:\/\//.test(p.image.trim()) ? [p.image.trim()] : undefined,
+      images: p.image && /^https?:\\/\\//.test(p.image.trim()) ? [p.image.trim()] : undefined,
     })),
   ];
 }
