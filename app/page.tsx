@@ -29,8 +29,9 @@ export default async function HomePage() {
   const featuredList = flaggedFeatured.length > 0 ? flaggedFeatured : allPosts.slice(0, 5);
 
   const { count: memberCount } = await supabase
-    .from('subscribers')
-    .select('*', { count: 'exact', head: true });
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+    .eq('role', 'user');
 
   return (
     <>
