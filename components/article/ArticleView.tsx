@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Post, supabase } from '@/lib/supabase';
 import { findCategory, G } from '@/lib/theme';
@@ -20,10 +21,21 @@ import PollWidget from './PollWidget';
 import ProductCTA from './ProductCTA';
 import ReadingProgressBar from './ReadingProgressBar';
 
+// Back goes to wherever the reader came from; if they landed straight on the
+// article (shared link, new tab) there is no history, so it goes Home.
+function goBack(router: ReturnType<typeof useRouter>) {
+  try {
+    const fromHere = document.referrer && new URL(document.referrer).origin === window.location.origin;
+    if (fromHere && window.history.length > 1) { router.back(); return; }
+  } catch { /* fall through */ }
+  router.push('/');
+}
+
 export default function ArticleView({ post, html, related }: { post: Post; html: string; related: Post[] }) {
   const { card, border, text, muted } = useTheme();
   const { loggedIn, userEmail } = useAuth();
   const { showToast } = useToast();
+  const router = useRouter();
 
   // Count the view once per mount, update streak, log reading history.
   useEffect(() => {
@@ -53,6 +65,10 @@ export default function ArticleView({ post, html, related }: { post: Post; html:
     <>
       <ReadingProgressBar />
       <article style={{ maxWidth: 760, margin: '0 auto', padding: '24px 16px' }}>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+          <button onClick={() => goBack(router)} style={{ background: card, color: text, border: `1px solid ${border}`, borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>← Back</button>
+          <Link href="/" style={{ background: G.green, color: '#fff', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>🏠 Home</Link>
+        </div>
         <Breadcrumbs items={[{ label: post.category ?? 'News', href: `/category/${categorySlug(post.category ?? '')}` }, { label: post.title }]} />
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
           <Link href={`/category/${(post.category ?? '').toLowerCase().replace(/\s+/g, '-')}`} style={{ background: cat?.color ?? G.green, color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textDecoration: 'none' }}>

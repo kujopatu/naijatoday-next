@@ -20,6 +20,31 @@ const REACTIONS = [
 // functions increment_reaction / decrement_reaction do the counting. The
 // pick is also remembered in the browser (naija_reaction_<postId>) so
 // guests keep it across refreshes.
+type Adjust = { ok: true } | { ok: false; message: string };
+
+// Change one emoji's total by +1 / -1. Uses the database function first and,
+// if that is missing or blocked, updates the post_reactions row directly.
+async function adjustReaction(postId: string, emoji: string, delta: 1 | -1): Promise<Adjust> {
+  const fn = delta === 1 ? 'increment_reaction' : 'decrement_reaction';
+  const rpc = await supabase.rpc(fn, { p_id: postId, p_emoji: emoji });
+  if (!rpc.error) return { ok: true };
+  console.warn(`[reactions] ${fn} failed, trying direct update:`, rpc.error);
+
+  const { data: row, error: readErr } = await supabase
+    .from('post_reactions').select('count').eq('post_id', postId).eq('emoji', emoji).maybeSingle();
+  if (readErr) return { ok: false, message: `${fn}: ${rpc.error.message} | read: ${readErr.message}` };
+  if (row) {
+    const { error } = await supabase.from('post_reactions')
+      .update({ count: Math.max(0, (Number(row.count) || 0) + delta) }).eq('post_id', postId).eq('emoji', emoji);
+    return error ? { ok: false, message: `${fn}: ${rpc.error.message} | update: ${error.message}` } : { ok: true };
+  }
+  if (delta === 1) {
+    const { error } = await supabase.from('post_reactions').insert([{ post_id: postId, emoji, count: 1 }]);
+    return error ? { ok: false, message: `${fn}: ${rpc.error.message} | insert: ${error.message}` } : { ok: true };
+  }
+  return { ok: true };
+}
+
 export default function ReactionBar({ postId }: { postId: string }) {
   const { border, muted, darkMode } = useTheme();
   const { userEmail } = useAuth();
@@ -96,29 +121,32 @@ export default function ReactionBar({ postId }: { postId: string }) {
       /* ignore */
     }
 
+    let failure = '';
     try {
       if (prev) {
-        const { error } = await supabase.rpc('decrement_reaction', { p_id: postId, p_emoji: prev });
-        if (error) throw error;
-        if (userEmail) {
-          await supabase
-            .from('post_reaction_users')
-            .delete()
-            .eq('post_id', postId)
-            .eq('user_email', userEmail)
-            .eq('emoji', prev);
+        const r = await adjustReaction(postId, prev, -1);
+        if (!r.ok) failure = r.message;
+        else if (userEmail) {
+          const { error } = await supabase.from('post_reaction_users').delete()
+            .eq('post_id', postId).eq('user_email', userEmail).eq('emoji', prev);
+          if (error) console.warn('[reactions] could not clear your pick:', error.message);
         }
       }
-      if (newMine) {
-        const { error } = await supabase.rpc('increment_reaction', { p_id: postId, p_emoji: newMine });
-        if (error) throw error;
-        if (userEmail) {
-          await supabase
-            .from('post_reaction_users')
+      if (!failure && newMine) {
+        const r = await adjustReaction(postId, newMine, 1);
+        if (!r.ok) failure = r.message;
+        else if (userEmail) {
+          const { error } = await supabase.from('post_reaction_users')
             .upsert([{ post_id: postId, user_email: userEmail, emoji: newMine }], { onConflict: 'post_id,user_email' });
+          if (error) console.warn('[reactions] could not save your pick:', error.message);
         }
       }
-    } catch {
+    } catch (e) {
+      failure = e instanceof Error ? e.message : 'Unknown error';
+    }
+
+    if (failure) {
+      console.error('[reactions] not saved:', failure);
       // Roll back the screen to what it was.
       setCounts((c) => {
         const next = { ...c };
@@ -133,7 +161,7 @@ export default function ReactionBar({ postId }: { postId: string }) {
       } catch {
         /* ignore */
       }
-      showToast('Could not save your reaction. Try again.');
+      showToast('Reaction not saved: ' + failure.slice(0, 160));
     }
     setBusy(false);
   };
