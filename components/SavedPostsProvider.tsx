@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Post, supabase } from '@/lib/supabase';
 import { useAuth } from './AuthProvider';
+import { useToast } from './ToastProvider';
 
 type Ctx = {
   savedPosts: Post[];
@@ -11,37 +12,19 @@ type Ctx = {
 };
 
 const SavedCtx = createContext<Ctx | null>(null);
-const KEY = 'naija_saved_posts_v1';
 
-// Two modes, matching the original app's own behavior:
-//  - Logged in: the real `saved_posts` table (user_email, post_id) is the
-//    source of truth, same as the original — works across devices.
-//  - Signed out: localStorage, so bookmarking still works for anonymous
-//    readers. (The original has no logic to migrate local saves into an
-//    account on login, so neither does this — consistent, not a regression.)
+// Saving needs an account (as on the original site): the `saved_posts` table
+// (user_email, post_id) is the source of truth, so saves follow the member
+// across devices. Signed-out visitors are asked to log in.
 export function SavedPostsProvider({ children }: { children: React.ReactNode }) {
-  const { loggedIn, userEmail, loading: authLoading } = useAuth();
+  const { loggedIn, userEmail, loading: authLoading, openModal } = useAuth();
+  const { showToast } = useToast();
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
-  const [hydrated, setHydrated] = useState(false);
 
-  // Local (signed-out) load/save.
+  // Signed out: nothing is saved (clears any list left over from a previous login).
   useEffect(() => {
-    if (authLoading || loggedIn) return;
-    try {
-      const raw = localStorage.getItem(KEY);
-      setSavedPosts(raw ? JSON.parse(raw) : []);
-    } catch {
-      setSavedPosts([]);
-    }
-    setHydrated(true);
+    if (!authLoading && !loggedIn) setSavedPosts([]);
   }, [authLoading, loggedIn]);
-
-  useEffect(() => {
-    if (!hydrated || loggedIn) return;
-    try {
-      localStorage.setItem(KEY, JSON.stringify(savedPosts));
-    } catch {}
-  }, [savedPosts, hydrated, loggedIn]);
 
   // Remote (signed-in) load, from the real table.
   useEffect(() => {
@@ -72,26 +55,34 @@ export function SavedPostsProvider({ children }: { children: React.ReactNode }) 
   const isSaved = (id: string) => savedPosts.some((p) => p.id === id);
 
   const toggleSaved = (post: Post) => {
+    if (!loggedIn || !userEmail) {
+      showToast('Please log in to save articles 🔖');
+      openModal('login');
+      return;
+    }
     const currentlySaved = isSaved(post.id);
 
-    // Optimistic UI update either way.
+    // Optimistic UI update; rolled back if the database refuses.
     setSavedPosts((prev) =>
       currentlySaved ? prev.filter((p) => p.id !== post.id) : [post, ...prev].slice(0, 200)
     );
+    const rollback = (message: string) => {
+      setSavedPosts((prev) =>
+        currentlySaved ? [post, ...prev.filter((p) => p.id !== post.id)] : prev.filter((p) => p.id !== post.id)
+      );
+      showToast('Could not update saved articles: ' + message.slice(0, 140));
+    };
 
-    if (loggedIn && userEmail) {
-      if (currentlySaved) {
-        supabase.from('saved_posts').delete().eq('user_email', userEmail).eq('post_id', post.id).then(
-          () => {},
-          () => {}
-        );
-      } else {
-        supabase.from('saved_posts').insert([{ user_email: userEmail, post_id: post.id }]).then(
-          () => {},
-          () => {}
-        );
-      }
-    }
+    const req = currentlySaved
+      ? supabase.from('saved_posts').delete().eq('user_email', userEmail).eq('post_id', post.id)
+      : supabase.from('saved_posts').insert([{ user_email: userEmail, post_id: post.id }]);
+    req.then(
+      ({ error }) => {
+        if (error && !/duplicate|unique/i.test(error.message)) rollback(error.message);
+        else showToast(currentlySaved ? 'Removed from saved' : 'Saved for later 🔖');
+      },
+      () => rollback('network error')
+    );
   };
 
   return <SavedCtx.Provider value={{ savedPosts, isSaved, toggleSaved }}>{children}</SavedCtx.Provider>;

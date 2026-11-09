@@ -5,10 +5,22 @@ import { useSavedPosts } from './SavedPostsProvider';
 import PostCard from './PostCard';
 import { useTheme } from './ThemeProvider';
 import { G } from '@/lib/theme';
+import { useAuth } from './AuthProvider';
 
 export default function SavedList() {
   const { savedPosts } = useSavedPosts();
   const { muted } = useTheme();
+  const { loggedIn, loading, openModal } = useAuth();
+
+  if (!loading && !loggedIn) {
+    return (
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '60px 16px', textAlign: 'center', color: muted }}>
+        <div style={{ fontSize: 52, marginBottom: 12 }}>🔖</div>
+        <div style={{ fontSize: 16, marginBottom: 14 }}>Log in to save articles and read them later on any device.</div>
+        <button onClick={() => openModal('login')} style={{ background: G.green, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Log in</button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px' }}>

@@ -55,7 +55,7 @@ export default function ArticleActions({ post }: { post: Post }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', margin: '20px 0' }}>
       <button style={btn(voted)} onClick={toggleVote}>👍 {upvotes}</button>
-      <button style={btn(saved)} onClick={() => { toggleSaved(post); showToast(saved ? 'Removed from saved' : 'Saved for later'); }}>
+      <button style={btn(saved)} onClick={() => toggleSaved(post)}>
         {saved ? '🔖 Saved' : '🔖 Save'}
       </button>
       <span style={{ fontSize: 12, color: muted, marginLeft: 6 }}>Share:</span>
