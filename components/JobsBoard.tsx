@@ -5,6 +5,25 @@ import { Job, Scholarship } from '@/lib/jobs';
 import { G } from '@/lib/theme';
 import { useTheme } from './ThemeProvider';
 
+function deadlineDate(value: string | null): Date | null {
+  if (!value?.trim()) return null;
+  const parsed = new Date(value.trim());
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function isPastDeadline(value: string | null): boolean {
+  const parsed = deadlineDate(value);
+  if (!parsed) return false;
+  const endOfDeadline = new Date(parsed);
+  endOfDeadline.setHours(23, 59, 59, 999);
+  return endOfDeadline.getTime() < Date.now();
+}
+
+function deadlineLabel(value: string | null): string {
+  if (!value?.trim()) return 'Deadline not specified — verify with provider';
+  return isPastDeadline(value) ? 'Applications closed' : `Deadline: ${value}`;
+}
+
 function applyLink(url: string | null) {
   if (!url) {
     alert('No application link added yet');
@@ -23,7 +42,17 @@ export default function JobsBoard({ jobs, scholarships }: { jobs: Job[]; scholar
   );
   const filteredJobs = jobFilter === 'All' ? jobs : jobs.filter((j) => j.category === jobFilter);
 
-  const companyCount = new Set(jobs.map((j) => j.company)).size;
+  // Hide listings with a clearly parsed deadline in the past. Entries without a
+  // parseable deadline remain visible but are labelled for verification.
+  const visibleJobs = useMemo(() => jobs.filter((job) => !isPastDeadline(job.deadline)), [jobs]);
+  const visibleScholarships = useMemo(
+    () => scholarships.filter((item) => !isPastDeadline(item.deadline)),
+    [scholarships]
+  );
+  const visibleFilteredJobs = jobFilter === 'All'
+    ? visibleJobs
+    : visibleJobs.filter((job) => job.category === jobFilter);
+  const companyCount = new Set(visibleJobs.map((j) => j.company)).size;
 
   const statCardStyle: React.CSSProperties = {
     background: card,
@@ -44,8 +73,8 @@ export default function JobsBoard({ jobs, scholarships }: { jobs: Job[]; scholar
         }}
       >
         {[
-          [String(jobs.length), 'Active Jobs'],
-          [String(scholarships.length), 'Scholarships'],
+          [String(visibleJobs.length), 'Open Jobs'],
+          [String(visibleScholarships.length), 'Current Scholarships'],
           [String(companyCount), 'Companies'],
           ['Daily', 'New Listings'],
         ].map(([n, l]) => (
@@ -90,10 +119,10 @@ export default function JobsBoard({ jobs, scholarships }: { jobs: Job[]; scholar
         </div>
       </div>
 
-      {filteredJobs.length === 0 ? (
+      {visibleFilteredJobs.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 32, color: muted }}>No job listings in this category yet.</div>
       ) : (
-        filteredJobs.map((job) => (
+        visibleFilteredJobs.map((job) => (
           <div
             key={job.id}
             style={{
@@ -146,7 +175,7 @@ export default function JobsBoard({ jobs, scholarships }: { jobs: Job[]; scholar
                     {job.experience_level}
                   </span>
                 )}
-                {job.deadline && <span style={{ color: G.red }}>⏰ {job.deadline}</span>}
+                <span style={{ color: isPastDeadline(job.deadline) ? G.red : muted }}>{deadlineLabel(job.deadline)}</span>
               </div>
             </div>
             <button
@@ -178,13 +207,13 @@ export default function JobsBoard({ jobs, scholarships }: { jobs: Job[]; scholar
           borderBottom: `2px solid ${G.green}`,
         }}
       >
-        <span style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Georgia,serif' }}>🎓 Scholarships Open Now</span>
+        <span style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Georgia,serif' }}>🎓 Scholarship Opportunities</span>
       </div>
 
-      {scholarships.length === 0 ? (
+      {visibleScholarships.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 32, color: muted }}>No scholarships listed yet.</div>
       ) : (
-        scholarships.map((s) => (
+        visibleScholarships.map((s) => (
           <div
             key={s.id}
             style={{
@@ -233,7 +262,7 @@ export default function JobsBoard({ jobs, scholarships }: { jobs: Job[]; scholar
                     {s.level}
                   </span>
                 )}
-                {s.deadline && <span style={{ color: G.red }}>⏰ {s.deadline}</span>}
+                <span style={{ color: muted }}>{deadlineLabel(s.deadline)}</span>
               </div>
             </div>
             <button
