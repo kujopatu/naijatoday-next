@@ -56,7 +56,7 @@ export default function SiteHeader({
     >
       <div style={{ height: 2, background: `linear-gradient(90deg, ${G.green}, transparent)`, width: '100%' }} />
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', gap: 12, flexWrap: 'wrap' }}>
+        <div className="naija-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', gap: 12, flexWrap: 'wrap' }}>
           <Link href="/" aria-label="NaijaToday home" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, textDecoration: 'none', borderLeft: `3px solid ${G.green}`, paddingLeft: 10 }}>
             <span>
               <span style={{ display: 'block', fontSize: 24, fontWeight: 900, color: G.green, letterSpacing: '-0.5px', lineHeight: 1 }}>NaijaToday</span>
@@ -64,7 +64,7 @@ export default function SiteHeader({
             </span>
           </Link>
 
-          <div aria-label="Site statistics" style={{ display: 'flex', alignItems: 'center', gap: 14, background: darkMode ? 'rgba(0,135,81,0.06)' : 'rgba(0,135,81,0.05)', border: `1px solid ${darkMode ? 'rgba(0,135,81,0.18)' : 'rgba(0,135,81,0.15)'}`, borderRadius: 8, padding: '6px 10px' }}>
+          <div className="naija-header-stats" aria-label="Site statistics" style={{ display: 'flex', alignItems: 'center', gap: 14, background: darkMode ? 'rgba(0,135,81,0.06)' : 'rgba(0,135,81,0.05)', border: `1px solid ${darkMode ? 'rgba(0,135,81,0.18)' : 'rgba(0,135,81,0.15)'}`, borderRadius: 8, padding: '6px 10px' }}>
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: darkMode ? '#c8e8d8' : '#1a4a30' }}>{articleCount.toLocaleString()}</div>
               <div style={{ fontSize: 9, color: muted, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Articles</div>
