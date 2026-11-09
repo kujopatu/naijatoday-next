@@ -50,7 +50,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
   const [{ count: articleCount }, { count: memberCount }] = await Promise.all([
     supabase.from('posts').select('*', { count: 'exact', head: true }).eq('published', true),
-    supabase.from('subscribers').select('*', { count: 'exact', head: true }),
+    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'user'),
   ]);
 
   return (
