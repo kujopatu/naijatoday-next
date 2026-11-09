@@ -18,7 +18,7 @@ export default async function JobsPage() {
     supabase.from('jobs').select('*').order('created_at', { ascending: false }).limit(500),
     supabase.from('scholarships').select('*').order('created_at', { ascending: false }).limit(500),
     supabase.from('posts').select('*', { count: 'exact', head: true }).eq('published', true),
-    supabase.from('subscribers').select('*', { count: 'exact', head: true }),
+    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'user'),
   ]);
 
   return (
