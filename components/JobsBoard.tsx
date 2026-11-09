@@ -36,15 +36,13 @@ export default function JobsBoard({ jobs, scholarships }: { jobs: Job[]; scholar
   const { card, border, text, muted, darkMode } = useTheme();
   const [jobFilter, setJobFilter] = useState('All');
 
-  const jobCats = useMemo(
-    () => ['All', ...Array.from(new Set(jobs.map((j) => j.category).filter(Boolean)))] as string[],
-    [jobs]
-  );
-  const filteredJobs = jobFilter === 'All' ? jobs : jobs.filter((j) => j.category === jobFilter);
-
   // Hide listings with a clearly parsed deadline in the past. Entries without a
   // parseable deadline remain visible but are labelled for verification.
   const visibleJobs = useMemo(() => jobs.filter((job) => !isPastDeadline(job.deadline)), [jobs]);
+  const jobCats = useMemo(
+    () => ['All', ...Array.from(new Set(visibleJobs.map((j) => j.category).filter(Boolean)))] as string[],
+    [visibleJobs]
+  );
   const visibleScholarships = useMemo(
     () => scholarships.filter((item) => !isPastDeadline(item.deadline)),
     [scholarships]
