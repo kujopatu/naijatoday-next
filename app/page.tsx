@@ -17,12 +17,18 @@ import { postPath } from '@/lib/posts';
 export const revalidate = 300;
 
 export default async function HomePage() {
-  const { data: posts } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('published', true)
-    .order('created_at', { ascending: false })
-    .limit(200);
+  const [{ data: posts }, { count: totalArticleCount }] = await Promise.all([
+    supabase
+      .from('posts')
+      .select('*')
+      .eq('published', true)
+      .order('created_at', { ascending: false })
+      .limit(200),
+    supabase
+      .from('posts')
+      .select('id', { count: 'exact', head: true })
+      .eq('published', true),
+  ]);
 
   const allPosts = posts ?? [];
   const flaggedFeatured = allPosts.filter((p) => p.featured).slice(0, 5);
@@ -44,10 +50,10 @@ export default async function HomePage() {
           itemListElement: allPosts.slice(0, 10).map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: `${SITE_URL}${postPath(p)}`, name: p.title })),
         }}
       />
-      <SiteHeader articleCount={allPosts.length} memberCount={memberCount ?? null} />
+      <SiteHeader articleCount={totalArticleCount ?? allPosts.length} memberCount={memberCount ?? null} />
       <BreakingNewsBar />
       <CategoryPills />
-      <div className="home-grid" className="home-grid" style={{ maxWidth: 1240, margin: '0 auto', padding: '24px 18px' }}>
+      <div className="home-grid" style={{ maxWidth: 1240, margin: '0 auto', padding: '24px 18px' }}>
         <main style={{ minWidth: 0 }}>
           <FeaturedCarousel posts={featuredList} />
           <TrendingTicker />
