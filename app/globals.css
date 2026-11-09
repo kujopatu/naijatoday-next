@@ -2,8 +2,15 @@
 @plugin "@tailwindcss/typography";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f6f5;
+  --foreground: #17231d;
+  --surface: #ffffff;
+  --brand: #008751;
+  --brand-deep: #005c37;
+  --muted: #68766e;
+  --line: #e2e9e4;
+  --page-width: 1240px;
+  color-scheme: light;
 }
 
 @theme inline {
@@ -13,15 +20,47 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 120px; }
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+a { transition: color .18s ease, opacity .18s ease; }
+button, input, textarea, select { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 3px solid rgba(0,135,81,.35);
+  outline-offset: 3px;
+}
+::selection { background: rgba(0,135,81,.18); color: inherit; }
+img { max-width: 100%; }
+.naija-post-card {
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.naija-post-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(18,45,30,.08);
+  border-color: rgba(0,135,81,.3) !important;
+}
+.home-grid { width: min(100%, var(--page-width)); }
+@media (max-width: 680px) {
+  html { scroll-padding-top: 90px; }
+  .naija-post-card { padding: 12px !important; gap: 11px !important; align-items: flex-start; }
+  .naija-post-card > div:first-child { width: 92px !important; height: 92px !important; }
+  .naija-post-card .naija-post-title { font-size: 14px !important; line-height: 1.35 !important; }
+  .home-grid { padding: 14px 12px !important; gap: 18px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
 }
