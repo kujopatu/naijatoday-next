@@ -19,6 +19,7 @@ export default function PostCard({ post }: { post: Post }) {
   return (
     <Link href={postPath(post)} style={{ textDecoration: 'none', color: 'inherit' }}>
       <div
+        className="naija-post-card"
         style={{
           display: 'flex',
           gap: 12,
@@ -123,6 +124,7 @@ export default function PostCard({ post }: { post: Post }) {
               marginBottom: 4,
               fontFamily: 'Georgia,serif',
             }}
+            className="naija-post-title"
           >
             {post.title}
           </div>
