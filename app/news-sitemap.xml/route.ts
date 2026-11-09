@@ -18,6 +18,14 @@ export async function GET() {
       .eq('published', true).gte('created_at', since)
       .order('created_at', { ascending: false }).limit(1000);
     posts = data ?? [];
+    // Google rejects an empty sitemap, so when nothing was published in the
+    // last 2 days, list the 5 newest articles instead.
+    if (posts.length === 0) {
+      const { data: latest } = await supabase
+        .from('posts').select('id, title, category, created_at')
+        .eq('published', true).order('created_at', { ascending: false }).limit(5);
+      posts = latest ?? [];
+    }
   } catch { /* serve an empty, valid sitemap */ }
 
   const items = posts.map((p) => `  <url>
