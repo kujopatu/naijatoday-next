@@ -19,7 +19,7 @@ export default async function AuthorPage({ params }: Props) {
   const [{ data }, { count: articleCount }, { count: memberCount }] = await Promise.all([
     supabase.from('posts').select('*').eq('published', true).eq('author', author).order('created_at', { ascending: false }).limit(100),
     supabase.from('posts').select('*', { count: 'exact', head: true }).eq('published', true),
-    supabase.from('subscribers').select('*', { count: 'exact', head: true }),
+    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'user'),
   ]);
   const posts = (data ?? []) as Post[];
   const views = posts.reduce((s, p) => s + (typeof p.views === 'number' ? p.views : 0), 0);
