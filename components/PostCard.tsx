@@ -19,7 +19,7 @@ export default function PostCard({ post }: { post: Post }) {
   return (
     <Link href={postPath(post)} style={{ textDecoration: 'none', color: 'inherit' }}>
       <div
-        className="naija-post-card"
+        className="naija-post-card naija-post-card-premium"
         style={{
           display: 'flex',
           gap: 12,
@@ -35,8 +35,8 @@ export default function PostCard({ post }: { post: Post }) {
       >
         <div
           style={{
-            width: 80,
-            height: 80,
+            width: 112,
+            height: 104,
             flexShrink: 0,
             borderRadius: 8,
             background: darkMode ? '#1e2535' : '#f0f4f8',
@@ -117,8 +117,8 @@ export default function PostCard({ post }: { post: Post }) {
           </div>
           <div
             style={{
-              fontSize: 15,
-              fontWeight: 700,
+              fontSize: 17,
+              fontWeight: 800,
               color: text,
               lineHeight: 1.4,
               marginBottom: 4,
@@ -137,7 +137,7 @@ export default function PostCard({ post }: { post: Post }) {
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               display: '-webkit-box',
-              WebkitLineClamp: 2,
+              WebkitLineClamp: 3,
               WebkitBoxOrient: 'vertical' as const,
               wordBreak: 'break-word',
             }}
@@ -160,7 +160,7 @@ export default function PostCard({ post }: { post: Post }) {
                 color: saved ? '#fff' : muted,
                 border: `1px solid ${saved ? G.green : border}`,
                 borderRadius: 6,
-                padding: '3px 9px',
+                padding: '4px 10px',
                 fontSize: 11,
                 fontWeight: 600,
                 cursor: 'pointer',
