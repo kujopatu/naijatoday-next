@@ -18,8 +18,8 @@ export async function GET() {
   const items = (data ?? []).map((post) => {
     const url = `${SITE_URL}${postPath(post)}`;
     const description = post.excerpt || post.title;
-    const image = post.image && /^https?:\\/\\//.test(post.image.trim())
-      ? `<enclosure url="${esc(post.image.trim())}" type="image/jpeg" />`
+    const image = post.image && /^https?:\/\//.test(post.image.trim())
+      ? `<media:content url="${esc(post.image.trim())}" medium="image" />`
       : '';
     return `<item>
       <title>${esc(post.title)}</title>
@@ -34,7 +34,7 @@ export async function GET() {
   }).join('\n');
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
   <channel>
     <title>NaijaToday — Nigerian News, Politics, Sports &amp; Entertainment</title>
     <link>${SITE_URL}</link>
