@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'NaijaToday',
     short_name: 'NaijaToday',
-    description: "Nigeria's most trusted digital media platform",
+    description: "Nigerian news, politics, business, sports, entertainment, jobs and scholarships.",
     start_url: '/',
     display: 'standalone',
     background_color: '#0f1117',
