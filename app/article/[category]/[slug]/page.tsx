@@ -26,12 +26,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${post.title} | NaijaToday`,
     description: post.excerpt ?? undefined,
+    keywords: post.tags?.length ? post.tags : [post.category, 'Nigeria news'].filter(Boolean),
     openGraph: {
       title: post.title,
       description: post.excerpt ?? undefined,
       images: [{ url: image }],
       type: 'article',
       publishedTime: post.created_at,
+      modifiedTime: post.updated_at || post.created_at,
+      authors: [post.author || 'NaijaToday Desk'],
+      tags: post.tags ?? [],
     },
     twitter: {
       card: 'summary_large_image',
@@ -39,7 +43,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: post.excerpt ?? undefined,
       images: [image],
     },
-    alternates: { canonical: `/article/${category}/${slug}` },
+    alternates: { canonical: postPath(post) },
   };
 }
 
