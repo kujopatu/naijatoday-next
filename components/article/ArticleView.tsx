@@ -78,7 +78,7 @@ export default function ArticleView({ post, html, related }: { post: Post; html:
           {post.sponsored && <span style={{ background: G.gold, color: '#000', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>SPONSORED</span>}
         </div>
 
-        <h1 style={{ fontFamily: 'Georgia,serif', fontSize: 32, lineHeight: 1.25, margin: '0 0 12px', color: text }}>{post.title}</h1>
+        <h1 className="article-title" style={{ fontFamily: 'Georgia,serif', fontSize: 32, lineHeight: 1.25, margin: '0 0 12px', color: text }}>{post.title}</h1>
         <div style={{ fontSize: 13, color: muted, marginBottom: 20 }}>
           By <strong>{post.author || 'NaijaToday Desk'}</strong>
           {date && ` · ${date}`}{post.read_time && ` · ${post.read_time}`}{` · 👁 ${post.views ?? 0}`}
@@ -86,7 +86,7 @@ export default function ArticleView({ post, html, related }: { post: Post; html:
 
         {hero ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={hero} alt={post.title} style={{ width: '100%', borderRadius: 12, marginBottom: 20 }} />
+          <img className="article-hero-image" src={hero} alt={post.title} style={{ width: '100%', borderRadius: 12, marginBottom: 20 }} />
         ) : isEmoji ? (
           <div style={{ fontSize: 80, textAlign: 'center', padding: 30, background: card, border: `1px solid ${border}`, borderRadius: 12, marginBottom: 20 }}>{post.image}</div>
         ) : null}
@@ -153,7 +153,14 @@ export default function ArticleView({ post, html, related }: { post: Post; html:
       </section>
 
       <style>{`
-        .article-body { font-size: 17px; line-height: 1.8; }
+        .article-title { overflow-wrap: anywhere; }
+        .article-hero-image { display: block; max-height: 520px; object-fit: cover; object-position: center; }
+        .article-body { font-size: 17px; line-height: 1.8; overflow-wrap: anywhere; }
+        @media (max-width: 680px) {
+          .article-title { font-size: 26px !important; line-height: 1.22 !important; }
+          .article-hero-image { max-height: 340px; }
+          .article-body { font-size: 16px; line-height: 1.75; }
+        }
         .article-body p { margin: 0 0 1.1em; }
         .article-body h2, .article-body h3 { font-family: Georgia,serif; margin: 1.6em 0 0.6em; line-height: 1.3; }
         .article-body img { max-width: 100%; height: auto; border-radius: 10px; margin: 1em 0; }
