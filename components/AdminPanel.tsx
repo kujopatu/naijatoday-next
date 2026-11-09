@@ -66,6 +66,7 @@ const TABS: [string, string][] = [
   ['overview', '📊 Analytics'],
   ['new', '✍️ Write New Article'],
   ['manage', '📋 Manage Articles'],
+  ['queue', '⚠️ Queue'],
   ['forum', '💬 Forum Manager'],
   ['reports', '🚩 Reports'],
   ['jobs', '💼 Jobs & Scholarships'],
@@ -94,6 +95,12 @@ export default function AdminPanel() {
   const { darkMode, card, border, text, muted } = useTheme();
 
   const [activeSection, setActiveSection] = useState('overview');
+  const [pendingCount, setPendingCount] = useState(0);
+  // Count of forum threads waiting for approval (shown on the Queue tab).
+  useEffect(() => {
+    supabase.from('forum_threads').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+      .then(({ count }) => setPendingCount(count ?? 0));
+  }, [activeSection]);
 
   // Articles
   const [posts, setPosts] = useState<AdminPostRow[]>([]);
@@ -525,24 +532,29 @@ export default function AdminPanel() {
       <AdminDiagnostic userEmail={userEmail} />
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-        {TABS.map(([key, label]) => (
+        {TABS.map(([key, label]) => {
+          const isQueue = key === 'queue';
+          const active = !isQueue && activeSection === key;
+          const hot = isQueue && pendingCount > 0;
+          return (
           <button
             key={key}
-            onClick={() => setActiveSection(key)}
+            onClick={() => setActiveSection(isQueue ? 'forum' : key)}
             style={{
-              background: activeSection === key ? G.green : 'none',
-              color: activeSection === key ? '#fff' : muted,
-              border: `1px solid ${activeSection === key ? G.green : border}`,
+              background: active ? G.green : hot ? G.gold : 'none',
+              color: active ? '#fff' : hot ? '#000' : muted,
+              border: `1px solid ${active ? G.green : hot ? G.gold : border}`,
               borderRadius: 8,
               padding: '10px 20px',
               fontSize: 14,
-              fontWeight: activeSection === key ? 700 : 400,
+              fontWeight: active || hot ? 700 : 400,
               cursor: 'pointer',
             }}
           >
-            {key === 'new' && editId ? '✏️ Edit Article' : label}
+            {key === 'new' && editId ? '✏️ Edit Article' : isQueue ? `${label} (${pendingCount})` : label}
           </button>
-        ))}
+          );
+        })}
       </div>
 
       {!BUILT_TABS.has(activeSection) && (
