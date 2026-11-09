@@ -47,7 +47,7 @@ export default async function HomePage() {
       <SiteHeader articleCount={allPosts.length} memberCount={memberCount ?? null} />
       <BreakingNewsBar />
       <CategoryPills />
-      <div className="home-grid" style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 16px' }}>
+      <div className="home-grid" className="home-grid" style={{ maxWidth: 1240, margin: '0 auto', padding: '24px 18px' }}>
         <main style={{ minWidth: 0 }}>
           <FeaturedCarousel posts={featuredList} />
           <TrendingTicker />
