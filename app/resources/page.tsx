@@ -18,7 +18,7 @@ export default async function ResourcesPage() {
   const [{ data: products }, { count: articleCount }, { count: memberCount }] = await Promise.all([
     supabase.from('products').select('*').eq('active', true).order('sort_order', { ascending: true }),
     supabase.from('posts').select('*', { count: 'exact', head: true }).eq('published', true),
-    supabase.from('subscribers').select('*', { count: 'exact', head: true }),
+    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'user'),
   ]);
 
   return (
