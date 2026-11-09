@@ -24,7 +24,7 @@ export default function MostReadSidebar({ posts }: { posts: Post[] }) {
           borderBottom: `1px solid ${border}`,
         }}
       >
-        🔥 Most Read Today
+        🔥 Most Read
       </div>
       {top.map((post, i) => (
         <Link key={post.id} href={postPath(post)} style={{ textDecoration: 'none', color: 'inherit' }}>
