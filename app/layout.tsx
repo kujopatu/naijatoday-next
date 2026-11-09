@@ -29,7 +29,7 @@ const geistMono = Geist_Mono({
 const PIXEL_ID = "4525219914426774";
 
 const SITE_URL = "https://naijatodayblog.com.ng";
-const SITE_TITLE = "NaijaToday — Nigeria's #1 Digital Media";
+const SITE_TITLE = "NaijaToday — Nigeria's #1 News & Entertainment Blog";
 const SITE_DESC =
   "NaijaToday — Nigeria's #1 news and entertainment blog. Breaking news, politics, sports, celebrity gist, jobs and scholarships.";
 

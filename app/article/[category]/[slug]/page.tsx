@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const image = toCloudinaryWm(post.image, 1200, 'jpg') ?? '/og-image.jpg';
 
   return {
-    title: post.title,
+    title: `${post.title} | NaijaToday`,
     description: post.excerpt ?? undefined,
     openGraph: {
       title: post.title,
