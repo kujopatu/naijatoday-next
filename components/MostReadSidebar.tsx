@@ -13,11 +13,11 @@ export default function MostReadSidebar({ posts }: { posts: Post[] }) {
   if (top.length === 0) return null;
 
   return (
-    <div style={{ background: card, borderRadius: 10, border: `1px solid ${border}`, padding: 16, marginBottom: 16 }}>
+    <div className="naija-most-read" style={{ background: card, borderRadius: 12, border: `1px solid ${border}`, padding: 17, marginBottom: 16 }}>
       <div
         style={{
-          fontSize: 14,
-          fontWeight: 700,
+          fontSize: 15,
+          fontWeight: 800,
           color: text,
           marginBottom: 12,
           paddingBottom: 8,
@@ -29,10 +29,11 @@ export default function MostReadSidebar({ posts }: { posts: Post[] }) {
       {top.map((post, i) => (
         <Link key={post.id} href={postPath(post)} style={{ textDecoration: 'none', color: 'inherit' }}>
           <div
+            className="naija-most-read-item"
             style={{
               display: 'flex',
               gap: 10,
-              padding: '8px 0',
+              padding: '11px 0',
               borderBottom: i < top.length - 1 ? `1px solid ${border}` : 'none',
               cursor: 'pointer',
             }}
