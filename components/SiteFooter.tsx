@@ -43,8 +43,8 @@ export default function SiteFooter() {
 
           <div>
             <div style={colTitle}>Quick Links</div>
-            {[['/', 'Home'], ['/trending', 'Trending'], ['/forum', 'Forum'], ['/jobs', 'Jobs & Scholarships'], ['/resources', 'Resources'], ['/scores', 'Fixtures & Scores'], ['/saved', 'Saved Articles'], ['/about', 'About Us'], ['/contact', 'Contact Us']].map(([h, l]) => <Link key={h} href={h} style={lnk}>{l}</Link>)}
-            <a href={mail('Advertising Inquiry')} style={lnk}>Advertise</a>
+            {[['/', 'Home'], ['/trending', 'Trending'], ['/forum', 'Forum'], ['/jobs', 'Jobs & Scholarships'], ['/resources', 'Resources'], ['/scores', 'Fixtures & Scores'], ['/saved', 'Saved Articles'], ['/about', 'About Us'], ['/submit-story', 'Submit a Story'], ['/advertise', 'Advertise'], ['/contact', 'Contact Us']].map(([h, l]) => <Link key={h} href={h} style={lnk}>{l}</Link>)}
+            
           </div>
 
           <div>
@@ -57,7 +57,7 @@ export default function SiteFooter() {
             <Link href="/forum" style={lnk}>Join Forum</Link>
             {!loggedIn && <button onClick={() => openModal('register')} style={lnk}>Register Free</button>}
             {!loggedIn && <button onClick={() => openModal('login')} style={lnk}>Login</button>}
-            <a href={mail('Story Submission')} style={lnk}>Submit Your Story</a>
+            <Link href="/submit-story" style={lnk}>Submit Your Story</Link>
             <a href={mail('Correspondent Application')} style={lnk}>Be a Correspondent</a>
           </div>
         </div>
