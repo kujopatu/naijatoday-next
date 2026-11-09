@@ -117,7 +117,7 @@ export default function FeaturedCarousel({ posts }: { posts: Post[] }) {
             >
               {post.title}
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13, marginBottom: 8 }}>
+            <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 14, maxWidth: 760, lineHeight: 1.5, marginBottom: 10 }}>
               {post.excerpt?.slice(0, 110)}…
             </div>
             <div
