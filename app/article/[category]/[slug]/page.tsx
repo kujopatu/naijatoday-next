@@ -58,7 +58,7 @@ export default async function ArticlePage({ params }: Props) {
   const [{ data: recent }, { count: articleCount }, { count: memberCount }] = await Promise.all([
     supabase.from('posts').select('*').eq('published', true).neq('id', post.id).order('created_at', { ascending: false }).limit(60),
     supabase.from('posts').select('*', { count: 'exact', head: true }).eq('published', true),
-    supabase.from('subscribers').select('*', { count: 'exact', head: true }),
+    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'user'),
   ]);
 
   // Related = shared tags (x10) + same category, best three.
