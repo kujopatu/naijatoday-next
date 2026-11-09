@@ -39,8 +39,9 @@ export default async function TrendingPage() {
     .sort((a, b) => b.score - a.score);
 
   const { count: memberCount } = await supabase
-    .from('subscribers')
-    .select('*', { count: 'exact', head: true });
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+    .eq('role', 'user');
 
   return (
     <>
