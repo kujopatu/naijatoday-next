@@ -10,10 +10,6 @@ import SearchBox from './SearchBox';
 import UserMenu from './UserMenu';
 import NotificationBell from './NotificationBell';
 
-// Home is wired to a real page. The rest point at routes that don't
-// exist yet (search, auth, forum, jobs, admin, etc. are all separate,
-// larger pieces of work) — they're kept here so the nav visually
-// matches the original site, but will 404 until those pages are built.
 const NAV_TABS: [string, string][] = [
   ['/', '🏠 Home'],
   ['/trending', '🔥 Trending'],
@@ -22,6 +18,9 @@ const NAV_TABS: [string, string][] = [
   ['/resources', '📚 Resources'],
   ['/scores', '⚽ Fixtures & Scores'],
   ['/saved', '🔖 Saved'],
+  ['/about', 'ℹ️ About'],
+  ['/submit-story', '📝 Submit a Story'],
+  ['/advertise', '📣 Advertise'],
   ['/contact', '📩 Contact'],
 ];
 
@@ -32,9 +31,15 @@ export default function SiteHeader({
   articleCount: number;
   memberCount: number | null;
 }) {
-  const { darkMode, toggleDarkMode, border, muted, text } = useTheme();
+  const { darkMode, toggleDarkMode, border, muted } = useTheme();
   const { canModerate, loggedIn } = useAuth();
   const pathname = usePathname();
+
+  const navItems = [
+    ...NAV_TABS,
+    ...(loggedIn ? ([['/profile', '👤 Profile']] as [string, string][]) : []),
+    ...(canModerate ? ([['/admin', '⚡ Admin']] as [string, string][]) : []),
+  ];
 
   return (
     <header
@@ -51,198 +56,74 @@ export default function SiteHeader({
     >
       <div style={{ height: 2, background: `linear-gradient(90deg, ${G.green}, transparent)`, width: '100%' }} />
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 16px' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '8px 0',
-            gap: 12,
-            flexWrap: 'wrap',
-          }}
-        >
-          <Link
-            href="/"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              flexShrink: 0,
-              textDecoration: 'none',
-              borderLeft: `3px solid ${G.green}`,
-              paddingLeft: 10,
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: 24,
-                  fontWeight: 900,
-                  color: G.green,
-                  letterSpacing: '-0.5px',
-                  lineHeight: 1,
-                  textShadow: `0 0 20px ${G.green}66`,
-                }}
-              >
-                NaijaToday
-              </div>
-              <div
-                style={{
-                  fontSize: 9,
-                  color: '#a0aab8',
-                  letterSpacing: 2.5,
-                  textTransform: 'uppercase',
-                  marginTop: 3,
-                }}
-              >
-                Nigeria&apos;s #1 Digital Media
-              </div>
-            </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', gap: 12, flexWrap: 'wrap' }}>
+          <Link href="/" aria-label="NaijaToday home" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, textDecoration: 'none', borderLeft: `3px solid ${G.green}`, paddingLeft: 10 }}>
+            <span>
+              <span style={{ display: 'block', fontSize: 24, fontWeight: 900, color: G.green, letterSpacing: '-0.5px', lineHeight: 1 }}>NaijaToday</span>
+              <span style={{ display: 'block', fontSize: 9, color: '#a0aab8', letterSpacing: 2.2, textTransform: 'uppercase', marginTop: 4 }}>Nigeria&apos;s Digital Media</span>
+            </span>
           </Link>
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0,
-              background: darkMode ? 'rgba(0,135,81,0.06)' : 'rgba(0,135,81,0.05)',
-              border: `1px solid ${darkMode ? 'rgba(0,135,81,0.18)' : 'rgba(0,135,81,0.15)'}`,
-              borderRadius: 8,
-              padding: '3px 0',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                padding: '2px 12px',
-                borderRight: `1px solid ${darkMode ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`,
-              }}
-            >
-              <span
-                style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: '50%',
-                  background: '#00c96a',
-                  display: 'inline-block',
-                  animation: 'naija-pulse 2s infinite',
-                }}
-              />
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: darkMode ? '#c8e8d8' : '#1a4a30', lineHeight: 1 }}>
-                  {articleCount}
-                </div>
-                <div style={{ fontSize: 9, color: muted, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-                  Articles
-                </div>
-              </div>
+          <div aria-label="Site statistics" style={{ display: 'flex', alignItems: 'center', gap: 14, background: darkMode ? 'rgba(0,135,81,0.06)' : 'rgba(0,135,81,0.05)', border: `1px solid ${darkMode ? 'rgba(0,135,81,0.18)' : 'rgba(0,135,81,0.15)'}`, borderRadius: 8, padding: '6px 10px' }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: darkMode ? '#c8e8d8' : '#1a4a30' }}>{articleCount.toLocaleString()}</div>
+              <div style={{ fontSize: 9, color: muted, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Articles</div>
             </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                padding: '2px 12px',
-                borderRight: `1px solid ${darkMode ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`,
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: darkMode ? '#c8e8d8' : '#1a4a30', lineHeight: 1 }}>
-                  {memberCount !== null ? memberCount.toLocaleString() : '…'}
-                </div>
-                <div style={{ fontSize: 9, color: muted, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-                  Members
-                </div>
-              </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: darkMode ? '#c8e8d8' : '#1a4a30' }}>{memberCount !== null ? memberCount.toLocaleString() : '—'}</div>
+              <div style={{ fontSize: 9, color: muted, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Members</div>
             </div>
-            <div style={{ padding: '2px 10px' }}>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 3,
-                  background: darkMode ? 'rgba(0,201,106,0.12)' : 'rgba(0,135,81,0.08)',
-                  border: `1px solid ${darkMode ? 'rgba(0,201,106,0.25)' : 'rgba(0,135,81,0.2)'}`,
-                  borderRadius: 10,
-                  padding: '2px 7px',
-                }}
-              >
-                <span
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: '50%',
-                    background: '#00c96a',
-                    display: 'inline-block',
-                    animation: 'naija-pulse 1.5s infinite',
-                  }}
-                />
-                <span style={{ fontSize: 9, color: '#00c96a', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>
-                  Live
-                </span>
-              </span>
-            </div>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#00a85a', fontSize: 10, fontWeight: 800, letterSpacing: 1 }}>
+              <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: '#00c96a' }} /> LIVE
+            </span>
           </div>
 
-          <div style={{ flex: 1, maxWidth: 320, minWidth: 160 }}>
+          <div style={{ flex: 1, maxWidth: 320, minWidth: 180 }}>
             <Suspense fallback={<div style={{ height: 40 }} />}>
               <SearchBox />
             </Suspense>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             <button
+              type="button"
               onClick={toggleDarkMode}
-              style={{
-                background: 'none',
-                border: `1px solid ${border}`,
-                cursor: 'pointer',
-                fontSize: 16,
-                padding: '6px 10px',
-                borderRadius: 8,
-                color: muted,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 1,
-              }}
+              aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              style={{ background: 'none', border: `1px solid ${border}`, cursor: 'pointer', fontSize: 16, padding: '6px 9px', borderRadius: 8, color: muted }}
             >
               {darkMode ? '☀️' : '🌙'}
-              <span style={{ fontSize: 8, color: muted, letterSpacing: 0.5 }}>{darkMode ? 'LIGHT' : 'DARK'}</span>
             </button>
             <NotificationBell />
             <UserMenu />
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 0, overflowX: 'auto' }}>
-          {[...NAV_TABS, ...(loggedIn ? ([['/profile', '👤 Profile']] as [string, string][]) : []), ...(canModerate ? ([['/admin', '⚡ Admin']] as [string, string][]) : [])].map(([href, label]) => {
+        <nav aria-label="Main navigation" className="naija-main-nav">
+          {navItems.map(([href, label]) => {
             const active = pathname === href || (href !== '/' && !!pathname?.startsWith(href + '/'));
             return (
-              <Link key={href} href={href} style={{ textDecoration: 'none' }}>
-                <span
-                  style={{
-                    display: 'inline-block',
-                    padding: '10px 16px',
-                    fontSize: 13,
-                    fontWeight: active ? 700 : 400,
-                    color: active ? G.green : muted,
-                    background: active ? (darkMode ? 'rgba(0,135,81,0.08)' : 'rgba(0,135,81,0.06)') : 'none',
-                    borderBottom: active ? `2px solid ${G.green}` : '2px solid transparent',
-                    whiteSpace: 'nowrap',
-                    borderRadius: '6px 6px 0 0',
-                  }}
-                >
-                  {label}
-                </span>
+              <Link key={href} href={href} aria-current={active ? 'page' : undefined} style={{ textDecoration: 'none', flexShrink: 0 }}>
+                <span style={{
+                  display: 'inline-block',
+                  padding: '10px 13px',
+                  fontSize: 12,
+                  fontWeight: active ? 700 : 500,
+                  color: active ? G.green : muted,
+                  background: active ? (darkMode ? 'rgba(0,135,81,0.12)' : 'rgba(0,135,81,0.07)') : 'transparent',
+                  borderBottom: active ? `2px solid ${G.green}` : '2px solid transparent',
+                  whiteSpace: 'nowrap',
+                  borderRadius: '6px 6px 0 0',
+                }}>{label}</span>
               </Link>
             );
           })}
-        </div>
+        </nav>
       </div>
-      <style>{`@keyframes naija-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.4)}}`}</style>
+      <style>{`
+        .naija-main-nav { display:flex; gap:2px; overflow-x:auto; overscroll-behavior-x:contain; scrollbar-width:thin; scrollbar-color:${G.green} transparent; }
+        .naija-main-nav a:focus-visible { outline:2px solid ${G.green}; outline-offset:-2px; border-radius:6px; }
+      `}</style>
     </header>
   );
 }
