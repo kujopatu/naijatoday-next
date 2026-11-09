@@ -64,3 +64,11 @@ img { max-width: 100%; }
     transition-duration: .01ms !important;
   }
 }
+
+@media (max-width: 760px) {
+  .naija-header-row { gap: 9px !important; padding: 9px 0 !important; }
+  .naija-header-stats { display: none !important; }
+  .naija-header-row > div:nth-of-type(2) { flex: 1 1 100% !important; order: 3; max-width: none !important; min-width: 100% !important; }
+  .naija-main-nav { margin: 0 -4px; padding-bottom: 2px; }
+  .naija-main-nav a span { padding: 9px 11px !important; font-size: 11px !important; }
+}
