@@ -20,7 +20,7 @@ export default async function ForumPage() {
     // which is part of the not-yet-built admin/auth system.
     supabase.from('forum_threads').select('*').neq('status', 'pending').order('created_at', { ascending: false }),
     supabase.from('posts').select('*', { count: 'exact', head: true }).eq('published', true),
-    supabase.from('subscribers').select('*', { count: 'exact', head: true }),
+    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'user'),
   ]);
 
   return (
