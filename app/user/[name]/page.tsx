@@ -20,7 +20,7 @@ export default async function UserPage({ params }: Props) {
     supabase.from('forum_threads').select('id,title,category,replies,views,created_at').eq('author', name).order('created_at', { ascending: false }).limit(50),
     supabase.from('forum_replies').select('id,thread_id,text,created_at').eq('user', name).order('created_at', { ascending: false }).limit(50),
     supabase.from('posts').select('*', { count: 'exact', head: true }).eq('published', true),
-    supabase.from('subscribers').select('*', { count: 'exact', head: true }),
+    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'user'),
   ]);
   const ids = [...new Set((replies ?? []).map((r) => r.thread_id))];
   const { data: parents } = ids.length ? await supabase.from('forum_threads').select('id,title').in('id', ids) : { data: [] };
