@@ -29,9 +29,9 @@ const geistMono = Geist_Mono({
 const PIXEL_ID = "4525219914426774";
 
 const SITE_URL = "https://naijatodayblog.com.ng";
-const SITE_TITLE = "NaijaToday — Nigeria's #1 News & Entertainment Blog";
+const SITE_TITLE = "NaijaToday — Nigerian News, Politics, Sports & Entertainment";
 const SITE_DESC =
-  "NaijaToday — Nigeria's #1 news and entertainment blog. Breaking news, politics, sports, celebrity gist, jobs and scholarships.";
+  "NaijaToday brings you the latest Nigerian news, politics, business, sports, entertainment, celebrity updates, jobs and scholarships.";
 
 export const viewport: Viewport = {
   themeColor: "#008751",
@@ -100,7 +100,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               "@type": "WebSite",
               name: "NaijaToday",
               url: SITE_URL,
-              description: "Nigeria's most trusted digital media platform",
+              description: SITE_DESC,
               potentialAction: { "@type": "SearchAction", target: `${SITE_URL}/search?q={search_term_string}`, "query-input": "required name=search_term_string" },
             },
             {
