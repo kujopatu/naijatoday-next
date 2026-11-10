@@ -206,11 +206,12 @@ export default function AINewsroomStudio() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
           <span style={{ color: story.status === 'scheduled' || story.status === 'draft_saved' ? G.green : G.gold, fontSize: 10, fontWeight: 800 }}>{story.status.replace('_', ' ').toUpperCase()}</span>
-          {story.source_image_url && <span style={{ fontSize: 10, color: muted }}>Image suggestion available</span>}
-          {story.source_video_url && <a href={story.source_video_url} target="_blank" rel="noreferrer" style={{ color: G.green, fontSize: 10 }}>Related video ↗</a>}
+          {story.source_image_url?.startsWith('https://') && <span style={{ fontSize: 10, color: muted }}>Image suggestion available</span>}
+          {story.source_video_url?.startsWith('https://') && <a href={story.source_video_url} target="_blank" rel="noreferrer" style={{ color: G.green, fontSize: 10 }}>Related video ↗</a>}
         </div>
       </div>
-      {story.status !== 'draft_saved' && story.status !== 'scheduled' && <div style={{ display: 'flex', gap: 7, marginTop: 10, flexWrap: 'wrap' }}>
+      {story.source_image_url?.startsWith('https://') && <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}><img src={story.source_image_url} alt="Source feed image suggestion" style={{ width: 104, height: 68, objectFit: 'cover', borderRadius: 7, border: `1px solid ${border}` }}/><span style={{ fontSize: 10, color: muted }}>Preview only — use only if you have permission. Upload approved images to Cloudinary in the editor.</span></div>}
+      {story.status !== 'draft_saved' && story.status !== 'scheduled' && story.status !== 'published' && <div style={{ display: 'flex', gap: 7, marginTop: 10, flexWrap: 'wrap' }}>
         {story.generated_title ? <button style={{ ...button, background: G.green, color: '#fff', borderColor: G.green }} onClick={() => openDraft(story)}>Review generated article</button> : <button disabled={!providerConfigured || busy === story.id} style={{ ...button, background: G.green, color: '#fff', borderColor: G.green, opacity: !providerConfigured ? .5 : 1 }} onClick={() => void generate(story)}>{busy === story.id ? 'Generating…' : '✨ Generate article with Gemini'}</button>}
         <button disabled={busy === story.id} style={{ ...button, color: G.red, borderColor: G.red }} onClick={() => dismiss(story)}>Dismiss</button>
       </div>}
