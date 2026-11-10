@@ -113,9 +113,14 @@ export default function AINewsroomStudio() {
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ item_id: story.id }),
         });
-        if (!startResponse.ok && startResponse.status !== 202) {
+        if (startResponse.status !== 202) {
           const message = await startResponse.text();
-          throw new Error(message || 'Could not start background article generation.');
+          const detail = message.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 240);
+          throw new Error(
+            startResponse.status === 200
+              ? 'The background generation endpoint did not respond with Netlify’s expected 202 status. The request may have reached the website fallback instead of the function. Please retry after the deployment is fixed.'
+              : `Could not start background article generation (HTTP ${startResponse.status}). ${detail}`
+          );
         }
         showToast('Full article generation started. This may take a few minutes; you can safely refresh the newsroom.');
         const deadline = Date.now() + 14 * 60 * 1000;
