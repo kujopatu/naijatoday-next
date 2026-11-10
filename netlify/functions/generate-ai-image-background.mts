@@ -10,9 +10,10 @@ export default async function generateAiImageBackground(request: Request) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (!url || !anon || !serviceKey || !geminiKey) {
-    return new Response('Image generation is not configured. Check Supabase and Gemini environment variables.', { status: 500 });
+  const cloudflareAccountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const cloudflareApiToken = process.env.CLOUDFLARE_API_TOKEN;
+  if (!url || !anon || !serviceKey || !cloudflareAccountId || !cloudflareApiToken) {
+    return new Response('Image generation is not configured. Check Supabase and Cloudflare Workers AI environment variables.', { status: 500 });
   }
 
   const authHeader = request.headers.get('authorization') || '';
@@ -44,7 +45,6 @@ export default async function generateAiImageBackground(request: Request) {
   if (startError) return new Response('Could not update image-generation status.', { status: 500 });
 
   try {
-    const model = process.env.GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-image';
     const prompt = [
       'Create one premium editorial cover image for a Nigerian digital news publication called NaijaToday.',
       'Landscape 16:9 composition, suitable for a professional news website article hero image.',
@@ -57,69 +57,32 @@ export default async function generateAiImageBackground(request: Request) {
       'Headline: ' + title,
       'Summary: ' + excerpt,
       'Article context: ' + content,
-    ].join('\n');
+    ].join('\\n');
 
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-    const requestBody = JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '16:9', imageSize: '1K' } },
+    // Cloudflare Workers AI FLUX.1 schnell: free daily allocation applies on the Workers Free plan.
+    const endpoint = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(cloudflareAccountId)}/ai/run/@cf/black-forest-labs/flux-1-schnell`;
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${cloudflareApiToken}`,
+      },
+      body: JSON.stringify({ prompt, steps: 4 }),
+      signal: AbortSignal.timeout(180000),
     });
 
-    let result: any = null;
-    let lastFailure = '';
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiKey },
-        body: requestBody,
-        signal: AbortSignal.timeout(180000),
-      });
-
-      if (response.ok) {
-        result = await response.json();
-        break;
-      }
-
+    if (!response.ok) {
       const rawError = await response.text();
-      let parsedError: any = {};
-      try { parsedError = JSON.parse(rawError); } catch { /* keep raw provider response */ }
-      const providerMessage = String(parsedError?.error?.message || rawError || 'No provider details returned').replace(/\s+/g, ' ').slice(0, 700);
-      const lowerMessage = providerMessage.toLowerCase();
-
-      if (response.status === 429) {
-        const hardQuota = lowerMessage.includes('perday') ||
-          lowerMessage.includes('per day') ||
-          lowerMessage.includes('limit: 0') ||
-          lowerMessage.includes('quota_limit_value') ||
-          lowerMessage.includes('billing') ||
-          lowerMessage.includes('free_tier');
-        if (hardQuota) {
-          throw new Error(`Gemini image access/quota is not available for this project right now. Provider says: ${providerMessage}`);
-        }
-        lastFailure = `Gemini temporarily rate-limited image generation: ${providerMessage}`;
-      } else if (response.status === 503 || response.status >= 500) {
-        lastFailure = `Gemini image service is temporarily busy: ${providerMessage}`;
-      } else {
-        throw new Error(`Gemini image generation returned HTTP ${response.status}: ${providerMessage}`);
-      }
-
-      if (attempt < 2) {
-        const retryDelayText = parsedError?.error?.details?.find?.((item: any) => item?.retryDelay)?.retryDelay;
-        const retrySeconds = retryDelayText ? Number.parseFloat(String(retryDelayText)) : NaN;
-        const waitMs = Number.isFinite(retrySeconds)
-          ? Math.min(Math.max(retrySeconds * 1000, 5000), 90000)
-          : [15000, 45000][attempt];
-        console.warn(`NaijaToday image generation retry ${attempt + 1}/2 after HTTP ${response.status}; waiting ${Math.round(waitMs / 1000)} seconds.`);
-        await new Promise(resolve => setTimeout(resolve, waitMs));
-      }
+      throw new Error(`Cloudflare Workers AI image generation returned HTTP ${response.status}: ${rawError.replace(/\\s+/g, ' ').slice(0, 650)}`);
     }
 
-    if (!result) throw new Error(lastFailure || 'Gemini image generation could not complete after retries.');
-    const parts = result?.candidates?.[0]?.content?.parts || [];
-    const imagePart = parts.find((part: any) => part.inlineData?.data);
-    if (!imagePart?.inlineData?.data) throw new Error('Gemini did not return an image. Check image model access and quota.');
-
-    const mimeType = imagePart.inlineData.mimeType || 'image/png';
+    const result = await response.json();
+    const imageBase64 = result?.result?.image || result?.image;
+    if (!imageBase64 || typeof imageBase64 !== 'string') {
+      throw new Error('Cloudflare Workers AI did not return an image. Check the Workers AI model access and daily free allocation.');
+    }
+    const imagePart = { inlineData: { data: imageBase64, mimeType: 'image/jpeg' } };
+    const mimeType = imagePart.inlineData.mimeType || 'image/jpeg';
     const bytes = Buffer.from(imagePart.inlineData.data, 'base64');
     const uploadForm = new FormData();
     uploadForm.append('file', new Blob([Uint8Array.from(bytes)], { type: mimeType }), 'naijatoday-editorial.png');
