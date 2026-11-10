@@ -39,7 +39,7 @@ export default function HomeFeed({ posts, title = '📰 Latest Stories' }: { pos
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <span style={{ color: G.green, fontSize: 10, fontWeight: 800, letterSpacing: '1.8px' }}>NAIJATODAY NEWS DESK</span>
-          <span style={{ fontSize: 24, lineHeight: 1.15, fontWeight: 800, fontFamily: 'Georgia,serif', letterSpacing: '-.5px' }}>LATEST STORIES</span>
+          <span style={{ fontSize: 24, lineHeight: 1.15, fontWeight: 800, fontFamily: 'Georgia,serif', letterSpacing: '-.5px' }}>{title.replace('📰 ', '').toUpperCase()}</span>
           <span style={{ fontSize: 12, color: muted }}>The newest headlines, published first</span>
         </div>
         <span style={{ fontSize: 11, color: muted, whiteSpace: 'nowrap', alignSelf: 'flex-end' }}>{posts.length} stories</span>
