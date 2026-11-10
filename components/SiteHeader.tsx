@@ -71,14 +71,17 @@ export default function SiteHeader({
       <div style={{ height: 2, background: `linear-gradient(90deg, ${G.green}, #e4b84c, transparent)`, width: '100%' }} />
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '0 18px' }}>
         <div className="naija-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 0 9px', gap: 14 }}>
-          <Link href="/" aria-label="NaijaToday home" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, textDecoration: 'none' }}>
+          <Link href="/" aria-label="NaijaToday home" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flexShrink: 0, textDecoration: 'none' }}>
             {/* Official NaijaToday brand logo */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo.jpg"
-              alt="NaijaToday — Nigeria's #1 Digital Media"
+              alt="NaijaToday"
               style={{ display: 'block', width: 310, height: 100, objectFit: 'contain', background: '#101114', border: '3px solid #e2b64d', borderRadius: 8, boxShadow: '0 3px 12px rgba(0,0,0,.18)', filter: 'brightness(1.55) contrast(1.08)' }}
             />
+            <span style={{ display: 'block', marginTop: 5, paddingLeft: 5, color: '#075c37', fontSize: 12, lineHeight: 1.3, fontWeight: 900, letterSpacing: '1.7px', textTransform: 'uppercase' }}>
+              Nigeria's No. 1 Digital Media
+            </span>
           </Link>
 
           <div className="naija-header-stats" aria-label="Site statistics" style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '5px 11px', borderRadius: 9, background: darkMode ? 'rgba(0,135,81,0.08)' : '#f0f7f3', border: `1px solid ${darkMode ? 'rgba(0,135,81,0.2)' : '#e0eee5'}` }}>
