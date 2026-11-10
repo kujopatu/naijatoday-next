@@ -132,10 +132,13 @@ export default function AINewsroomStudio() {
             setDraft({
               title: updated.generated_title || '', excerpt: updated.generated_excerpt || '',
               content: updated.generated_content, category: updated.generated_category || 'Nigeria',
-              image: story.generated_image_url || '', video: story.source_video_url || '', scheduledAt: '',
+              image: updated.generated_image_url || '', video: story.source_video_url || '', scheduledAt: '',
             });
             setActiveStory(story.id);
             showToast('Full article generated. Review and edit it before saving.');
+            if (imageMode !== 'manual' && !updated.generated_image_url) {
+              await generateEditorialImage(story, updated.generated_title || '', updated.generated_excerpt || '', updated.generated_content, updated.generated_category || 'Nigeria');
+            }
             return;
           }
           if (updated?.status === 'generation_failed') {
@@ -149,10 +152,13 @@ export default function AINewsroomStudio() {
       setDraft({
         title: result.generated.title, excerpt: result.generated.excerpt,
         content: result.generated.content, category: result.generated.category,
-        image: '', video: story.source_video_url || '', scheduledAt: '',
+        image: story.generated_image_url || '', video: story.source_video_url || '', scheduledAt: '',
       });
       setActiveStory(story.id);
       showToast('AI news brief generated. Review and edit it before saving.');
+      if (imageMode !== 'manual') {
+        await generateEditorialImage(story, result.generated.title, result.generated.excerpt, result.generated.content, result.generated.category);
+      }
       await load();
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Article generation failed.');
@@ -165,7 +171,7 @@ export default function AINewsroomStudio() {
     setDraft({
       title: story.generated_title || '', excerpt: story.generated_excerpt || '',
       content: story.generated_content || '', category: story.generated_category || 'Nigeria',
-      image: '', video: story.source_video_url || '', scheduledAt: '',
+      image: story.generated_image_url || '', video: story.source_video_url || '', scheduledAt: '',
     });
   };
 
