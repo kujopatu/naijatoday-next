@@ -20,10 +20,12 @@ import NewsroomAnalytics from './NewsroomAnalytics';
 import EditorialWorkflowManager from './EditorialWorkflowManager';
 import CommentModerationManager from './CommentModerationManager';
 import NewsletterManager from './NewsletterManager';
+import AINewsroomStudio from './AINewsroomStudio';
 
-type SubTab = 'workflow' | 'comments' | 'newsletter' | 'editorial' | 'seoMetadata' | 'seo' | 'duplicates' | 'stale' | 'images' | 'deadlines' | 'bans' | 'activity' | 'ads' | 'media' | 'system' | 'newsroom';
+type SubTab = 'aiNewsroom' | 'workflow' | 'comments' | 'newsletter' | 'editorial' | 'seoMetadata' | 'seo' | 'duplicates' | 'stale' | 'images' | 'deadlines' | 'bans' | 'activity' | 'ads' | 'media' | 'system' | 'newsroom';
 
 const SUB_TABS: [SubTab, string][] = [
+  ['aiNewsroom', '🤖 AI Newsroom'],
   ['workflow', '🗂️ Workflow & Calendar'],
   ['comments', '💬 Comment Moderation'],
   ['newsletter', '✉️ Newsletter Studio'],
@@ -73,6 +75,7 @@ export default function AdminToolsHub() {
       </div>
 
       <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 12, padding: 20 }}>
+        {subTab === 'aiNewsroom' && <AINewsroomStudio />}
         {subTab === 'workflow' && <EditorialWorkflowManager />}
         {subTab === 'comments' && <CommentModerationManager />}
         {subTab === 'newsletter' && <NewsletterManager />}
