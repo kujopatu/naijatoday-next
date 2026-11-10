@@ -119,16 +119,6 @@ export default function AINewsroomStudio() {
         : 'AI news brief generated. Review and edit it before saving.');
       await load();
       return;
-
-      const result = await api({ action: 'generate', item_id: story.id, format: 'news' }, 'POST');
-      setDraft({
-        title: result.generated.title, excerpt: result.generated.excerpt,
-        content: result.generated.content, category: result.generated.category,
-        image: '', video: story.source_video_url || '', scheduledAt: '',
-      });
-      setActiveStory(story.id);
-      showToast('AI news brief generated. Review and edit it before saving.');
-      await load();
     } catch (error) { showToast(error instanceof Error ? error.message : 'Article generation failed.'); await load(); }
     finally { setBusy(null); }
   };
