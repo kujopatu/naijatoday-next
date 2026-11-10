@@ -110,6 +110,7 @@ export default function AdminPanel() {
   const [reports, setReports] = useState<ForumReport[]>([]);
   const [loadingReports, setLoadingReports] = useState(true);
   const [forumThreads, setForumThreads] = useState<ForumThread[]>([]);
+  const [reportSearch, setReportSearch] = useState('');
 
   const inp: React.CSSProperties = {
     width: '100%',
@@ -417,9 +418,15 @@ export default function AdminPanel() {
         supabase.from('forum_reports').select('*').eq('status', 'pending').order('created_at', { ascending: false }),
         supabase.from('forum_threads').select('*'),
       ]);
-      if (!error && reportData) setReports(reportData as ForumReport[]);
+      if (error) {
+        showToast('Could not load reports: ' + error.message);
+      } else if (reportData) {
+        setReports(reportData as ForumReport[]);
+      }
       if (threadData) setForumThreads(threadData as ForumThread[]);
-    } catch {}
+    } catch {
+      showToast('Connection error loading reports');
+    }
     setLoadingReports(false);
   };
 
@@ -490,6 +497,36 @@ export default function AdminPanel() {
   const catSorted = Object.entries(catCounts).sort((a, b) => b[1] - a[1]);
   const topPosts = [...posts].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
   const maxCat = catSorted.length > 0 ? catSorted[0][1] : 1;
+
+  const filteredReports = reports.filter((report) => {
+    const thread = forumThreads.find((item) => item.id === report.thread_id);
+    const query = reportSearch.trim().toLowerCase();
+    if (!query) return true;
+    return [report.reason, report.reported_by, thread?.title || '', report.target_type]
+      .some((value) => value.toLowerCase().includes(query));
+  });
+
+  const exportReports = () => {
+    const rows = [
+      ['Report ID', 'Content Type', 'Target ID', 'Thread', 'Reason', 'Reported By', 'Reported At'],
+      ...filteredReports.map((report) => [
+        String(report.id),
+        report.target_type,
+        String(report.target_id),
+        forumThreads.find((item) => item.id === report.thread_id)?.title || '',
+        report.reason,
+        report.reported_by,
+        report.created_at,
+      ]),
+    ];
+    const csv = rows.map((row) => row.map((value) => '"' + value.replace(/"/g, '""') + '"').join(',')).join('\\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'naijatoday-forum-reports.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '24px 16px' }}>
@@ -1089,7 +1126,27 @@ export default function AdminPanel() {
 
       {activeSection === 'reports' && (
         <div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: text, marginBottom: 16 }}>🚩 Reported Content</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: text }}>🚩 Reported Content</div>
+              <div style={{ fontSize: 12, color: muted, marginTop: 4 }}>{reports.length} pending report(s)</div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button onClick={loadReports} disabled={loadingReports} style={{ background: 'none', color: text, border: `1px solid ${border}`, borderRadius: 8, padding: '8px 12px', cursor: loadingReports ? 'not-allowed' : 'pointer' }}>
+                ↻ Refresh
+              </button>
+              <button onClick={exportReports} disabled={filteredReports.length === 0} style={{ background: G.green, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 12px', fontWeight: 700, cursor: filteredReports.length === 0 ? 'not-allowed' : 'pointer', opacity: filteredReports.length === 0 ? 0.5 : 1 }}>
+                ↓ Export CSV
+              </button>
+            </div>
+          </div>
+          <input
+            type="search"
+            value={reportSearch}
+            onChange={(event) => setReportSearch(event.target.value)}
+            placeholder="Search reason, reporter, thread title or content type…"
+            style={{ ...inp, marginBottom: 16 }}
+          />
           {loadingReports ? (
             <div style={{ textAlign: 'center', padding: 40, color: muted }}>⏳ Loading reports…</div>
           ) : reports.length === 0 ? (
@@ -1098,7 +1155,9 @@ export default function AdminPanel() {
               <div style={{ fontSize: 16 }}>No reports to review.</div>
             </div>
           ) : (
-            reports.map((report) => {
+            filteredReports.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 32, color: muted }}>No reports match your search.</div>
+            ) : filteredReports.map((report) => {
               const thread = forumThreads.find((t) => t.id === report.thread_id);
               return (
                 <div key={report.id} style={{ background: card, border: `1px solid ${G.red}`, borderRadius: 10, padding: 16, marginBottom: 12 }}>
