@@ -29,10 +29,10 @@ export default async function generateManualArticleImage(request: Request) {
   try { body = await request.json(); } catch { return Response.json({ error: 'Invalid request.' }, { status: 400 }); }
 
   const title = String(body.title || '').trim().slice(0, 240);
-  const excerpt = String(body.excerpt || '').trim().slice(0, 500);
-  const content = String(body.content || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 900);
+  const excerpt = String(body.excerpt || '').trim().slice(0, 250);
+  const content = String(body.content || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 250);
   const category = String(body.category || 'Nigeria').trim().slice(0, 80);
-  const customPrompt = String(body.custom_prompt || '').trim().slice(0, 1000);
+  const customPrompt = String(body.custom_prompt || '').trim().slice(0, 800);
   if (!title && !customPrompt) return Response.json({ error: 'Enter an article headline or a custom image prompt.' }, { status: 400 });
 
   try {
@@ -44,8 +44,8 @@ export default async function generateManualArticleImage(request: Request) {
       'Category: ' + category,
       title ? 'Headline: ' + title : '',
       excerpt ? 'Summary: ' + excerpt : '',
-      content ? 'Article context: ' + content : '',
       customPrompt ? 'EDITOR IMAGE DIRECTION (follow this visual direction while keeping the image editorially appropriate): ' + customPrompt : '',
+      content ? 'Article context: ' + content : '',
     ].filter(Boolean).join('\n').slice(0, 1950);
 
     const endpoint = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(cloudflareAccountId)}/ai/run/@cf/black-forest-labs/flux-1-schnell`;
