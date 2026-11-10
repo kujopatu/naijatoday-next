@@ -28,7 +28,9 @@ function parse(xml: string) {
     const summary=(textTag(b,'description') || textTag(b,'summary') || textTag(b,'content:encoded')).slice(0,3000);
     const date=textTag(b,'pubDate') || textTag(b,'published') || textTag(b,'updated');
     const image=attr(b,'enclosure','url') || attr(b,'media:thumbnail','url');
-    return {title,link,summary,date,image};
+    const mediaTag=b.match(/<media:content\\b[^>]*>/i)?.[0] || '';
+    const video=/video/i.test(mediaTag)?attr(b,'media:content','url'):'';
+    return {title,link,summary,date,image:image.startsWith('https://')?image:'',video};
   }).filter(x=>x.title && approved(x.link));
 }
 function cleanHtml(value: string) {
@@ -76,7 +78,7 @@ export default async function collectAndDraftNews() {
         const {data:item,error:insertError}=await db.from('ai_newsroom_items').insert({
           source_id:source.id,source_name:source.name,source_url:new URL(entry.link).toString(),
           source_title:entry.title,source_summary:entry.summary||null,source_published_at:publishedAt,
-          source_image_url:entry.image||null,status:'discovered',
+          source_image_url:entry.image||null,source_video_url:entry.video && (approved(entry.video) || /^https:\/\/(www\\.)?(youtube\\.com|youtu\\.be)\\//.test(entry.video)) ? entry.video : null,status:'discovered',
         }).select('id').maybeSingle();
         if(insertError) { if(insertError.code!=='23505') { failed++; console.error('Feed item insert failed',insertError.message); } }
         else if(item) discovered++;
