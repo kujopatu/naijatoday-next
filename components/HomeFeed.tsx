@@ -31,13 +31,18 @@ export default function HomeFeed({ posts, title = '📰 Latest Stories' }: { pos
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: 16,
-          paddingBottom: 10,
-          borderBottom: `2px solid ${G.green}`,
+          marginBottom: 18,
+          padding: '0 0 13px',
+          borderBottom: `3px solid ${G.green}`,
+          gap: 12,
         }}
       >
-        <span style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Georgia,serif' }}>{title}</span>
-        <span style={{ fontSize: 12, color: muted }}>{posts.length} articles · Live from database</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <span style={{ color: G.green, fontSize: 10, fontWeight: 800, letterSpacing: '1.8px' }}>NAIJATODAY NEWS DESK</span>
+          <span style={{ fontSize: 24, lineHeight: 1.15, fontWeight: 800, fontFamily: 'Georgia,serif', letterSpacing: '-.5px' }}>LATEST STORIES</span>
+          <span style={{ fontSize: 12, color: muted }}>The newest headlines, published first</span>
+        </div>
+        <span style={{ fontSize: 11, color: muted, whiteSpace: 'nowrap', alignSelf: 'flex-end' }}>{posts.length} stories</span>
       </div>
 
       {posts.length === 0 ? (
