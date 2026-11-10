@@ -20,6 +20,7 @@ export default function FeaturedCarousel({ posts }: { posts: Post[] }) {
 
   return (
     <div
+      className="naija-featured-card"
       style={{
         background: card,
         borderRadius: 12,
@@ -30,6 +31,7 @@ export default function FeaturedCarousel({ posts }: { posts: Post[] }) {
     >
       <Link href={postPath(post)} style={{ textDecoration: 'none', color: 'inherit' }}>
         <div
+          className="naija-featured-hero"
           style={{
             height: 280,
             background: `linear-gradient(135deg, ${G.greenDark}, #1a3a2a)`,
