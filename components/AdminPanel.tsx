@@ -99,6 +99,8 @@ export default function AdminPanel() {
   const [form, setForm] = useState<ArticleForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [generatingArticleImage, setGeneratingArticleImage] = useState(false);
+  const [articleImagePrompt, setArticleImagePrompt] = useState('');
   const imgInputRef = useRef<HTMLInputElement>(null);
 
   // Moderators
@@ -210,6 +212,39 @@ export default function AdminPanel() {
     }
     setUploadingImage(false);
     e.target.value = '';
+  };
+
+  const handleGenerateManualArticleImage = async () => {
+    if (!form.title.trim() && !articleImagePrompt.trim()) {
+      showToast('Enter an article title or describe the image you want.');
+      return;
+    }
+    setGeneratingArticleImage(true);
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (sessionError || !accessToken) throw new Error('Your admin session has expired. Please sign in again.');
+
+      const response = await fetch('/.netlify/functions/generate-manual-article-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({
+          title: form.title,
+          excerpt: form.excerpt,
+          content: form.content,
+          category: form.category,
+          custom_prompt: articleImagePrompt,
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.image_url) throw new Error(result.error || 'Image generation failed.');
+      setForm((current) => ({ ...current, image: result.image_url }));
+      showToast('Editorial image generated and added to your article! 🎉');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Image generation failed.');
+    } finally {
+      setGeneratingArticleImage(false);
+    }
   };
 
   const handleSave = async (publish = true) => {
@@ -753,12 +788,46 @@ export default function AdminPanel() {
             </button>
             <span style={{ fontSize: 11, color: muted }}>auto-compressed · uploads to Cloudinary CDN · or paste a URL above</span>
           </div>
+          <div style={{ background: darkMode ? '#111827' : '#f3f7f5', border: `1px solid ${border}`, borderRadius: 10, padding: 14, marginBottom: 14 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: text, marginBottom: 5 }}>✨ AI Editorial Image Generator</div>
+            <div style={{ fontSize: 12, color: muted, marginBottom: 10 }}>
+              Generate an image from your article automatically, or describe the exact visual you want below. Uses Cloudflare Workers AI and saves the result to Cloudinary.
+            </div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: muted, display: 'block', marginBottom: 6 }}>Your image prompt (optional)</label>
+            <textarea
+              value={articleImagePrompt}
+              onChange={(e) => setArticleImagePrompt(e.target.value)}
+              placeholder="Example: A wide editorial illustration of a busy Lagos market at sunrise, traders arranging fresh produce, warm natural light, professional news photography style..."
+              maxLength={1000}
+              rows={3}
+              style={{ ...inp, minHeight: 76, resize: 'vertical', marginBottom: 8 }}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={handleGenerateManualArticleImage}
+                disabled={generatingArticleImage}
+                style={{ background: G.green, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: generatingArticleImage ? 'not-allowed' : 'pointer', opacity: generatingArticleImage ? 0.7 : 1 }}
+              >
+                {generatingArticleImage ? '⏳ Generating image…' : articleImagePrompt.trim() ? '🎨 Generate from My Prompt' : '✨ Generate from Article'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setArticleImagePrompt('')}
+                disabled={!articleImagePrompt || generatingArticleImage}
+                style={{ background: 'none', color: muted, border: `1px solid ${border}`, borderRadius: 8, padding: '9px 12px', fontSize: 12, cursor: !articleImagePrompt || generatingArticleImage ? 'not-allowed' : 'pointer' }}
+              >
+                Clear prompt
+              </button>
+              <span style={{ fontSize: 11, color: muted }}>Free daily allocation applies; generation may be limited by Cloudflare usage.</span>
+            </div>
+          </div>
           {form.image.startsWith('http') && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={form.image}
-              alt="preview"
-              style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 8, marginBottom: 12 }}
+              alt="Article featured image preview"
+              style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 8, marginBottom: 12 }}
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
               }}
