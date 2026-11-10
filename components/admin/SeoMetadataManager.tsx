@@ -101,7 +101,7 @@ export default function SeoMetadataManager() {
           ? { seo_title: post.title.trim() }
           : {}),
         ...(!post.seo_description?.trim() && post.excerpt?.trim()
-          ? { seo_description: post.excerpt.trim().slice(0, 160).replace(/\\s+\\S*$/, (match) => match.length > 160 ? '' : match) }
+          ? { seo_description: (post.excerpt.trim().length > 160 ? post.excerpt.trim().slice(0, 160).replace(/\\s+\\S*$/, '') : post.excerpt.trim()) }
           : {}),
         updated_at: new Date().toISOString(),
       },
