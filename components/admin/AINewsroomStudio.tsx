@@ -19,6 +19,13 @@ type Story = {
 type Draft = { title: string; excerpt: string; content: string; category: string; image: string; video: string; scheduledAt: string };
 const CLOUDINARY_CLOUD = 'dywtb9ky3';
 const CLOUDINARY_PRESET = 'naijatorday_upload';
+const FEED_PRESETS = [
+  { name: 'PUNCH Latest News', url: 'https://rss.punchng.com/v1/category/latest_news' },
+  { name: 'Premium Times', url: 'https://www.premiumtimesng.com/feed' },
+  { name: 'Channels Television', url: 'https://www.channelstv.com/feed/' },
+  { name: 'The Guardian Nigeria', url: 'https://guardian.ng/feed/' },
+  { name: 'Vanguard Nigeria', url: 'https://www.vanguardngr.com/feed/' },
+];
 
 export default function AINewsroomStudio() {
   const { card, border, text, muted } = useTheme();
@@ -176,6 +183,9 @@ export default function AINewsroomStudio() {
         <input style={input} value={sourceName} onChange={e => setSourceName(e.target.value)} placeholder="Publisher name"/>
         <input style={input} value={feedUrl} onChange={e => setFeedUrl(e.target.value)} placeholder="https://publisher.com/rss.xml"/>
         <button disabled={busy === 'source'} style={{ ...button, background: G.green, borderColor: G.green, color: '#fff' }} onClick={() => void addSource()}>{busy === 'source' ? 'Adding…' : '+ Add feed'}</button>
+      </div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10, marginBottom: 8 }}>
+        {FEED_PRESETS.map(preset => <button key={preset.name} style={button} onClick={() => { setSourceName(preset.name); setFeedUrl(preset.url); }}>{preset.name}</button>)}
       </div>
       <div style={{ marginTop: 12 }}>
         {sources.length === 0 ? <div style={{ fontSize: 12, color: muted }}>No feeds configured yet. Add the RSS feed addresses your editorial team wants to monitor.</div> : sources.map(source => <div key={source.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', borderTop: `1px solid ${border}`, padding: '10px 0' }}>
