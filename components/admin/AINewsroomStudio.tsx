@@ -104,49 +104,21 @@ export default function AINewsroomStudio() {
   const generate = async (story: Story) => {
     setBusy(story.id);
     try {
-      if (articleFormat === 'article') {
-        const { data } = await supabase.auth.getSession();
-        const token = data.session?.access_token;
-        if (!token) throw new Error('Your admin session has expired. Sign in again.');
-        const startResponse = await fetch('/.netlify/functions/generate-ai-article-background', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ item_id: story.id }),
-        });
-        if (startResponse.status !== 202) {
-          const message = await startResponse.text();
-          const detail = message.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 240);
-          throw new Error(
-            startResponse.status === 200
-              ? 'The background generation endpoint did not respond with Netlify’s expected 202 status. The request may have reached the website fallback instead of the function. Please retry after the deployment is fixed.'
-              : `Could not start background article generation (HTTP ${startResponse.status}). ${detail}`
-          );
-        }
-        showToast('Full article generation started. This may take a few minutes; you can safely refresh the newsroom.');
-        const deadline = Date.now() + 14 * 60 * 1000;
-        while (Date.now() < deadline) {
-          await new Promise(resolve => setTimeout(resolve, 4000));
-          const status = await api();
-          const updated: Story | undefined = (status.items || []).find((item: Story) => item.id === story.id);
-          if (updated?.status === 'generated' && updated.generated_title && updated.generated_content) {
-            setDraft({
-              title: updated.generated_title, excerpt: updated.generated_excerpt || '',
-              content: updated.generated_content, category: updated.generated_category || 'Nigeria',
-              image: '', video: updated.source_video_url || '', scheduledAt: '',
-            });
-            setActiveStory(story.id);
-            showToast('Full article generated and saved. Review and edit it before saving.');
-            await load();
-            return;
-          }
-          if (updated?.status === 'generation_failed') {
-            throw new Error(updated.generation_error || 'Full article generation failed. You can retry.');
-          }
-        }
-        await load();
-        showToast('Generation is still running in the background. Refresh the newsroom shortly to check its status.');
-        return;
-      }
+      const result = await api({
+        action: 'generate', item_id: story.id,
+        format: articleFormat === 'article' ? 'article' : 'news',
+      }, 'POST');
+      setDraft({
+        title: result.generated.title, excerpt: result.generated.excerpt,
+        content: result.generated.content, category: result.generated.category,
+        image: '', video: story.source_video_url || '', scheduledAt: '',
+      });
+      setActiveStory(story.id);
+      showToast(articleFormat === 'article'
+        ? 'Full article generated and saved. Review and edit it before saving.'
+        : 'AI news brief generated. Review and edit it before saving.');
+      await load();
+      return;
 
       const result = await api({ action: 'generate', item_id: story.id, format: 'news' }, 'POST');
       setDraft({
@@ -266,7 +238,7 @@ export default function AINewsroomStudio() {
       </div>
       {story.source_image_url?.startsWith('https://') && <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}><img src={story.source_image_url} alt="Source feed image suggestion" style={{ width: 104, height: 68, objectFit: 'cover', borderRadius: 7, border: `1px solid ${border}` }}/><span style={{ fontSize: 10, color: muted }}>Preview only — use only if you have permission. Upload approved images to Cloudinary in the editor.</span></div>}
       {story.status !== 'draft_saved' && story.status !== 'scheduled' && story.status !== 'published' && <div style={{ display: 'flex', gap: 7, marginTop: 10, flexWrap: 'wrap' }}>
-        {story.generated_title ? <button style={{ ...button, background: G.green, color: '#fff', borderColor: G.green }} onClick={() => openDraft(story)}>Review generated article</button> : <button disabled={!providerConfigured || busy === story.id || story.status === 'generating'} style={{ ...button, background: G.green, color: '#fff', borderColor: G.green, opacity: !providerConfigured ? .5 : 1 }} onClick={() => void generate(story)}>{busy === story.id || story.status === 'generating' ? 'Generating…' : story.status === 'generation_failed' ? '↻ Retry full article' : '✨ Generate article with Gemini'}</button>}
+        {story.generated_title && (articleFormat !== 'article' || (story.generated_content || '').replace(/<[^>]+>/g, ' ').split(/\\s+/).filter(Boolean).length >= 1600) ? <button style={{ ...button, background: G.green, color: '#fff', borderColor: G.green }} onClick={() => openDraft(story)}>Review generated article</button> : <button disabled={!providerConfigured || busy === story.id || story.status === 'generating'} style={{ ...button, background: G.green, color: '#fff', borderColor: G.green, opacity: !providerConfigured ? .5 : 1 }} onClick={() => void generate(story)}>{busy === story.id || story.status === 'generating' ? 'Generating…' : articleFormat === 'article' ? '✨ Generate full article' : story.status === 'generation_failed' ? '↻ Retry news brief' : '✨ Generate article with Gemini'}</button>}
         <button disabled={busy === story.id} style={{ ...button, color: G.red, borderColor: G.red }} onClick={() => dismiss(story)}>Dismiss</button>
       </div>}
       {activeStory === story.id && <div style={{ borderTop: `1px solid ${border}`, marginTop: 12, paddingTop: 12 }}>
