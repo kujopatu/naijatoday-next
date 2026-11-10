@@ -77,7 +77,7 @@ export default function SiteHeader({
             <img
               src="/logo.jpg"
               alt="NaijaToday — Nigeria's #1 Digital Media"
-              style={{ display: 'block', width: 310, height: 100, objectFit: 'contain', background: '#101114', border: '3px solid #e2b64d', borderRadius: 8, boxShadow: '0 3px 12px rgba(0,0,0,.18)' }}
+              style={{ display: 'block', width: 310, height: 100, objectFit: 'contain', background: '#101114', border: '3px solid #e2b64d', borderRadius: 8, boxShadow: '0 3px 12px rgba(0,0,0,.18)', filter: 'brightness(1.55) contrast(1.08)' }}
             />
           </Link>
 
