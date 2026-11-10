@@ -56,7 +56,7 @@ export default function SiteHeader({
   });
 
   return (
-    <header
+    <header className="naija-site-header"
       style={{
         background: darkMode
           ? 'linear-gradient(135deg,#0a0e17 0%,#0d1520 100%)'
@@ -148,6 +148,94 @@ export default function SiteHeader({
         @media (max-width: 900px) {
           .naija-header-stats { display:none !important; }
           .naija-header-search { max-width:260px !important; }
+        }
+        /* Premium NaijaToday masthead and navigation refresh */
+        .naija-site-header {
+          background: #ffffff !important;
+          border-bottom: 0 !important;
+          box-shadow: 0 5px 22px rgba(9, 48, 30, .12) !important;
+        }
+        .naija-site-header > div:first-child {
+          height: 4px !important;
+          background: linear-gradient(90deg, #006b3c 0%, #008751 48%, #e2b64d 100%) !important;
+        }
+        .naija-site-header .naija-header-row {
+          min-height: 86px;
+          padding: 15px 0 13px !important;
+          border-bottom: 1px solid #e8eee9;
+        }
+        .naija-site-header .naija-header-row > a {
+          border-left: 0 !important;
+          padding-left: 0 !important;
+        }
+        .naija-site-header .naija-header-row > a > span > span:first-child {
+          font-size: 31px !important;
+          letter-spacing: -1.25px !important;
+          color: #075c37 !important;
+        }
+        .naija-site-header .naija-header-row > a > span > span:last-child {
+          color: #718078 !important;
+          letter-spacing: 2.4px !important;
+          font-size: 9px !important;
+        }
+        .naija-site-header .naija-main-nav {
+          background: #075c37;
+          margin: 0 -18px;
+          padding: 5px 18px 6px;
+          gap: 5px;
+          min-height: 51px;
+        }
+        .naija-site-header .naija-main-nav > a,
+        .naija-site-header .naija-more-menu summary {
+          color: #f4faf6 !important;
+          border-radius: 6px !important;
+          font-size: 12px !important;
+          font-weight: 700 !important;
+          min-height: 39px !important;
+          padding: 9px 14px !important;
+        }
+        .naija-site-header .naija-main-nav > a[aria-current="page"] {
+          color: #ffe09a !important;
+          background: rgba(255,255,255,.12) !important;
+          box-shadow: inset 0 -3px 0 #e2b64d;
+        }
+        .naija-site-header .naija-main-nav > a:hover,
+        .naija-site-header .naija-more-menu summary:hover,
+        .naija-site-header .naija-more-menu[open] summary {
+          color: #ffe09a !important;
+          background: rgba(255,255,255,.12) !important;
+        }
+        .naija-site-header .naija-more-panel {
+          top: calc(100% + 5px);
+          background: #ffffff !important;
+          border-color: #dce8df !important;
+        }
+        .naija-site-header .naija-more-panel a {
+          color: #254535 !important;
+        }
+        .naija-site-header .naija-more-panel a:hover {
+          background: #edf6f0 !important;
+          color: #006b3c !important;
+        }
+        @media (max-width: 900px) {
+          .naija-site-header .naija-header-row { min-height: 76px; }
+          .naija-site-header .naija-main-nav > a,
+          .naija-site-header .naija-more-menu summary { padding-left: 10px !important; padding-right: 10px !important; }
+        }
+        @media (max-width: 680px) {
+          .naija-site-header .naija-header-row { min-height: 0; padding: 11px 0 !important; }
+          .naija-site-header .naija-header-row > a > span > span:first-child { font-size: 26px !important; }
+          .naija-site-header .naija-main-nav {
+            margin: 0 -18px;
+            padding: 5px 12px 6px;
+            gap: 2px;
+          }
+          .naija-site-header .naija-main-nav > a,
+          .naija-site-header .naija-more-menu summary {
+            min-height: 35px !important;
+            padding: 7px 9px !important;
+            font-size: 10px !important;
+          }
         }
         @media (max-width: 680px) {
           .naija-header-row { flex-wrap:wrap !important; gap:9px !important; padding:9px 0 !important; }
