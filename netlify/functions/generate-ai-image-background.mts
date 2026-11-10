@@ -57,7 +57,7 @@ export default async function generateAiImageBackground(request: Request) {
       'Headline: ' + title,
       'Summary: ' + excerpt,
       'Article context: ' + content,
-    ].join('\\n');
+    ].join('\n');
 
     // Cloudflare Workers AI FLUX.1 schnell: free daily allocation applies on the Workers Free plan.
     const endpoint = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(cloudflareAccountId)}/ai/run/@cf/black-forest-labs/flux-1-schnell`;
@@ -73,7 +73,7 @@ export default async function generateAiImageBackground(request: Request) {
 
     if (!response.ok) {
       const rawError = await response.text();
-      throw new Error(`Cloudflare Workers AI image generation returned HTTP ${response.status}: ${rawError.replace(/\\s+/g, ' ').slice(0, 650)}`);
+      throw new Error(`Cloudflare Workers AI image generation returned HTTP ${response.status}: ${rawError.replace(/\s+/g, ' ').slice(0, 650)}`);
     }
 
     const result = await response.json();
