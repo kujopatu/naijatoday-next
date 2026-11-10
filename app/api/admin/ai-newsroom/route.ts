@@ -61,6 +61,12 @@ function allowedUrl(value: string) {
     return u.protocol === 'https:' && ALLOWED_SOURCE_DOMAINS.some(d => u.hostname === d || u.hostname.endsWith('.' + d));
   } catch { return false; }
 }
+function isVideoUrl(value: string) {
+  try {
+    const host = new URL(value).hostname.toLowerCase();
+    return host === 'youtube.com' || host.endsWith('.youtube.com') || host === 'youtu.be' || host.endsWith('.youtu.be');
+  } catch { return false; }
+}
 function parseFeed(xml: string) {
   const blocks = [...xml.matchAll(/<(item|entry)\b[^>]*>([\s\S]*?)<\/\1>/gi)].map(m => m[2]);
   return blocks.slice(0, 15).map(block => {
@@ -71,7 +77,7 @@ function parseFeed(xml: string) {
     const image = attributeValue(block, 'enclosure', 'url') || attributeValue(block, 'media:content', 'url') || attributeValue(block, 'media:thumbnail', 'url');
     const video = attributeValue(block, 'media:content', 'url') && /video/i.test(block.match(/<media:content\b[^>]*>/i)?.[0] || '')
       ? attributeValue(block, 'media:content', 'url') : '';
-    return { title, link, summary: summary.slice(0, 3500), publishedAt: pub, imageUrl: image.startsWith('https://') ? image : '', videoUrl: video && (allowedUrl(video) || /^https:\/\/(www\\.)?(youtube\\.com|youtu\\.be)\\//.test(video)) ? video : '' };
+    return { title, link, summary: summary.slice(0, 3500), publishedAt: pub, imageUrl: image.startsWith('https://') ? image : '', videoUrl: video && (allowedUrl(video) || isVideoUrl(video)) ? video : '' };
   }).filter(x => x.title && allowedUrl(x.link));
 }
 function safeHtml(input: string) {
@@ -208,7 +214,7 @@ export async function POST(request: NextRequest) {
       const category = String(body.category || item.generated_category || 'Nigeria').trim().slice(0, 80);
       if (!title || !excerpt || !articleContent) return NextResponse.json({ error: 'Headline, summary and article body are required.' }, { status: 400 });
       const image = typeof body.image_url === 'string' && /^https:\/\/res\.cloudinary\.com\//.test(body.image_url) ? body.image_url : '📰';
-      const video = typeof body.video_url === 'string' && (allowedUrl(body.video_url) || /^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(body.video_url)) ? body.video_url : '';
+      const video = typeof body.video_url === 'string' && (allowedUrl(body.video_url) || isVideoUrl(body.video_url)) ? body.video_url : '';
       const scheduleAt = body.scheduled_at ? new Date(body.scheduled_at) : null;
       const scheduled = !!scheduleAt && !Number.isNaN(scheduleAt.getTime()) && scheduleAt.getTime() > Date.now();
       const safeSourceUrl = new URL(String(item.source_url)).toString().replace(/&/g, '&amp;').replace(/"/g, '&quot;');
