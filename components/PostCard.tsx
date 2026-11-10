@@ -14,76 +14,137 @@ export default function PostCard({ post }: { post: Post }) {
   const saved = isSaved(post.id);
   const cat = findCategory(post.category);
   const views = typeof post.views === 'number' ? post.views : 0;
-  const image = cloudinaryTransform(post.image, { width: 560, height: 380 });
+  const image = cloudinaryTransform(post.image, { width: 360, height: 280 });
 
   return (
-    <Link href={postPath(post)} className="naija-post-link" style={{ textDecoration: 'none', color: 'inherit' }}>
-      <article
-        className="naija-post-card naija-post-card-premium naija-post-card-redesign"
+    <Link href={postPath(post)} style={{ textDecoration: 'none', color: 'inherit' }}>
+      <div
+        className="naija-post-card naija-post-card-premium"
         style={{
           display: 'flex',
-          gap: 22,
+          gap: 18,
           background: card,
-          borderRadius: 16,
+          borderRadius: 10,
           border: `1px solid ${border}`,
-          padding: 20,
-          marginBottom: 18,
+          padding: 18,
+          marginBottom: 16,
           cursor: 'pointer',
           overflow: 'hidden',
           maxWidth: '100%',
-          alignItems: 'stretch',
         }}
       >
-        <div className="naija-post-image" style={{
-          width: 210,
-          height: 154,
-          flex: '0 0 210px',
-          borderRadius: 12,
-          background: darkMode ? '#1e2535' : '#edf2ee',
-          overflow: 'hidden',
-        }}>
+        <div
+          style={{
+            width: 150,
+            height: 122,
+            flexShrink: 0,
+            borderRadius: 8,
+            background: darkMode ? '#1e2535' : '#f0f4f8',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 36,
+            overflow: 'hidden',
+          }}
+        >
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={image} alt={post.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <img
+              src={image}
+              alt={post.title}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
           ) : (
-            <div style={{ height: '100%', display: 'grid', placeItems: 'center', fontSize: 42 }}>{post.image || '📰'}</div>
+            post.image || '📰'
           )}
         </div>
-        <div className="naija-post-copy" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ display: 'flex', gap: 7, marginBottom: 9, flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{
-              background: (cat?.color || G.green) + '20',
-              color: cat?.color || G.green,
-              fontSize: 10,
-              fontWeight: 800,
-              letterSpacing: '.7px',
-              padding: '4px 9px',
-              borderRadius: 5,
-            }}>{post.category?.toUpperCase()}</span>
-            {post.breaking && <span style={{ background: G.red, color: '#fff', fontSize: 9, fontWeight: 800, padding: '4px 8px', borderRadius: 4 }}>BREAKING</span>}
-            {post.hot && <span style={{ background: G.gold, color: '#171717', fontSize: 9, fontWeight: 800, padding: '4px 8px', borderRadius: 4 }}>🔥 HOT</span>}
-            {post.sponsored && <span style={{ background: '#a855f722', color: '#a855f7', fontSize: 9, fontWeight: 800, padding: '4px 8px', borderRadius: 4 }}>SPONSORED</span>}
+        <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', gap: 5, marginBottom: 5, flexWrap: 'wrap' }}>
+            <span
+              style={{
+                background: (cat?.color || G.green) + '22',
+                color: cat?.color || G.green,
+                fontSize: 10,
+                fontWeight: 700,
+                padding: '2px 7px',
+                borderRadius: 4,
+              }}
+            >
+              {post.category?.toUpperCase()}
+            </span>
+            {post.breaking && (
+              <span
+                style={{
+                  background: G.red,
+                  color: '#fff',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  padding: '2px 6px',
+                  borderRadius: 3,
+                }}
+              >
+                BREAKING
+              </span>
+            )}
+            {post.hot && (
+              <span
+                style={{
+                  background: G.gold,
+                  color: '#000',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  padding: '2px 6px',
+                  borderRadius: 3,
+                }}
+              >
+                🔥 HOT
+              </span>
+            )}
+            {post.sponsored && (
+              <span
+                style={{
+                  background: '#a855f722',
+                  color: '#a855f7',
+                  fontSize: 9,
+                  fontWeight: 700,
+                  padding: '2px 6px',
+                  borderRadius: 3,
+                }}
+              >
+                💰 SPONSORED
+              </span>
+            )}
           </div>
-          <h2 className="naija-post-title" style={{
-            fontSize: 22,
-            fontWeight: 800,
-            color: text,
-            lineHeight: 1.25,
-            margin: '0 0 8px',
-            fontFamily: 'Georgia,serif',
-            letterSpacing: '-.45px',
-          }}>{post.title}</h2>
-          {post.excerpt && <p className="naija-post-excerpt" style={{
-            fontSize: 13,
-            color: muted,
-            lineHeight: 1.55,
-            margin: '0 0 12px',
-            overflow: 'hidden',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical' as const,
-          }}>{post.excerpt}</p>}
-          <div className="naija-post-meta" style={{ display: 'flex', gap: 13, fontSize: 11, color: muted, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div
+            style={{
+              fontSize: 19,
+              fontWeight: 800,
+              color: text,
+              lineHeight: 1.4,
+              marginBottom: 4,
+              fontFamily: 'Georgia,serif',
+            }}
+            className="naija-post-title"
+          >
+            {post.title}
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              color: muted,
+              lineHeight: 1.5,
+              marginBottom: 8,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical' as const,
+              wordBreak: 'break-word',
+            }}
+          >
+            {post.excerpt}
+          </div>
+          <div style={{ display: 'flex', gap: 12, fontSize: 11, color: muted, flexWrap: 'wrap', alignItems: 'center' }}>
             <span>✍️ {post.author || 'NaijaToday Desk'}</span>
             <span>⏱ {post.read_time || '3 min'}</span>
             <span>👁 {views.toLocaleString()}</span>
@@ -95,19 +156,21 @@ export default function PostCard({ post }: { post: Post }) {
               }}
               style={{
                 marginLeft: 'auto',
-                background: saved ? G.green : 'transparent',
+                background: saved ? G.green : 'none',
                 color: saved ? '#fff' : muted,
                 border: `1px solid ${saved ? G.green : border}`,
-                borderRadius: 7,
-                padding: '5px 10px',
+                borderRadius: 6,
+                padding: '4px 10px',
                 fontSize: 11,
-                fontWeight: 700,
+                fontWeight: 600,
                 cursor: 'pointer',
               }}
-            >🔖 {saved ? 'Saved' : 'Save'}</button>
+            >
+              🔖 {saved ? 'Saved' : 'Save'}
+            </button>
           </div>
         </div>
-      </article>
+      </div>
     </Link>
   );
 }
