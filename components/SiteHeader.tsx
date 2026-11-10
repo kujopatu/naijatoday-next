@@ -157,9 +157,9 @@ export default function SiteHeader({
         }
         /* Premium NaijaToday masthead and navigation refresh */
         .naija-site-header {
-          background: #ffffff !important;
+          background: ${darkMode ? "#0a0e17" : "#ffffff"} !important;
           border-bottom: 0 !important;
-          box-shadow: 0 5px 22px rgba(9, 48, 30, .12) !important;
+          box-shadow: ${darkMode ? "0 5px 22px rgba(0,0,0,.38)" : "0 5px 22px rgba(9,48,30,.12)"} !important;
         }
         .naija-site-header > div:first-child {
           height: 4px !important;
@@ -168,7 +168,7 @@ export default function SiteHeader({
         .naija-site-header .naija-header-row {
           min-height: 112px;
           padding: 15px 0 13px !important;
-          border-bottom: 1px solid #e8eee9;
+          border-bottom: 1px solid ${darkMode ? "#26352e" : "#e8eee9};
         }
         .naija-site-header .naija-header-row > a {
           border-left: 0 !important;
