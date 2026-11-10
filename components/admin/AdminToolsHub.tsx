@@ -15,8 +15,9 @@ import SeoMetadataManager from './SeoMetadataManager';
 import EditorialDesk from './EditorialDesk';
 import MediaLibrary from './MediaLibrary';
 import StaleContentReport from './StaleContentReport';
+import SystemHealthPanel from './SystemHealthPanel';
 
-type SubTab = 'editorial' | 'seoMetadata' | 'seo' | 'duplicates' | 'stale' | 'images' | 'deadlines' | 'bans' | 'activity' | 'ads' | 'media';
+type SubTab = 'editorial' | 'seoMetadata' | 'seo' | 'duplicates' | 'stale' | 'images' | 'deadlines' | 'bans' | 'activity' | 'ads' | 'media' | 'system';
 
 const SUB_TABS: [SubTab, string][] = [
   ['editorial', '🗞️ Editorial Desk'],
@@ -30,6 +31,7 @@ const SUB_TABS: [SubTab, string][] = [
   ['bans', '🚫 Banned Users'],
   ['activity', '📜 Activity Log'],
   ['ads', '🔌 Analytics & Ads'],
+  ['system', '🛡️ System Health'],
 ];
 
 export default function AdminToolsHub() {
@@ -73,6 +75,7 @@ export default function AdminToolsHub() {
         {subTab === 'deadlines' && <ExpiredDeadlinesReport />}
         {subTab === 'bans' && <BannedUsersPanel />}
         {subTab === 'activity' && <ActivityLogPanel />}
+        {subTab === 'system' && <SystemHealthPanel />}
         {subTab === 'ads' && (
           <div style={{ display: 'grid', gap: 22 }}>
             <AdvertisingManager />
