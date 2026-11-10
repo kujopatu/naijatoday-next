@@ -62,26 +62,13 @@ const emptyForm: ArticleForm = {
   pollOptions: ['', ''],
 };
 
-const TABS: [string, string][] = [
-  ['overview', '📊 Analytics'],
-  ['new', '✍️ Write New Article'],
-  ['manage', '📋 Manage Articles'],
-  ['queue', '⚠️ Queue'],
-  ['forum', '💬 Forum Manager'],
-  ['reports', '🚩 Reports'],
-  ['jobs', '💼 Jobs & Scholarships'],
-  ['moderators', '🛡️ Moderators'],
-  ['breaking', '🔴 Breaking News'],
-  ['sitemap', '🗺️ Sitemap'],
-  ['polls', '🗳️ Poll Analytics'],
-  ['users', '👥 User Management'],
-  ['trends', '🔥 Trend Manager'],
-  ['social', '🔗 Social Links'],
-  ['fuel', '⛽ Fuel Prices'],
-  ['dataplans', '📱 Data Plans'],
-  ['tools', '🛠️ Admin Tools'],
-  ['products', '🛍️ Products / Resources'],
-  ['fixtures', '⚽ Fixtures & Scores'],
+const ADMIN_MENU_GROUPS: { label: string; items: [string, string][] }[] = [
+  { label: 'Dashboard', items: [['overview', '📊 Analytics']] },
+  { label: 'Articles & Publishing', items: [['new', '✍️ Write New Article'], ['manage', '📋 Manage Articles'], ['breaking', '🔴 Breaking News']] },
+  { label: 'Community & Users', items: [['forum', '💬 Forum Manager'], ['reports', '🚩 Reports'], ['moderators', '🛡️ Moderators'], ['users', '👥 User Management']] },
+  { label: 'Content & Engagement', items: [['trends', '🔥 Trend Manager'], ['social', '🔗 Social Links'], ['polls', '🗳️ Poll Analytics'], ['products', '🛍️ Products / Resources']] },
+  { label: 'Services & Updates', items: [['jobs', '💼 Jobs & Scholarships'], ['fuel', '⛽ Fuel Prices'], ['dataplans', '📱 Data Plans'], ['fixtures', '⚽ Fixtures & Scores']] },
+  { label: 'Website Tools', items: [['sitemap', '🗺️ Sitemap'], ['tools', '🛠️ Admin Tools']] },
 ];
 
 // Tabs with a real implementation below. Everything else in TABS renders
@@ -531,28 +518,51 @@ export default function AdminPanel() {
 
       <AdminDiagnostic userEmail={userEmail} />
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-        {TABS.map(([key, label]) => {
-          const isQueue = key === 'queue';
-          const active = !isQueue && activeSection === key;
-          const hot = isQueue && pendingCount > 0;
+      <div className="admin-menu-groups" style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: 12,
+        marginBottom: 24,
+        padding: 16,
+        background: card,
+        border: `1px solid ${border}`,
+        borderRadius: 12,
+      }}>
+        {ADMIN_MENU_GROUPS.map((group) => {
+          const selected = group.items.some(([key]) => key === activeSection);
           return (
-          <button
-            key={key}
-            onClick={() => setActiveSection(isQueue ? 'forum' : key)}
-            style={{
-              background: active ? G.green : hot ? G.gold : 'none',
-              color: active ? '#fff' : hot ? '#000' : muted,
-              border: `1px solid ${active ? G.green : hot ? G.gold : border}`,
-              borderRadius: 8,
-              padding: '10px 20px',
-              fontSize: 14,
-              fontWeight: active || hot ? 700 : 400,
-              cursor: 'pointer',
-            }}
-          >
-            {key === 'new' && editId ? '✏️ Edit Article' : isQueue ? `${label} (${pendingCount})` : label}
-          </button>
+            <label key={group.label} style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+              <span style={{ color: muted, fontSize: 11, fontWeight: 800, letterSpacing: '.65px', textTransform: 'uppercase' }}>
+                {group.label}
+              </span>
+              <select
+                aria-label={group.label}
+                value={selected ? activeSection : ''}
+                onChange={(event) => {
+                  if (event.target.value) setActiveSection(event.target.value);
+                }}
+                style={{
+                  width: '100%',
+                  minHeight: 43,
+                  padding: '9px 34px 9px 11px',
+                  border: `1px solid ${selected ? G.green : border}`,
+                  borderRadius: 8,
+                  background: darkMode ? '#111520' : '#fff',
+                  color: selected ? (darkMode ? '#d7f5e2' : G.greenDark) : text,
+                  fontSize: 13,
+                  fontWeight: selected ? 700 : 600,
+                  cursor: 'pointer',
+                  outlineOffset: 2,
+                }}
+              >
+                <option value="">Select {group.label}…</option>
+                {group.items.map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {key === 'forum' && pendingCount > 0 ? `${label} · ${pendingCount} pending` : label}
+                  </option>
+                ))}
+              </select>
+            </label>
           );
         })}
       </div>
