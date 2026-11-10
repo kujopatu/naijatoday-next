@@ -52,7 +52,7 @@ function tagValue(xml: string, names: string[]) {
 }
 function attributeValue(xml: string, tag: string, attribute: string) {
   const tagMatch = xml.match(new RegExp('<' + tag.replace(':', '\\:') + '\\b([^>]*)>', 'i'));
-  const match = tagMatch?.[1]?.match(new RegExp(attribute + '=["\\']([^"\\']+)["\\']', 'i'));
+  const match = tagMatch?.[1]?.match(new RegExp(attribute + "=[\"']([^\"']+)[\"']", 'i'));
   return match?.[1] || '';
 }
 function allowedUrl(value: string) {
@@ -206,7 +206,9 @@ export async function POST(request: NextRequest) {
       const video = typeof body.video_url === 'string' && (allowedUrl(body.video_url) || /^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(body.video_url)) ? body.video_url : '';
       const scheduleAt = body.scheduled_at ? new Date(body.scheduled_at) : null;
       const scheduled = !!scheduleAt && !Number.isNaN(scheduleAt.getTime()) && scheduleAt.getTime() > Date.now();
-      const sourceLink = `<p><strong>Source:</strong> <a href="${item.source_url}" target="_blank" rel="nofollow noopener">${item.source_name}</a></p>`;
+      const safeSourceUrl = new URL(String(item.source_url)).toString().replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+      const safeSourceName = String(item.source_name).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] || c));
+      const sourceLink = `<p><strong>Source:</strong> <a href="${safeSourceUrl}" target="_blank" rel="nofollow noopener">${safeSourceName}</a></p>`;
       const videoLink = video ? `<p><strong>Related video:</strong> <a href="${video}" target="_blank" rel="nofollow noopener">Watch video</a></p>` : '';
       const content = String(item.generated_content) + sourceLink + videoLink;
       const wordCount = content.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
