@@ -202,6 +202,12 @@ export async function POST(request: NextRequest) {
     if (body.action === 'save_draft') {
       const { data: item, error } = await db.from('ai_newsroom_items').select('*').eq('id', body.item_id).single();
       if (error || !item?.generated_title || !item.generated_content) return NextResponse.json({ error: 'Generate the article before saving it.' }, { status: 400 });
+      if (item.post_id) return NextResponse.json({ error: 'This story has already been saved to the article workflow.' }, { status: 409 });
+      const title = String(body.title || item.generated_title).trim().slice(0, 240);
+      const excerpt = String(body.excerpt || item.generated_excerpt || '').trim().slice(0, 500);
+      const articleContent = safeHtml(String(body.content || item.generated_content));
+      const category = String(body.category || item.generated_category || 'Nigeria').trim().slice(0, 80);
+      if (!title || !excerpt || !articleContent) return NextResponse.json({ error: 'Headline, summary and article body are required.' }, { status: 400 });
       const image = typeof body.image_url === 'string' && /^https:\/\/res\.cloudinary\.com\//.test(body.image_url) ? body.image_url : '📰';
       const video = typeof body.video_url === 'string' && (allowedUrl(body.video_url) || /^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(body.video_url)) ? body.video_url : '';
       const scheduleAt = body.scheduled_at ? new Date(body.scheduled_at) : null;
@@ -210,12 +216,12 @@ export async function POST(request: NextRequest) {
       const safeSourceName = String(item.source_name).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] || c));
       const sourceLink = `<p><strong>Source:</strong> <a href="${safeSourceUrl}" target="_blank" rel="nofollow noopener">${safeSourceName}</a></p>`;
       const videoLink = video ? `<p><strong>Related video:</strong> <a href="${video}" target="_blank" rel="nofollow noopener">Watch video</a></p>` : '';
-      const content = String(item.generated_content) + sourceLink + videoLink;
+      const content = articleContent + sourceLink + videoLink;
       const wordCount = content.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
       const now = new Date().toISOString();
       const { data: post, error: postError } = await db.from('posts').insert({
-        title: item.generated_title, excerpt: item.generated_excerpt, content,
-        category: item.generated_category || 'Nigeria', image,
+        title, excerpt, content,
+        category, image,
         author: 'NaijaToday Desk', read_time: `${Math.max(1, Math.ceil(wordCount / 200))} min`,
         breaking: false, hot: false, featured: false, sponsored: false,
         tags: item.generated_tags || [], views: 0, upvotes: 0, comments: 0,
