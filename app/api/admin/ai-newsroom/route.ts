@@ -67,6 +67,28 @@ function isVideoUrl(value: string) {
     return host === 'youtube.com' || host.endsWith('.youtube.com') || host === 'youtu.be' || host.endsWith('.youtu.be');
   } catch { return false; }
 }
+function feedImage(block: string) {
+  const candidates: string[] = [
+    attributeValue(block, 'media:thumbnail', 'url'),
+    attributeValue(block, 'itunes:image', 'href'),
+  ];
+  for (const match of block.matchAll(/<(enclosure|media:content)\b([^>]*)>/gi)) {
+    const attrs = match[2] || '';
+    const url = attrs.match(/\burl=["']([^"']+)["']/i)?.[1] || '';
+    const type = attrs.match(/\btype=["']([^"']+)["']/i)?.[1] || '';
+    const medium = attrs.match(/\bmedium=["']([^"']+)["']/i)?.[1] || '';
+    if (type.startsWith('image/') || medium.toLowerCase() === 'image' || /\.(?:jpe?g|png|webp|gif)(?:[?#]|$)/i.test(url)) candidates.push(url);
+  }
+  candidates.push(block.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i)?.[1] || '');
+  for (const candidate of candidates) {
+    const decoded = decodeXml(candidate).trim();
+    try {
+      const u = new URL(decoded);
+      if (u.protocol === 'https:' && !u.username && !u.password && u.hostname !== 'localhost') return u.toString();
+    } catch { /* Ignore malformed feed image URLs. */ }
+  }
+  return '';
+}
 function parseFeed(xml: string) {
   const blocks = [...xml.matchAll(/<(item|entry)\b[^>]*>([\s\S]*?)<\/\1>/gi)].map(m => m[2]);
   return blocks.slice(0, 15).map(block => {
@@ -74,10 +96,10 @@ function parseFeed(xml: string) {
     const link = tagValue(block, ['link']) || attributeValue(block, 'link', 'href') || tagValue(block, ['guid','id']);
     const summary = tagValue(block, ['description','summary','content:encoded','content']);
     const pub = tagValue(block, ['pubDate','published','updated','dc:date']);
-    const image = attributeValue(block, 'enclosure', 'url') || attributeValue(block, 'media:content', 'url') || attributeValue(block, 'media:thumbnail', 'url');
+    const image = feedImage(block);
     const video = attributeValue(block, 'media:content', 'url') && /video/i.test(block.match(/<media:content\b[^>]*>/i)?.[0] || '')
       ? attributeValue(block, 'media:content', 'url') : '';
-    return { title, link, summary: summary.slice(0, 3500), publishedAt: pub, imageUrl: image.startsWith('https://') ? image : '', videoUrl: video && (allowedUrl(video) || isVideoUrl(video)) ? video : '' };
+    return { title, link, summary: summary.slice(0, 3500), publishedAt: pub, imageUrl: image, videoUrl: video && (allowedUrl(video) || isVideoUrl(video)) ? video : '' };
   }).filter(x => x.title && allowedUrl(x.link));
 }
 function safeHtml(input: string) {
