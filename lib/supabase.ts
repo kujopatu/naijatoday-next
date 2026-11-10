@@ -40,5 +40,7 @@ export type Post = {
   created_at: string;
   tags: string[] | null;
   sponsored: boolean;
+  seo_title?: string | null;
+  seo_description?: string | null;
   updated_at: string;
 };
