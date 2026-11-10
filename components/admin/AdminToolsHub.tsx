@@ -16,11 +16,13 @@ import EditorialDesk from './EditorialDesk';
 import MediaLibrary from './MediaLibrary';
 import StaleContentReport from './StaleContentReport';
 import SystemHealthPanel from './SystemHealthPanel';
+import NewsroomAnalytics from './NewsroomAnalytics';
 
-type SubTab = 'editorial' | 'seoMetadata' | 'seo' | 'duplicates' | 'stale' | 'images' | 'deadlines' | 'bans' | 'activity' | 'ads' | 'media' | 'system';
+type SubTab = 'editorial' | 'seoMetadata' | 'seo' | 'duplicates' | 'stale' | 'images' | 'deadlines' | 'bans' | 'activity' | 'ads' | 'media' | 'system' | 'newsroom';
 
 const SUB_TABS: [SubTab, string][] = [
   ['editorial', '🗞️ Editorial Desk'],
+  ['newsroom', '📊 Newsroom Analytics'],
   ['media', '🖼️ Media Library'],
   ['seoMetadata', '🔎 SEO Metadata'],
   ['seo', '📝 SEO Checklist'],
@@ -66,6 +68,7 @@ export default function AdminToolsHub() {
 
       <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 12, padding: 20 }}>
         {subTab === 'editorial' && <EditorialDesk />}
+        {subTab === 'newsroom' && <NewsroomAnalytics />}
         {subTab === 'media' && <MediaLibrary />}
         {subTab === 'seoMetadata' && <SeoMetadataManager />}
         {subTab === 'seo' && <SeoChecklist />}
