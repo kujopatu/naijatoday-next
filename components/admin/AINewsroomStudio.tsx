@@ -212,7 +212,7 @@ export default function AINewsroomStudio() {
         const message = await response.text();
         throw new Error(message.slice(0, 240) || 'Could not start background image generation.');
       }
-      showToast('AI image generation started. NaijaToday will save the finished image to Cloudinary.');
+      showToast('Cloudflare AI image generation started. NaijaToday will save the finished image to Cloudinary.');
       for (let check = 0; check < 90; check++) {
         await new Promise(resolve => setTimeout(resolve, 4000));
         const newsroom = await api();
@@ -312,7 +312,7 @@ export default function AINewsroomStudio() {
           {story.source_video_url?.startsWith('https://') && <a href={story.source_video_url} target="_blank" rel="noreferrer" style={{ color: G.green, fontSize: 10 }}>Related video ↗</a>}
         </div>
       </div>
-      {story.source_image_url?.startsWith('https://') && <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}><img src={story.source_image_url} alt="Source feed image suggestion" style={{ width: 104, height: 68, objectFit: 'cover', borderRadius: 7, border: `1px solid ${border}` }}/><span style={{ fontSize: 10, color: muted }}>Preview only — use only if you have permission. Upload approved images to Cloudinary in the editor.</span></div>}
+      {story.source_image_url?.startsWith('https://') && <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}><img src={story.source_image_url} alt="Source feed image suggestion" style={{ width: 104, height: 68, objectFit: 'cover', borderRadius: 7, border: `1px solid ${border}` }}/><span style={{ fontSize: 10, color: muted }}>Publisher-supplied image preview. If you confirm reuse rights, the source image URL can be attached to the article; otherwise use the Cloudflare-generated image or an authorised upload.</span></div>}
       {story.status !== 'draft_saved' && story.status !== 'scheduled' && story.status !== 'published' && <div style={{ display: 'flex', gap: 7, marginTop: 10, flexWrap: 'wrap' }}>
         {story.generated_title && (articleFormat !== 'article' || (story.generated_content || '').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length >= 1600) ? <button style={{ ...button, background: G.green, color: '#fff', borderColor: G.green }} onClick={() => openDraft(story)}>Review generated article</button> : <button disabled={!providerConfigured || busy === story.id || story.status === 'generating'} style={{ ...button, background: G.green, color: '#fff', borderColor: G.green, opacity: !providerConfigured ? .5 : 1 }} onClick={() => void generate(story)}>{busy === story.id || story.status === 'generating' ? 'Generating…' : articleFormat === 'article' ? '✨ Generate full article' : story.status === 'generation_failed' ? '↻ Retry news brief' : '✨ Generate article with Gemini'}</button>}
         <button disabled={busy === story.id} style={{ ...button, color: G.red, borderColor: G.red }} onClick={() => dismiss(story)}>Dismiss</button>
@@ -331,7 +331,7 @@ export default function AINewsroomStudio() {
               <button type="button" disabled={uploading} style={button} onClick={() => document.getElementById('naijatoday-editorial-image-upload')?.click()}>{uploading ? 'Uploading…' : 'Upload image'}</button>
               <input id="naijatoday-editorial-image-upload" type="file" accept="image/*" disabled={uploading} style={{ display: 'none' }} onChange={e => void uploadImage(e.target.files?.[0])}/>
             </div>
-            <div style={{ fontSize: 10, color: muted }}>{imageGenerating || story.image_generation_status === 'generating' ? 'Gemini is creating a landscape editorial image, then saving it to Cloudinary…' : story.image_generation_status === 'failed' && story.image_generation_error ? `Last image attempt failed: ${story.image_generation_error}` : draft.image ? '✓ Image attached from Cloudinary. You can regenerate or upload a replacement.' : 'Generate a matching image with AI or upload an authorised image.'}</div>
+            <div style={{ fontSize: 10, color: muted }}>{imageGenerating || story.image_generation_status === 'generating' ? 'Cloudflare is creating a landscape editorial image, then saving it to Cloudinary…' : story.image_generation_status === 'failed' && story.image_generation_error ? `Last image attempt failed: ${story.image_generation_error}` : draft.image ? '✓ Image attached from Cloudinary. You can regenerate or upload a replacement.' : 'Generate a matching image with Cloudflare AI, select a licensed feed image, or upload an authorised image.'}</div>
           </div>
           <div><label style={label}>RELATED VIDEO URL (OPTIONAL)</label><input style={input} value={draft.video} onChange={e => setDraft(d => ({ ...d, video: e.target.value }))} placeholder="YouTube or approved publisher video URL"/><div style={{ fontSize: 10, color: muted, marginTop: 4 }}>A link to the related video is added to the article.</div></div>
         </div>
