@@ -76,10 +76,10 @@ function parseFeed(xml: string) {
 }
 function safeHtml(input: string) {
   return input
-    .replace(/<(script|style|iframe|object|embed|form|svg|math)\\b[^>]*>[\\s\\S]*?<\\/\\1>/gi, '')
-    .replace(/<a\\b[^>]*>([\\s\\S]*?)<\\/a>/gi, '$1')
-    .replace(/<(?!\\/?(?:p|h2|h3|h4|ul|ol|li|strong|b|em|i|blockquote)\\b)[^>]*>/gi, '')
-    .replace(/<(p|h2|h3|h4|ul|ol|li|strong|b|em|i|blockquote)\\b[^>]*>/gi, '<$1>');
+    .replace(/<(script|style|iframe|object|embed|form|svg|math)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
+    .replace(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, '$1')
+    .replace(/<(?!\/?(?:p|h2|h3|h4|ul|ol|li|strong|b|em|i|blockquote)\b)[^>]*>/gi, '')
+    .replace(/<(p|h2|h3|h4|ul|ol|li|strong|b|em|i|blockquote)\b[^>]*>/gi, '<$1>');
 }
 async function geminiDraft(item: Record<string, unknown>) {
   const key = process.env.GEMINI_API_KEY;
