@@ -71,7 +71,7 @@ function parseFeed(xml: string) {
     const image = attributeValue(block, 'enclosure', 'url') || attributeValue(block, 'media:content', 'url') || attributeValue(block, 'media:thumbnail', 'url');
     const video = attributeValue(block, 'media:content', 'url') && /video/i.test(block.match(/<media:content\b[^>]*>/i)?.[0] || '')
       ? attributeValue(block, 'media:content', 'url') : '';
-    return { title, link, summary: summary.slice(0, 3500), publishedAt: pub, imageUrl: image, videoUrl: video };
+    return { title, link, summary: summary.slice(0, 3500), publishedAt: pub, imageUrl: image.startsWith('https://') ? image : '', videoUrl: video && (allowedUrl(video) || /^https:\/\/(www\\.)?(youtube\\.com|youtu\\.be)\\//.test(video)) ? video : '' };
   }).filter(x => x.title && allowedUrl(x.link));
 }
 function safeHtml(input: string) {
@@ -172,13 +172,13 @@ export async function POST(request: NextRequest) {
       let added = 0;
       for (const entry of entries) {
         const publishedAt = entry.publishedAt && !Number.isNaN(Date.parse(entry.publishedAt)) ? new Date(entry.publishedAt).toISOString() : null;
-        const { error } = await db.from('ai_newsroom_items').upsert({
+        const { data: inserted, error } = await db.from('ai_newsroom_items').upsert({
           source_id: source.id, source_name: source.name, source_url: entry.link,
           source_title: entry.title, source_summary: entry.summary || null,
           source_published_at: publishedAt, source_image_url: entry.imageUrl || null,
           source_video_url: entry.videoUrl || null, status: 'discovered', updated_at: new Date().toISOString(),
-        }, { onConflict: 'source_url', ignoreDuplicates: true });
-        if (!error) added++;
+        }, { onConflict: 'source_url', ignoreDuplicates: true }).select('id');
+        if (!error) added += inserted?.length || 0;
       }
       return NextResponse.json({ found: entries.length, added });
     }
