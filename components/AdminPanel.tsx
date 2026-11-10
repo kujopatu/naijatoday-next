@@ -519,7 +519,7 @@ export default function AdminPanel() {
         report.created_at,
       ]),
     ];
-    const csv = rows.map((row) => row.map((value) => '"' + value.replace(/"/g, '""') + '"').join(',')).join('\\n');
+    const csv = rows.map((row) => row.map((value) => '"' + value.replace(/"/g, '""') + '"').join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
     const link = document.createElement('a');
     link.href = url;
