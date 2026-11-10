@@ -83,7 +83,7 @@ export default async function generateAiImageBackground(request: Request) {
     const mimeType = imagePart.inlineData.mimeType || 'image/png';
     const bytes = Buffer.from(imagePart.inlineData.data, 'base64');
     const uploadForm = new FormData();
-    uploadForm.append('file', new Blob([bytes], { type: mimeType }), 'naijatoday-editorial.png');
+    uploadForm.append('file', new Blob([Uint8Array.from(bytes)], { type: mimeType }), 'naijatoday-editorial.png');
     uploadForm.append('upload_preset', CLOUDINARY_PRESET);
     uploadForm.append('folder', 'naijatorday/articles/ai-generated');
     const upload = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
