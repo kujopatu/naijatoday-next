@@ -15,6 +15,7 @@ type Story = {
   generated_content: string | null; generated_category: string | null;
   generated_seo_title: string | null; generated_seo_description: string | null;
   generated_tags: string[] | null; post_id: string | null;
+  generation_error?: string | null; generation_started_at?: string | null; generation_attempts?: number;
 };
 type Draft = { title: string; excerpt: string; content: string; category: string; image: string; video: string; scheduledAt: string };
 const CLOUDINARY_CLOUD = 'dywtb9ky3';
@@ -52,8 +53,10 @@ export default function AINewsroomStudio() {
       body: payload ? JSON.stringify(payload) : undefined,
       cache: 'no-store',
     });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'AI Newsroom request failed.');
+    const raw = await response.text();
+    let result: any;
+    try { result = raw ? JSON.parse(raw) : {}; } catch { result = {}; }
+    if (!response.ok) throw new Error(result.error || (raw ? raw.slice(0, 220) : 'AI Newsroom request failed.'));
     return result;
   }, []);
 
@@ -101,16 +104,55 @@ export default function AINewsroomStudio() {
   const generate = async (story: Story) => {
     setBusy(story.id);
     try {
-      const result = await api({ action: 'generate', item_id: story.id, format: articleFormat }, 'POST');
+      if (articleFormat === 'article') {
+        const { data } = await supabase.auth.getSession();
+        const token = data.session?.access_token;
+        if (!token) throw new Error('Your admin session has expired. Sign in again.');
+        const startResponse = await fetch('/.netlify/functions/generate-ai-article-background', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item_id: story.id }),
+        });
+        if (!startResponse.ok && startResponse.status !== 202) {
+          const message = await startResponse.text();
+          throw new Error(message || 'Could not start background article generation.');
+        }
+        showToast('Full article generation started. This may take a few minutes; you can safely refresh the newsroom.');
+        const deadline = Date.now() + 12 * 60 * 1000;
+        while (Date.now() < deadline) {
+          await new Promise(resolve => setTimeout(resolve, 4000));
+          const status = await api();
+          const updated: Story | undefined = (status.items || []).find((item: Story) => item.id === story.id);
+          if (updated?.status === 'generated' && updated.generated_title && updated.generated_content) {
+            setDraft({
+              title: updated.generated_title, excerpt: updated.generated_excerpt || '',
+              content: updated.generated_content, category: updated.generated_category || 'Nigeria',
+              image: '', video: updated.source_video_url || '', scheduledAt: '',
+            });
+            setActiveStory(story.id);
+            showToast('Full article generated and saved. Review and edit it before saving.');
+            await load();
+            return;
+          }
+          if (updated?.status === 'generation_failed') {
+            throw new Error(updated.generation_error || 'Full article generation failed. You can retry.');
+          }
+        }
+        await load();
+        showToast('Generation is still running in the background. Refresh the newsroom shortly to check its status.');
+        return;
+      }
+
+      const result = await api({ action: 'generate', item_id: story.id, format: 'news' }, 'POST');
       setDraft({
         title: result.generated.title, excerpt: result.generated.excerpt,
         content: result.generated.content, category: result.generated.category,
         image: '', video: story.source_video_url || '', scheduledAt: '',
       });
       setActiveStory(story.id);
-      showToast('AI article generated. Review and edit it before saving.');
+      showToast('AI news brief generated. Review and edit it before saving.');
       await load();
-    } catch (error) { showToast(error instanceof Error ? error.message : 'Article generation failed.'); }
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Article generation failed.'); await load(); }
     finally { setBusy(null); }
   };
 
@@ -207,6 +249,7 @@ export default function AINewsroomStudio() {
           <div style={{ fontSize: 10, color: muted, marginBottom: 4 }}>{story.source_name} · {story.source_published_at ? new Date(story.source_published_at).toLocaleString('en-NG') : 'Date not supplied'}</div>
           <div style={{ fontSize: 14, fontWeight: 800, color: text }}>{story.source_title}</div>
           {story.source_summary && <div style={{ fontSize: 11, color: muted, marginTop: 5 }}>{story.source_summary.slice(0, 260)}{story.source_summary.length > 260 ? '…' : ''}</div>}
+          {story.status === 'generation_failed' && story.generation_error && <div style={{ fontSize: 11, color: G.red, marginTop: 7 }}>Generation failed: {story.generation_error}</div>}
           <a href={story.source_url} target="_blank" rel="noreferrer" style={{ color: G.green, fontSize: 11, display: 'inline-block', marginTop: 6 }}>Open original source ↗</a>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
@@ -217,7 +260,7 @@ export default function AINewsroomStudio() {
       </div>
       {story.source_image_url?.startsWith('https://') && <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}><img src={story.source_image_url} alt="Source feed image suggestion" style={{ width: 104, height: 68, objectFit: 'cover', borderRadius: 7, border: `1px solid ${border}` }}/><span style={{ fontSize: 10, color: muted }}>Preview only — use only if you have permission. Upload approved images to Cloudinary in the editor.</span></div>}
       {story.status !== 'draft_saved' && story.status !== 'scheduled' && story.status !== 'published' && <div style={{ display: 'flex', gap: 7, marginTop: 10, flexWrap: 'wrap' }}>
-        {story.generated_title ? <button style={{ ...button, background: G.green, color: '#fff', borderColor: G.green }} onClick={() => openDraft(story)}>Review generated article</button> : <button disabled={!providerConfigured || busy === story.id} style={{ ...button, background: G.green, color: '#fff', borderColor: G.green, opacity: !providerConfigured ? .5 : 1 }} onClick={() => void generate(story)}>{busy === story.id ? 'Generating…' : '✨ Generate article with Gemini'}</button>}
+        {story.generated_title ? <button style={{ ...button, background: G.green, color: '#fff', borderColor: G.green }} onClick={() => openDraft(story)}>Review generated article</button> : <button disabled={!providerConfigured || busy === story.id || story.status === 'generating'} style={{ ...button, background: G.green, color: '#fff', borderColor: G.green, opacity: !providerConfigured ? .5 : 1 }} onClick={() => void generate(story)}>{busy === story.id || story.status === 'generating' ? 'Generating…' : story.status === 'generation_failed' ? '↻ Retry full article' : '✨ Generate article with Gemini'}</button>}
         <button disabled={busy === story.id} style={{ ...button, color: G.red, borderColor: G.red }} onClick={() => dismiss(story)}>Dismiss</button>
       </div>}
       {activeStory === story.id && <div style={{ borderTop: `1px solid ${border}`, marginTop: 12, paddingTop: 12 }}>
