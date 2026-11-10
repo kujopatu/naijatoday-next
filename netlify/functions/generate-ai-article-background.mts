@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-export const config = { type: 'background' };
+export const config = { background: true };
 
 const ADMIN_EMAIL = 'kujopatu@gmail.com';
 
