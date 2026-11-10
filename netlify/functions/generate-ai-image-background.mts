@@ -59,23 +59,62 @@ export default async function generateAiImageBackground(request: Request) {
       'Article context: ' + content,
     ].join('\\n');
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiKey },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '16:9', imageSize: '1K' } },
-      }),
-      signal: AbortSignal.timeout(180000),
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+    const requestBody = JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '16:9', imageSize: '1K' } },
     });
-    if (!response.ok) {
-      const detail = (await response.text()).replace(/\\s+/g, ' ').slice(0, 300);
-      if (response.status === 429) throw new Error('Gemini image quota is busy. Wait and try again.');
-      if (response.status === 503) throw new Error('Gemini image generation is temporarily unavailable. Try again shortly.');
-      throw new Error(`Gemini image generation returned HTTP ${response.status}: ${detail}`);
+
+    let result: any = null;
+    let lastFailure = '';
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiKey },
+        body: requestBody,
+        signal: AbortSignal.timeout(180000),
+      });
+
+      if (response.ok) {
+        result = await response.json();
+        break;
+      }
+
+      const rawError = await response.text();
+      let parsedError: any = {};
+      try { parsedError = JSON.parse(rawError); } catch { /* keep raw provider response */ }
+      const providerMessage = String(parsedError?.error?.message || rawError || 'No provider details returned').replace(/\\s+/g, ' ').slice(0, 700);
+      const lowerMessage = providerMessage.toLowerCase();
+
+      if (response.status === 429) {
+        const hardQuota = lowerMessage.includes('perday') ||
+          lowerMessage.includes('per day') ||
+          lowerMessage.includes('limit: 0') ||
+          lowerMessage.includes('quota_limit_value') ||
+          lowerMessage.includes('billing') ||
+          lowerMessage.includes('free_tier');
+        if (hardQuota) {
+          throw new Error(`Gemini image access/quota is not available for this project right now. Provider says: ${providerMessage}`);
+        }
+        lastFailure = `Gemini temporarily rate-limited image generation: ${providerMessage}`;
+      } else if (response.status === 503 || response.status >= 500) {
+        lastFailure = `Gemini image service is temporarily busy: ${providerMessage}`;
+      } else {
+        throw new Error(`Gemini image generation returned HTTP ${response.status}: ${providerMessage}`);
+      }
+
+      if (attempt < 2) {
+        const retryDelayText = parsedError?.error?.details?.find?.((item: any) => item?.retryDelay)?.retryDelay;
+        const retrySeconds = retryDelayText ? Number.parseFloat(String(retryDelayText)) : NaN;
+        const waitMs = Number.isFinite(retrySeconds)
+          ? Math.min(Math.max(retrySeconds * 1000, 5000), 90000)
+          : [15000, 45000][attempt];
+        console.warn(`NaijaToday image generation retry ${attempt + 1}/2 after HTTP ${response.status}; waiting ${Math.round(waitMs / 1000)} seconds.`);
+        await new Promise(resolve => setTimeout(resolve, waitMs));
+      }
     }
 
-    const result = await response.json();
+    if (!result) throw new Error(lastFailure || 'Gemini image generation could not complete after retries.');
     const parts = result?.candidates?.[0]?.content?.parts || [];
     const imagePart = parts.find((part: any) => part.inlineData?.data);
     if (!imagePart?.inlineData?.data) throw new Error('Gemini did not return an image. Check image model access and quota.');
