@@ -66,7 +66,7 @@ async function callGemini(
   throw new Error(lastError + ' All configured Gemini models and retries were exhausted. Check the model availability and retry later.');
 }
 
-async function generateArticle(item: Record<string, unknown>) {
+async function generateArticle(item: Record<string, unknown>, db: ReturnType<typeof createClient>) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('Gemini is not configured. Add GEMINI_API_KEY to Netlify environment variables.');
   const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
@@ -171,7 +171,7 @@ export default async function generateAiArticleBackground(request: Request) {
   }
 
   try {
-    const generated = await generateArticle(item);
+    const generated = await generateArticle(item, db);
     const { error } = await db.from('ai_newsroom_items').update(generated).eq('id', item.id);
     if (error) throw error;
     console.log(`AI Newsroom article generated successfully for item ${item.id}.`);
