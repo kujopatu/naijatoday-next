@@ -35,6 +35,7 @@ export default function AINewsroomStudio() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [providerConfigured, setProviderConfigured] = useState(false);
+  const [articleFormat, setArticleFormat] = useState<'news' | 'article'>('news');
   const [sourceName, setSourceName] = useState('');
   const [feedUrl, setFeedUrl] = useState('');
   const [activeStory, setActiveStory] = useState<string | null>(null);
@@ -100,7 +101,7 @@ export default function AINewsroomStudio() {
   const generate = async (story: Story) => {
     setBusy(story.id);
     try {
-      const result = await api({ action: 'generate', item_id: story.id }, 'POST');
+      const result = await api({ action: 'generate', item_id: story.id, format: articleFormat }, 'POST');
       setDraft({
         title: result.generated.title, excerpt: result.generated.excerpt,
         content: result.generated.content, category: result.generated.category,
@@ -149,7 +150,7 @@ export default function AINewsroomStudio() {
     try {
       const result = await api({
         action: 'save_draft', item_id: story.id, image_url: draft.image,
-        video_url: draft.video, scheduled_at: draft.scheduledAt || null,
+        video_url: draft.video, scheduled_at: draft.scheduledAt || null, format: articleFormat,
         title: draft.title, excerpt: draft.excerpt, content: draft.content, category: draft.category,
       }, 'POST');
       showToast(result.status === 'scheduled' ? 'Article scheduled. The publishing service will post it at the selected time.' : 'Article saved as an unpublished draft.');
@@ -196,6 +197,10 @@ export default function AINewsroomStudio() {
     </div>
 
     <div style={{ fontWeight: 800, color: text, marginBottom: 8 }}>2. Story discovery & generation</div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12, padding: 11, border: \`1px solid \${border}\`, borderRadius: 9 }}>
+      <div style={{ flex: 1, minWidth: 190 }}><div style={{ fontSize: 12, fontWeight: 800, color: text }}>Generation format</div><div style={{ fontSize: 10, color: muted, marginTop: 3 }}>Choose a short news report or a full article.</div></div>
+      <select value={articleFormat} onChange={e => setArticleFormat(e.target.value === 'article' ? 'article' : 'news')} style={{ ...input, width: 'auto', minWidth: 190 }}><option value="news">News brief (350–600 words)</option><option value="article">Full article (minimum 1,600 words)</option></select>
+    </div>
     {loading ? <div style={{ padding: 24, color: muted, textAlign: 'center' }}>Loading newsroom queue…</div> : stories.length === 0 ? <div style={{ padding: 24, border: `1px dashed ${border}`, borderRadius: 9, color: muted, fontSize: 12, textAlign: 'center' }}>No stories yet. Add a feed above and fetch its latest stories.</div> : stories.map(story => <div key={story.id} style={{ border: `1px solid ${border}`, borderRadius: 10, padding: 13, marginBottom: 9 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 220, flex: 1 }}>
@@ -219,7 +224,7 @@ export default function AINewsroomStudio() {
         <div style={{ fontWeight: 800, color: text, marginBottom: 10 }}>3. Editorial review & publication</div>
         <label style={label}>HEADLINE</label><input style={{ ...input, marginBottom: 9 }} value={draft.title} onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}/>
         <label style={label}>SUMMARY / EXCERPT</label><textarea style={{ ...input, minHeight: 65, marginBottom: 9, resize: 'vertical' }} value={draft.excerpt} onChange={e => setDraft(d => ({ ...d, excerpt: e.target.value }))}/>
-        <label style={label}>ARTICLE BODY (HTML)</label><textarea style={{ ...input, minHeight: 220, marginBottom: 9, resize: 'vertical', fontFamily: 'monospace', fontSize: 11 }} value={draft.content} onChange={e => setDraft(d => ({ ...d, content: e.target.value }))}/>
+        <label style={label}>ARTICLE BODY (HTML)</label><div style={{ fontSize: 10, color: muted, marginBottom: 5 }}>Approx. {draft.content.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length.toLocaleString()} words {articleFormat === 'article' ? '· Minimum required: 1,600' : '· News brief format'}</div><textarea style={{ ...input, minHeight: 300, marginBottom: 9, resize: 'vertical', fontFamily: 'monospace', fontSize: 11 }} value={draft.content} onChange={e => setDraft(d => ({ ...d, content: e.target.value }))}/>
         <label style={label}>CATEGORY</label><input style={{ ...input, marginBottom: 9 }} value={draft.category} onChange={e => setDraft(d => ({ ...d, category: e.target.value }))}/>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 9 }}>
           <div><label style={label}>EDITORIAL IMAGE (CLOUDINARY)</label><input type="file" accept="image/*" disabled={uploading} style={{ ...input, fontSize: 11 }} onChange={e => void uploadImage(e.target.files?.[0])}/><div style={{ fontSize: 10, color: muted, marginTop: 4 }}>{uploading ? 'Uploading…' : draft.image ? '✓ Cloudinary image attached' : 'Upload a licensed image; article images remain on Cloudinary.'}</div></div>
