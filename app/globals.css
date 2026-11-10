@@ -325,3 +325,58 @@ img { max-width: 100%; }
   .naija-post-card-redesign .naija-post-title { font-size: 14px !important; }
   .naija-post-card-redesign .naija-post-excerpt { display: none !important; }
 }
+
+
+/* High-visibility desktop editorial layout */
+.naija-post-card-redesign {
+  min-height: 218px !important;
+  padding: 24px !important;
+  gap: 26px !important;
+  margin-bottom: 22px !important;
+  border-left: 5px solid #008751 !important;
+  border-radius: 10px 18px 18px 10px !important;
+  box-shadow: 0 7px 24px rgba(18,45,30,.10) !important;
+}
+.naija-post-card-redesign .naija-post-image {
+  width: 260px !important;
+  height: 180px !important;
+  flex: 0 0 260px !important;
+  border-radius: 13px !important;
+}
+.naija-post-card-redesign .naija-post-title {
+  font-size: 25px !important;
+  line-height: 1.22 !important;
+  letter-spacing: -.55px !important;
+}
+.naija-post-card-redesign .naija-post-copy > div:first-child span:first-child {
+  font-size: 11px !important;
+  padding: 6px 11px !important;
+  border-radius: 4px !important;
+}
+.naija-post-card-redesign:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 16px 38px rgba(18,45,30,.16) !important;
+}
+@media (max-width: 900px) and (min-width: 681px) {
+  .naija-post-card-redesign .naija-post-image {
+    width: 190px !important;
+    height: 150px !important;
+    flex-basis: 190px !important;
+  }
+  .naija-post-card-redesign .naija-post-title { font-size: 21px !important; }
+}
+@media (max-width: 680px) {
+  .naija-post-card-redesign {
+    min-height: 0 !important;
+    padding: 13px !important;
+    gap: 13px !important;
+    border-left-width: 3px !important;
+    margin-bottom: 14px !important;
+  }
+  .naija-post-card-redesign .naija-post-image {
+    width: 116px !important;
+    height: 108px !important;
+    flex: 0 0 116px !important;
+  }
+  .naija-post-card-redesign .naija-post-title { font-size: 16px !important; }
+}
