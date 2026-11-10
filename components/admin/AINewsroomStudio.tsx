@@ -104,23 +104,60 @@ export default function AINewsroomStudio() {
   const generate = async (story: Story) => {
     setBusy(story.id);
     try {
-      const result = await api({
-        action: 'generate', item_id: story.id,
-        format: articleFormat === 'article' ? 'article' : 'news',
-      }, 'POST');
+      if (articleFormat === 'article') {
+        const { data } = await supabase.auth.getSession();
+        const token = data.session?.access_token;
+        if (!token) throw new Error('Your admin session has expired. Sign in again.');
+        const response = await fetch('/.netlify/functions/generate-ai-article-background', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item_id: story.id }),
+        });
+        if (!response.ok && response.status !== 202) {
+          const message = await response.text();
+          throw new Error(message.slice(0, 220) || 'Could not start background article generation.');
+        }
+        showToast('Full article generation started. This may take a few minutes; you can wait here while NaijaToday checks its progress.');
+        // Background functions return 202 immediately and continue processing.
+        // Poll the newsroom record rather than keeping a long browser request open.
+        for (let check = 0; check < 150; check++) {
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          const newsroom = await api();
+          setSources(newsroom.sources || []);
+          setStories(newsroom.items || []);
+          const updated = (newsroom.items || []).find((item: Story) => item.id === story.id) as Story | undefined;
+          if (updated?.status === 'generated' && updated.generated_content) {
+            const words = updated.generated_content.replace(/<[^>]+>/g, ' ').split(/\\s+/).filter(Boolean).length;
+            if (words < 1600) throw new Error(`The background generator saved only ${words} words. The full-article minimum is 1,600; please retry or add more verified source material.`);
+            setDraft({
+              title: updated.generated_title || '', excerpt: updated.generated_excerpt || '',
+              content: updated.generated_content, category: updated.generated_category || 'Nigeria',
+              image: '', video: story.source_video_url || '', scheduledAt: '',
+            });
+            setActiveStory(story.id);
+            showToast('Full article generated. Review and edit it before saving.');
+            return;
+          }
+          if (updated?.status === 'generation_failed') {
+            throw new Error(updated.generation_error || 'Background article generation failed. Please retry.');
+          }
+        }
+        throw new Error('Article generation is taking longer than expected. Refresh the newsroom shortly to check its status.');
+      }
+
+      const result = await api({ action: 'generate', item_id: story.id, format: 'news' }, 'POST');
       setDraft({
         title: result.generated.title, excerpt: result.generated.excerpt,
         content: result.generated.content, category: result.generated.category,
         image: '', video: story.source_video_url || '', scheduledAt: '',
       });
       setActiveStory(story.id);
-      showToast(articleFormat === 'article'
-        ? 'Full article generated and saved. Review and edit it before saving.'
-        : 'AI news brief generated. Review and edit it before saving.');
+      showToast('AI news brief generated. Review and edit it before saving.');
       await load();
-      return;
-    } catch (error) { showToast(error instanceof Error ? error.message : 'Article generation failed.'); await load(); }
-    finally { setBusy(null); }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Article generation failed.');
+      await load();
+    } finally { setBusy(null); }
   };
 
   const openDraft = (story: Story) => {
