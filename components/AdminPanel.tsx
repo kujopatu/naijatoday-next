@@ -1205,7 +1205,7 @@ export default function AdminPanel() {
       {activeSection === 'fixtures' && <FixturesManagerPanel />}
       {activeSection === 'polls' && <PollAnalyticsPanel />}
       {activeSection === 'users' && <UserManagementPanel />}
-      {activeSection === 'tools' && <AdminToolsHub />}
+      {activeSection === 'tools' && <AdminToolsHub isAdmin={isAdmin} />}
       {activeSection === 'sitemap' && <SitemapPanel />}
     </div>
   );
