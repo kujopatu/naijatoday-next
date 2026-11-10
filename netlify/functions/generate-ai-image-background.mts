@@ -56,10 +56,10 @@ export default async function generateAiImageBackground(request: Request) {
       'Category: ' + category,
       'Headline: ' + title,
       'Summary: ' + excerpt,
-      'Article context: ' + content,
-    ].join('\n');
+      'Article context: ' + content.slice(0, 900),
+    ].join('\n').slice(0, 1950);
 
-    // Cloudflare Workers AI FLUX.1 schnell: free daily allocation applies on the Workers Free plan.
+    // Cloudflare Workers AI FLUX.1 schnell limits prompts to 2,048 characters.
     const endpoint = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(cloudflareAccountId)}/ai/run/@cf/black-forest-labs/flux-1-schnell`;
     const response = await fetch(endpoint, {
       method: 'POST',
