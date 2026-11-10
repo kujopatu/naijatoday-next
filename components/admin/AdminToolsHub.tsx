@@ -5,6 +5,7 @@ import { G } from '@/lib/theme';
 import { useTheme } from '../ThemeProvider';
 import ActivityLogPanel from './ActivityLogPanel';
 import AdStatsImporter from './AdStatsImporter';
+import AdvertisingManager from './AdvertisingManager';
 import BannedUsersPanel from './BannedUsersPanel';
 import DuplicateTitleChecker from './DuplicateTitleChecker';
 import ExpiredDeadlinesReport from './ExpiredDeadlinesReport';
@@ -72,7 +73,14 @@ export default function AdminToolsHub() {
         {subTab === 'deadlines' && <ExpiredDeadlinesReport />}
         {subTab === 'bans' && <BannedUsersPanel />}
         {subTab === 'activity' && <ActivityLogPanel />}
-        {subTab === 'ads' && <AdStatsImporter />}
+        {subTab === 'ads' && (
+          <div style={{ display: 'grid', gap: 22 }}>
+            <AdvertisingManager />
+            <div style={{ borderTop: `1px solid ${border}`, paddingTop: 20 }}>
+              <AdStatsImporter />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
