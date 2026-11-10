@@ -10,6 +10,12 @@ function approved(url: string) {
   try { const u = new URL(url); return u.protocol === 'https:' && ALLOWED.some(d => u.hostname === d || u.hostname.endsWith('.' + d)); }
   catch { return false; }
 }
+function approvedVideo(url: string) {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'https:' && (u.hostname === 'youtube.com' || u.hostname.endsWith('.youtube.com') || u.hostname === 'youtu.be' || u.hostname.endsWith('.youtu.be'));
+  } catch { return false; }
+}
 function decode(s: string) {
   return s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'");
 }
@@ -78,7 +84,7 @@ export default async function collectAndDraftNews() {
         const {data:item,error:insertError}=await db.from('ai_newsroom_items').insert({
           source_id:source.id,source_name:source.name,source_url:new URL(entry.link).toString(),
           source_title:entry.title,source_summary:entry.summary||null,source_published_at:publishedAt,
-          source_image_url:entry.image||null,source_video_url:entry.video && (approved(entry.video) || /^https:\/\/(www\\.)?(youtube\\.com|youtu\\.be)\\//.test(entry.video)) ? entry.video : null,status:'discovered',
+          source_image_url:entry.image||null,source_video_url:entry.video && (approved(entry.video) || approvedVideo(entry.video)) ? entry.video : null,status:'discovered',
         }).select('id').maybeSingle();
         if(insertError) { if(insertError.code!=='23505') { failed++; console.error('Feed item insert failed',insertError.message); } }
         else if(item) discovered++;
