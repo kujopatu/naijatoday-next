@@ -138,13 +138,45 @@ async function geminiDraft(item: Record<string, unknown>, format: 'news' | 'arti
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.35, responseMimeType: 'application/json', maxOutputTokens: format === 'article' ? 8192 : 4096 },
   });
-  const text = payload?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || '').join('');
-  if (!text) throw new Error('Gemini returned an empty response. Check the API key, model access and quota.');
-  const parsed = JSON.parse(text.replace(/^```(?:json)?|\```$/g, '').trim());
-  if (!parsed.title || !parsed.excerpt || !parsed.content_html) throw new Error('Gemini response was missing required article fields.');
-  const cleanedContent = safeHtml(String(parsed.content_html));
-  const generatedWords = cleanedContent.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
-  if (format === 'article' && generatedWords < 1600) throw new Error('The AI returned ' + generatedWords + ' words. A full article must contain at least 1,600 words. Try again or use News brief for a shorter report.');
+  const readDraft = (result: any) => {
+    const responseText = result?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || '').join('');
+    if (!responseText) throw new Error('Gemini returned an empty response. Check the API key, model access and quota.');
+    const value = JSON.parse(responseText.replace(/^```(?:json)?|\```$/g, '').trim());
+    if (!value.title || !value.excerpt || !value.content_html) throw new Error('Gemini response was missing required article fields.');
+    return value;
+  };
+  let parsed = readDraft(payload);
+  let cleanedContent = safeHtml(String(parsed.content_html));
+  const countWords = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').split(/\s+/).filter(Boolean).length;
+  let generatedWords = countWords(cleanedContent);
+
+  // Long-form generation is iterative: ask the model to expand a short first
+  // draft, while preserving factual limits, before rejecting it.
+  if (format === 'article') {
+    for (let expansion = 0; generatedWords < 1600 && expansion < 2; expansion++) {
+      const expansionPrompt = [
+        'The previous draft is too short. Return a complete, expanded replacement article in the same JSON schema: title, excerpt, content_html, category, seo_title, seo_description, tags.',
+        'The replacement content_html MUST contain at least 1,800 words (aim for 1,850-2,000) so it safely exceeds the publication minimum of 1,600 words.',
+        'Expand with substantive explanation, relevant Nigerian context, clearly separated background, implications, and balanced analysis. Add useful detail rather than repetition or filler.',
+        'Do not invent events, quotes, names, figures, dates, official positions, or claims. Use only the source information, the previous draft, and clearly established general background. Attribute source claims. If the source genuinely cannot support a responsible article of at least 1,600 words, do not fabricate material.',
+        'Source headline: ' + String(item.source_title || ''),
+        'Source publisher: ' + String(item.source_name || ''),
+        'Source URL: ' + String(item.source_url || ''),
+        'Source extract: ' + String(item.source_summary || 'No summary supplied').slice(0, 3500),
+        'Previous draft (' + generatedWords + ' words):',
+        cleanedContent,
+      ].join('\n');
+      const expandedPayload = await callGeminiWithFallback(key, model, {
+        systemInstruction: { parts: [{ text: 'You are a meticulous Nigerian newsroom editor. Expand responsibly, preserve factual accuracy, and never pad with repetition or fabricate details.' }] },
+        contents: [{ role: 'user', parts: [{ text: expansionPrompt }] }],
+        generationConfig: { temperature: 0.3, responseMimeType: 'application/json', maxOutputTokens: 8192 },
+      });
+      parsed = readDraft(expandedPayload);
+      cleanedContent = safeHtml(String(parsed.content_html));
+      generatedWords = countWords(cleanedContent);
+    }
+    if (generatedWords < 1600) throw new Error('The AI returned ' + generatedWords + ' words after two expansion attempts. A full article must contain at least 1,600 words. The source may need more verified material before it can be responsibly expanded.');
+  }
   return {
     title: String(parsed.title).slice(0, 240),
     excerpt: String(parsed.excerpt).slice(0, 500),
