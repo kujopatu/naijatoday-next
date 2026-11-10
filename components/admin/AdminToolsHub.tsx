@@ -44,7 +44,7 @@ const SUB_TABS: [SubTab, string][] = [
   ['system', '🛡️ System Health'],
 ];
 
-export default function AdminToolsHub() {
+export default function AdminToolsHub({ isAdmin = false }: { isAdmin?: boolean }) {
   const { card, border, text, muted } = useTheme();
   const [subTab, setSubTab] = useState<SubTab>('seo');
 
@@ -54,7 +54,7 @@ export default function AdminToolsHub() {
       <div style={{ fontSize: 12, color: muted, marginBottom: 16 }}>Content quality, housekeeping and moderation utilities.</div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-        {SUB_TABS.map(([key, label]) => (
+        {SUB_TABS.filter(([key]) => key !== 'aiNewsroom' || isAdmin).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setSubTab(key)}
