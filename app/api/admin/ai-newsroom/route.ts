@@ -296,7 +296,7 @@ export async function POST(request: NextRequest) {
       if (format === 'article' && articleWords < 1600) return NextResponse.json({ error: 'This article has ' + articleWords + ' words. Full articles must contain at least 1,600 words. Expand the draft before saving, or select News brief.' }, { status: 400 });
       const category = String(body.category || item.generated_category || 'Nigeria').trim().slice(0, 80);
       if (!title || !excerpt || !articleContent) return NextResponse.json({ error: 'Headline, summary and article body are required.' }, { status: 400 });
-      const image = typeof body.image_url === 'string' && /^https:\/\/res\.cloudinary\.com\//.test(body.image_url) ? body.image_url : '📰';
+      const image = typeof body.image_url === 'string' && /^https:\/\/res\.cloudinary\.com\//.test(body.image_url) ? body.image_url : (item.generated_image_url || '📰');
       const video = typeof body.video_url === 'string' && (allowedUrl(body.video_url) || isVideoUrl(body.video_url)) ? body.video_url : '';
       const scheduleAt = body.scheduled_at ? new Date(body.scheduled_at) : null;
       const scheduled = !!scheduleAt && !Number.isNaN(scheduleAt.getTime()) && scheduleAt.getTime() > Date.now();
