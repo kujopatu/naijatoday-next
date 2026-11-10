@@ -10,7 +10,7 @@ type Source = { id: string; name: string; feed_url: string; domain: string; is_a
 type Story = {
   id: string; source_name: string; source_url: string; source_title: string;
   source_summary: string | null; source_published_at: string | null;
-  source_image_url: string | null; source_video_url: string | null; status: string;
+  source_image_url: string | null; source_video_url: string | null; generated_image_url?: string | null; status: string;
   generated_title: string | null; generated_excerpt: string | null;
   generated_content: string | null; generated_category: string | null;
   generated_seo_title: string | null; generated_seo_description: string | null;
@@ -41,7 +41,7 @@ export default function AINewsroomStudio() {
   const [feedUrl, setFeedUrl] = useState('');
   const [activeStory, setActiveStory] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>({ title: '', excerpt: '', content: '', category: 'Nigeria', image: '', video: '', scheduledAt: '' });
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState(false);\n  const [imageGenerating, setImageGenerating] = useState(false);\n  const [imageMode, setImageMode] = useState<'both' | 'automatic' | 'manual'>('both');
 
   const api = useCallback(async (payload?: Record<string, unknown>, method: 'GET' | 'POST' = 'GET') => {
     const { data } = await supabase.auth.getSession();
@@ -132,7 +132,7 @@ export default function AINewsroomStudio() {
             setDraft({
               title: updated.generated_title || '', excerpt: updated.generated_excerpt || '',
               content: updated.generated_content, category: updated.generated_category || 'Nigeria',
-              image: '', video: story.source_video_url || '', scheduledAt: '',
+              image: story.generated_image_url || '', video: story.source_video_url || '', scheduledAt: '',
             });
             setActiveStory(story.id);
             showToast('Full article generated. Review and edit it before saving.');
@@ -187,6 +187,43 @@ export default function AINewsroomStudio() {
       showToast('Editorial image uploaded to Cloudinary.');
     } catch (error) { showToast(error instanceof Error ? error.message : 'Image upload failed.'); }
     finally { setUploading(false); }
+  };
+
+  const generateEditorialImage = async (story: Story, title: string, excerpt: string, content: string, category: string) => {
+    setImageGenerating(true);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) throw new Error('Your admin session has expired. Sign in again.');
+      const response = await fetch('/api/admin/ai-newsroom/image', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, excerpt, content, category }),
+      });
+      const raw = await response.text();
+      let generated: any = {};
+      try { generated = raw ? JSON.parse(raw) : {}; } catch { generated = {}; }
+      if (!response.ok || !generated.imageBase64) throw new Error(generated.error || 'The image provider did not return an image.');
+
+      const form = new FormData();
+      form.append('file', `data:${generated.mimeType || 'image/png'};base64,${generated.imageBase64}`);
+      form.append('upload_preset', CLOUDINARY_PRESET);
+      form.append('folder', 'naijatorday/articles/ai-generated');
+      const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method: 'POST', body: form });
+      const uploaded = await uploadResponse.json();
+      if (!uploadResponse.ok || !uploaded.secure_url) throw new Error(uploaded.error?.message || 'Could not save the generated image to Cloudinary.');
+
+      await api({ action: 'save_generated_image', item_id: story.id, image_url: uploaded.secure_url }, 'POST');
+      setDraft(d => ({ ...d, image: uploaded.secure_url }));
+      setStories(current => current.map(item => item.id === story.id ? { ...item, generated_image_url: uploaded.secure_url } : item));
+      showToast('AI editorial image generated and saved to Cloudinary.');
+      return uploaded.secure_url as string;
+    } catch (error) {
+      showToast(error instanceof Error ? `Article is ready, but image generation failed: ${error.message}` : 'Article is ready, but image generation failed. You can retry from the editor.');
+      return null;
+    } finally {
+      setImageGenerating(false);
+    }
   };
 
   const saveDraft = async (story: Story) => {
@@ -246,6 +283,7 @@ export default function AINewsroomStudio() {
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12, padding: 11, border: `1px solid ${border}`, borderRadius: 9 }}>
       <div style={{ flex: 1, minWidth: 190 }}><div style={{ fontSize: 12, fontWeight: 800, color: text }}>Generation format</div><div style={{ fontSize: 10, color: muted, marginTop: 3 }}>Choose a short news report or a full article.</div></div>
       <select value={articleFormat} onChange={e => setArticleFormat(e.target.value === 'article' ? 'article' : 'news')} style={{ ...input, width: 'auto', minWidth: 190 }}><option value="news">News brief (350–600 words)</option><option value="article">Full article (minimum 1,600 words)</option></select>
+      <select value={imageMode} onChange={e => setImageMode(e.target.value as 'both' | 'automatic' | 'manual')} style={{ ...input, width: 'auto', minWidth: 190 }} aria-label="AI image generation mode"><option value="both">Images: Both options (recommended)</option><option value="automatic">Images: Automatic</option><option value="manual">Images: Manual only</option></select>
     </div>
     {loading ? <div style={{ padding: 24, color: muted, textAlign: 'center' }}>Loading newsroom queue…</div> : stories.length === 0 ? <div style={{ padding: 24, border: `1px dashed ${border}`, borderRadius: 9, color: muted, fontSize: 12, textAlign: 'center' }}>No stories yet. Add a feed above and fetch its latest stories.</div> : stories.map(story => <div key={story.id} style={{ border: `1px solid ${border}`, borderRadius: 10, padding: 13, marginBottom: 9 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
@@ -275,9 +313,18 @@ export default function AINewsroomStudio() {
         <label style={label}>ARTICLE BODY (HTML)</label><div style={{ fontSize: 10, color: muted, marginBottom: 5 }}>Approx. {draft.content.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length.toLocaleString()} words {articleFormat === 'article' ? '· Minimum required: 1,600' : '· News brief format'}</div><textarea style={{ ...input, minHeight: 300, marginBottom: 9, resize: 'vertical', fontFamily: 'monospace', fontSize: 11 }} value={draft.content} onChange={e => setDraft(d => ({ ...d, content: e.target.value }))}/>
         <label style={label}>CATEGORY</label><input style={{ ...input, marginBottom: 9 }} value={draft.category} onChange={e => setDraft(d => ({ ...d, category: e.target.value }))}/>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 9 }}>
-          <div><label style={label}>EDITORIAL IMAGE (CLOUDINARY)</label><input type="file" accept="image/*" disabled={uploading} style={{ ...input, fontSize: 11 }} onChange={e => void uploadImage(e.target.files?.[0])}/><div style={{ fontSize: 10, color: muted, marginTop: 4 }}>{uploading ? 'Uploading…' : draft.image ? '✓ Cloudinary image attached' : 'Upload a licensed image; article images remain on Cloudinary.'}</div></div>
+          <div>
+            <label style={label}>EDITORIAL IMAGE (AI + CLOUDINARY)</label>
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 7 }}>
+              <button type="button" disabled={imageGenerating || uploading || !draft.title.trim() || !draft.content.trim()} style={{ ...button, background: G.green, color: '#fff', borderColor: G.green, opacity: imageGenerating ? .65 : 1 }} onClick={() => void generateEditorialImage(story, draft.title, draft.excerpt, draft.content, draft.category)}>{imageGenerating ? 'Creating image…' : draft.image ? '↻ Regenerate image' : '✨ Generate image'}</button>
+              <button type="button" disabled={uploading} style={button} onClick={() => document.getElementById('naijatoday-editorial-image-upload')?.click()}>{uploading ? 'Uploading…' : 'Upload image'}</button>
+              <input id="naijatoday-editorial-image-upload" type="file" accept="image/*" disabled={uploading} style={{ display: 'none' }} onChange={e => void uploadImage(e.target.files?.[0])}/>
+            </div>
+            <div style={{ fontSize: 10, color: muted }}>{imageGenerating ? 'Gemini is creating a landscape editorial image, then saving it to Cloudinary…' : draft.image ? '✓ Image attached from Cloudinary. You can regenerate or upload a replacement.' : 'Generate a matching image with AI or upload an authorised image.'}</div>
+          </div>
           <div><label style={label}>RELATED VIDEO URL (OPTIONAL)</label><input style={input} value={draft.video} onChange={e => setDraft(d => ({ ...d, video: e.target.value }))} placeholder="YouTube or approved publisher video URL"/><div style={{ fontSize: 10, color: muted, marginTop: 4 }}>A link to the related video is added to the article.</div></div>
         </div>
+        {draft.image && <div style={{ marginTop: 10 }}><img src={draft.image} alt="Generated editorial image preview" style={{ width: '100%', maxWidth: 620, aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: 9, border: `1px solid ${border}` }}/></div>}
         <div style={{ marginTop: 10 }}><label style={label}>SCHEDULE PUBLICATION (OPTIONAL)</label><input type="datetime-local" style={{ ...input, maxWidth: 320 }} value={draft.scheduledAt} onChange={e => setDraft(d => ({ ...d, scheduledAt: e.target.value }))}/><div style={{ fontSize: 10, color: muted, marginTop: 4 }}>Leave blank to save as an unpublished draft. Scheduled stories are published by the existing five-minute publishing service.</div></div>
         {story.source_image_url && <div style={{ fontSize: 10, color: muted, marginTop: 10 }}>A source image was found in the feed. Check its usage rights before using it; upload an authorised image to Cloudinary rather than copying the publisher's image URL.</div>}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
@@ -286,6 +333,6 @@ export default function AINewsroomStudio() {
         </div>
       </div>}
     </div>)}
-    <div style={{ fontSize: 10, color: muted, marginTop: 12 }}>Editorial safeguards: AI output is a draft, not a verified report. Confirm facts with the original source and independent reporting before scheduling. Source articles are not copied; images must be licensed or otherwise authorised. AI text generation does not include free image or video generation.</div>
+    <div style={{ fontSize: 10, color: muted, marginTop: 12 }}>Editorial safeguards: AI output is a draft, not a verified report. Confirm facts with the original source and independent reporting before scheduling. AI images are illustrative, not documentary evidence; review them for accuracy and suitability before publication. Uploaded images must be licensed or otherwise authorised.</div>
   </div>;
 }
