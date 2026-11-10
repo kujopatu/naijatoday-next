@@ -11,11 +11,13 @@ import ExpiredDeadlinesReport from './ExpiredDeadlinesReport';
 import ImageCdnChecker from './ImageCdnChecker';
 import SeoChecklist from './SeoChecklist';
 import SeoMetadataManager from './SeoMetadataManager';
+import EditorialDesk from './EditorialDesk';
 import StaleContentReport from './StaleContentReport';
 
-type SubTab = 'seoMetadata' | 'seo' | 'duplicates' | 'stale' | 'images' | 'deadlines' | 'bans' | 'activity' | 'ads';
+type SubTab = 'editorial' | 'seoMetadata' | 'seo' | 'duplicates' | 'stale' | 'images' | 'deadlines' | 'bans' | 'activity' | 'ads';
 
 const SUB_TABS: [SubTab, string][] = [
+  ['editorial', '🗞️ Editorial Desk'],
   ['seoMetadata', '🔎 SEO Metadata'],
   ['seo', '📝 SEO Checklist'],
   ['duplicates', '🔍 Duplicate Titles'],
@@ -58,6 +60,7 @@ export default function AdminToolsHub() {
       </div>
 
       <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 12, padding: 20 }}>
+        {subTab === 'editorial' && <EditorialDesk />}
         {subTab === 'seoMetadata' && <SeoMetadataManager />}
         {subTab === 'seo' && <SeoChecklist />}
         {subTab === 'duplicates' && <DuplicateTitleChecker />}
