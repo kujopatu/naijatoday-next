@@ -211,7 +211,7 @@ export default function AdminPanel() {
     e.target.value = '';
   };
 
-  const handleSave = async () => {
+  const handleSave = async (publish = true) => {
     if (!form.title || !form.excerpt || !form.content) {
       showToast('Please fill in title, excerpt and content');
       return;
@@ -219,7 +219,7 @@ export default function AdminPanel() {
     setSaving(true);
     const tagsArray = form.tags.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean);
     const { pollQuestion, pollOptions, ...rest } = form;
-    const payload = { ...rest, tags: tagsArray };
+    const payload = { ...rest, tags: tagsArray, published: publish };
     const validPollOptions = pollOptions.map((o) => o.trim()).filter(Boolean);
 
     try {
@@ -234,7 +234,7 @@ export default function AdminPanel() {
       } else {
         const { data, error } = await supabase
           .from('posts')
-          .insert([{ ...payload, views: 0, upvotes: 0, comments: 0, published: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }])
+          .insert([{ ...payload, views: 0, upvotes: 0, comments: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }])
           .select();
         if (error) {
           showToast('Error: ' + error.message);
@@ -264,8 +264,8 @@ export default function AdminPanel() {
         setForm(emptyForm);
         loadPosts();
       } else {
-        showToast('Article published! 🎉');
-        logActivity('Published article', form.title);
+        showToast(publish ? 'Article published! 🎉' : 'Article saved as draft.');
+        logActivity(publish ? 'Published article' : 'Saved article draft', form.title);
         setForm(emptyForm);
         loadPosts();
         setActiveSection('manage');
@@ -828,24 +828,44 @@ export default function AdminPanel() {
             ))}
           </div>
 
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            style={{
-              background: G.green,
-              color: '#fff',
-              border: 'none',
-              borderRadius: 10,
-              padding: '14px 32px',
-              fontSize: 16,
-              fontWeight: 700,
-              cursor: saving ? 'not-allowed' : 'pointer',
-              width: '100%',
-              opacity: saving ? 0.7 : 1,
-            }}
-          >
-            {saving ? 'Publishing…' : editId ? '✅ Update Article' : '🚀 Publish Article Now'}
-          </button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => handleSave(false)}
+              disabled={saving}
+              style={{
+                background: 'transparent',
+                color: text,
+                border: `1px solid ${border}`,
+                borderRadius: 10,
+                padding: '14px 22px',
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: saving ? 'not-allowed' : 'pointer',
+                flex: 1,
+                opacity: saving ? 0.7 : 1,
+              }}
+            >
+              📝 Save as Draft
+            </button>
+            <button
+              onClick={() => handleSave(true)}
+              disabled={saving}
+              style={{
+                background: G.green,
+                color: '#fff',
+                border: 'none',
+                borderRadius: 10,
+                padding: '14px 22px',
+                fontSize: 16,
+                fontWeight: 700,
+                cursor: saving ? 'not-allowed' : 'pointer',
+                flex: 2,
+                opacity: saving ? 0.7 : 1,
+              }}
+            >
+              {saving ? 'Saving…' : editId ? '✅ Update & Publish' : '🚀 Publish Article Now'}
+            </button>
+          </div>
         </div>
       )}
 
