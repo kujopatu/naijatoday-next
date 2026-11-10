@@ -61,6 +61,11 @@ export default function FeaturedCarousel({ posts }: { posts: Post[] }) {
               background: 'linear-gradient(to top, rgba(0,0,0,0.93), transparent)',
             }}
           >
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ display: 'inline-block', background: G.green, color: '#fff', fontSize: 10, fontWeight: 800, letterSpacing: '1.4px', padding: '4px 9px', borderRadius: 3 }}>
+                TOP STORIES
+              </span>
+            </div>
             <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
               {post.breaking && (
                 <span
