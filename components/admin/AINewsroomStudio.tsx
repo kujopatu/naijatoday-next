@@ -138,7 +138,7 @@ export default function AINewsroomStudio() {
             });
             setActiveStory(story.id);
             showToast('Full article generated. Review and edit it before saving.');
-            if (imageMode !== 'manual' && !updated.generated_image_url) {
+            if (imageMode !== 'manual') {
               await generateEditorialImage(story, updated.generated_title || '', updated.generated_excerpt || '', updated.generated_content, updated.generated_category || 'Nigeria');
             }
             return;
