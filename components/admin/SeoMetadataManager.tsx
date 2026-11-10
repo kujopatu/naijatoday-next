@@ -24,6 +24,7 @@ export default function SeoMetadataManager() {
   const [seoDescription, setSeoDescription] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [bulkSaving, setBulkSaving] = useState(false);
   const [filter, setFilter] = useState<'all' | 'missing' | 'complete'>('all');
 
   const load = async () => {
@@ -73,6 +74,58 @@ export default function SeoMetadataManager() {
     setSaving(false);
   };
 
+  const fillAllMissing = async () => {
+    const candidates = posts.filter((post) =>
+      (!post.seo_title?.trim() && !!post.title?.trim()) ||
+      (!post.seo_description?.trim() && !!post.excerpt?.trim())
+    );
+
+    if (candidates.length === 0) {
+      showToast('All available SEO fields are already filled.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Automatically fill missing SEO fields for up to ${candidates.length} articles using each article's existing headline and excerpt? Existing custom SEO values will not be changed.`
+    );
+    if (!confirmed) return;
+
+    setBulkSaving(true);
+    let saved = 0;
+    let failed = 0;
+
+    const updates = candidates.map((post) => ({
+      id: post.id,
+      values: {
+        ...(!post.seo_title?.trim() && post.title?.trim()
+          ? { seo_title: post.title.trim() }
+          : {}),
+        ...(!post.seo_description?.trim() && post.excerpt?.trim()
+          ? { seo_description: post.excerpt.trim().slice(0, 160).replace(/\\s+\\S*$/, (match) => match.length > 160 ? '' : match) }
+          : {}),
+        updated_at: new Date().toISOString(),
+      },
+    }));
+
+    for (let i = 0; i < updates.length; i += 10) {
+      const batch = updates.slice(i, i + 10);
+      const results = await Promise.all(batch.map(async (item) => {
+        const { error } = await supabase.from('posts').update(item.values).eq('id', item.id);
+        return !error;
+      }));
+      saved += results.filter(Boolean).length;
+      failed += results.filter((ok) => !ok).length;
+    }
+
+    await load();
+    setSelectedId('');
+    setSeoTitle('');
+    setSeoDescription('');
+    setBulkSaving(false);
+    if (failed === 0) showToast(`SEO fields automatically filled for ${saved} articles.`);
+    else showToast(`Saved ${saved} articles; ${failed} failed. Refresh and retry the remaining records.`);
+  };
+
   const fieldStyle: React.CSSProperties = {
     width: '100%', padding: '10px 12px', borderRadius: 8,
     border: `1px solid ${border}`, background: darkMode ? '#111520' : '#f5f7fa',
@@ -92,7 +145,8 @@ export default function SeoMetadataManager() {
         <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 8, padding: '10px 14px', color: missingCount ? '#d97706' : '#16a34a', fontSize: 13 }}>
           {missingCount} missing custom SEO fields
         </div>
-        <button onClick={() => void load()} style={{ marginLeft: 'auto', border: `1px solid ${border}`, borderRadius: 8, background: 'transparent', color: text, padding: '8px 12px', cursor: 'pointer' }}>↻ Refresh</button>
+        <button onClick={fillAllMissing} disabled={bulkSaving || loading} style={{ border: 0, borderRadius: 8, background: '#16834a', color: '#fff', padding: '8px 12px', cursor: bulkSaving || loading ? 'wait' : 'pointer', opacity: bulkSaving || loading ? .7 : 1, fontWeight: 700 }}>{bulkSaving ? 'Filling SEO fields…' : '✨ Auto-fill all missing SEO'}</button>
+        <button onClick={() => void load()} disabled={bulkSaving} style={{ marginLeft: 'auto', border: `1px solid ${border}`, borderRadius: 8, background: 'transparent', color: text, padding: '8px 12px', cursor: bulkSaving ? 'wait' : 'pointer' }}>↻ Refresh</button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 1fr) minmax(260px, 1.5fr)', gap: 16 }}>
         <div>
