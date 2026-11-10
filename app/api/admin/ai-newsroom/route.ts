@@ -132,7 +132,7 @@ async function geminiDraft(item: Record<string, unknown>, format: 'news' | 'arti
     'Source publication date: ' + String(item.source_published_at || 'Not supplied'),
     'Source summary/extract: ' + String(item.source_summary || 'No summary supplied').slice(0, 3500),
     'Suggested category: ' + String(item.category || 'Nigeria')
-  ].join('\n')
+  ].join('\n');
   const payload = await callGeminiWithFallback(key, model, {
     systemInstruction: { parts: [{ text: 'Be a careful, neutral Nigerian newsroom editor. Never fabricate facts or sources.' }] },
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
