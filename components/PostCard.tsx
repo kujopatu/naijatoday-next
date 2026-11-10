@@ -14,7 +14,7 @@ export default function PostCard({ post }: { post: Post }) {
   const saved = isSaved(post.id);
   const cat = findCategory(post.category);
   const views = typeof post.views === 'number' ? post.views : 0;
-  const image = cloudinaryTransform(post.image, { width: 160, height: 160 });
+  const image = cloudinaryTransform(post.image, { width: 360, height: 280 });
 
   return (
     <Link href={postPath(post)} style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -22,12 +22,12 @@ export default function PostCard({ post }: { post: Post }) {
         className="naija-post-card naija-post-card-premium"
         style={{
           display: 'flex',
-          gap: 12,
+          gap: 18,
           background: card,
           borderRadius: 10,
           border: `1px solid ${border}`,
-          padding: 16,
-          marginBottom: 12,
+          padding: 18,
+          marginBottom: 16,
           cursor: 'pointer',
           overflow: 'hidden',
           maxWidth: '100%',
@@ -35,8 +35,8 @@ export default function PostCard({ post }: { post: Post }) {
       >
         <div
           style={{
-            width: 112,
-            height: 104,
+            width: 150,
+            height: 122,
             flexShrink: 0,
             borderRadius: 8,
             background: darkMode ? '#1e2535' : '#f0f4f8',
@@ -117,7 +117,7 @@ export default function PostCard({ post }: { post: Post }) {
           </div>
           <div
             style={{
-              fontSize: 17,
+              fontSize: 19,
               fontWeight: 800,
               color: text,
               lineHeight: 1.4,
@@ -137,7 +137,7 @@ export default function PostCard({ post }: { post: Post }) {
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               display: '-webkit-box',
-              WebkitLineClamp: 3,
+              WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical' as const,
               wordBreak: 'break-word',
             }}
