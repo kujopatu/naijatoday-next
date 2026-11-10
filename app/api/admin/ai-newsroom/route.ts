@@ -114,35 +114,41 @@ async function callGeminiWithFallback(key: string, model: string, requestBody: u
   throw new Error(lastError + ' Please retry in a few minutes; the fallback model was also unavailable.');
 }
 
-async function geminiDraft(item: Record<string, unknown>) {
+async function geminiDraft(item: Record<string, unknown>, format: 'news' | 'article' = 'news') {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('Gemini is not configured. Add GEMINI_API_KEY to Netlify environment variables and redeploy.');
   const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
-  const prompt = `You are the newsroom drafting assistant for NaijaToday, a Nigerian digital news publication.
-Create an ORIGINAL, publication-ready draft using only the source details supplied below.
-Do not copy source wording, invent quotes, invent statistics, or add unsupported facts. Clearly attribute claims to the named source. If details are limited, write a shorter brief rather than filling gaps. Do not present allegations as proven facts. Use Nigerian/British English.
-Return ONLY valid JSON with these keys: title, excerpt, content_html, category, seo_title, seo_description, tags.
-content_html must use only simple paragraphs and headings (p, h2, h3, strong, em, ul, li). Target 450-650 words only when the source provides enough information; otherwise 180-300 words. Include a short "What we know" style structure where useful and do not add an invented dateline.
-SEO description must be under 160 characters. tags must be an array of 3-6 short strings.
-Source name: ${String(item.source_name || '')}
-Source headline: ${String(item.source_title || '')}
-Source URL: ${String(item.source_url || '')}
-Source publication date: ${String(item.source_published_at || 'Not supplied')}
-Source summary/extract: ${String(item.source_summary || 'No summary supplied').slice(0, 3500)}
-Suggested category: ${String(item.category || 'Nigeria')}`;
+  const isLongForm = format === 'article';
+  const prompt = [
+    'You are the newsroom drafting assistant for NaijaToday, a Nigerian digital news publication.',
+    'Create an ORIGINAL, publication-ready ' + (isLongForm ? 'LONG-FORM ARTICLE' : 'NEWS STORY') + ' using only the source details supplied below plus clearly labelled, reliable general background knowledge.',
+    'Do not copy source wording, invent quotes, invent statistics, fabricate events, or add unsupported specific claims. Clearly attribute source claims to the named publisher. Do not present allegations as proven facts. Use Nigerian/British English.',
+    'Return ONLY valid JSON with these keys: title, excerpt, content_html, category, seo_title, seo_description, tags.',
+    'content_html must use only simple paragraphs and headings (p, h2, h3, strong, em, ul, li). ' + (isLongForm ? 'Write a substantive article of 1,700-2,000 words, and NEVER return fewer than 1,600 words. Develop a clear introduction, 6-9 useful H2 sections, relevant context, implications, balanced perspectives, practical details where supported, and a concise conclusion. Do not repeat points or pad the article. If the supplied source does not contain enough verifiable information for a responsible 1,600-word article, explicitly say so in the content and do not invent details; the editor can add further research.' : 'Write a concise 350-600 word news report, prioritising verified facts and a clear news structure. If source details are limited, keep it shorter rather than filling gaps.') + ' Do not add an invented dateline.',
+    'SEO description must be under 160 characters. tags must be an array of 3-6 short strings.',
+    'Source name: ' + String(item.source_name || ''),
+    'Source headline: ' + String(item.source_title || ''),
+    'Source URL: ' + String(item.source_url || ''),
+    'Source publication date: ' + String(item.source_published_at || 'Not supplied'),
+    'Source summary/extract: ' + String(item.source_summary || 'No summary supplied').slice(0, 3500),
+    'Suggested category: ' + String(item.category || 'Nigeria')
+  ].join('\n')
   const payload = await callGeminiWithFallback(key, model, {
     systemInstruction: { parts: [{ text: 'Be a careful, neutral Nigerian newsroom editor. Never fabricate facts or sources.' }] },
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.35, responseMimeType: 'application/json' },
+    generationConfig: { temperature: 0.35, responseMimeType: 'application/json', maxOutputTokens: format === 'article' ? 8192 : 4096 },
   });
   const text = payload?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || '').join('');
   if (!text) throw new Error('Gemini returned an empty response. Check the API key, model access and quota.');
   const parsed = JSON.parse(text.replace(/^```(?:json)?|\```$/g, '').trim());
   if (!parsed.title || !parsed.excerpt || !parsed.content_html) throw new Error('Gemini response was missing required article fields.');
+  const cleanedContent = safeHtml(String(parsed.content_html));
+  const generatedWords = cleanedContent.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
+  if (format === 'article' && generatedWords < 1600) throw new Error('The AI returned ' + generatedWords + ' words. A full article must contain at least 1,600 words. Try again or use News brief for a shorter report.');
   return {
     title: String(parsed.title).slice(0, 240),
     excerpt: String(parsed.excerpt).slice(0, 500),
-    content: safeHtml(String(parsed.content_html)),
+    content: cleanedContent,
     category: String(parsed.category || item.category || 'Nigeria').slice(0, 80),
     seo_title: String(parsed.seo_title || parsed.title).slice(0, 70),
     seo_description: String(parsed.seo_description || parsed.excerpt).slice(0, 160),
@@ -209,7 +215,8 @@ export async function POST(request: NextRequest) {
     if (body.action === 'generate') {
       const { data: item, error } = await db.from('ai_newsroom_items').select('*').eq('id', body.item_id).single();
       if (error || !item) return NextResponse.json({ error: 'Story not found.' }, { status: 404 });
-      const generated = await geminiDraft(item);
+      const format = body.format === 'article' ? 'article' : 'news';
+      const generated = await geminiDraft(item, format);
       const { error: updateError } = await db.from('ai_newsroom_items').update({
         generated_title: generated.title, generated_excerpt: generated.excerpt,
         generated_content: generated.content, generated_category: generated.category,
@@ -228,6 +235,9 @@ export async function POST(request: NextRequest) {
       const title = String(body.title || item.generated_title).trim().slice(0, 240);
       const excerpt = String(body.excerpt || item.generated_excerpt || '').trim().slice(0, 500);
       const articleContent = safeHtml(String(body.content || item.generated_content));
+      const format = body.format === 'article' ? 'article' : 'news';
+      const articleWords = articleContent.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
+      if (format === 'article' && articleWords < 1600) return NextResponse.json({ error: 'This article has ' + articleWords + ' words. Full articles must contain at least 1,600 words. Expand the draft before saving, or select News brief.' }, { status: 400 });
       const category = String(body.category || item.generated_category || 'Nigeria').trim().slice(0, 80);
       if (!title || !excerpt || !articleContent) return NextResponse.json({ error: 'Headline, summary and article body are required.' }, { status: 400 });
       const image = typeof body.image_url === 'string' && /^https:\/\/res\.cloudinary\.com\//.test(body.image_url) ? body.image_url : '📰';
