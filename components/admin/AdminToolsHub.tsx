@@ -17,10 +17,16 @@ import MediaLibrary from './MediaLibrary';
 import StaleContentReport from './StaleContentReport';
 import SystemHealthPanel from './SystemHealthPanel';
 import NewsroomAnalytics from './NewsroomAnalytics';
+import EditorialWorkflowManager from './EditorialWorkflowManager';
+import CommentModerationManager from './CommentModerationManager';
+import NewsletterManager from './NewsletterManager';
 
-type SubTab = 'editorial' | 'seoMetadata' | 'seo' | 'duplicates' | 'stale' | 'images' | 'deadlines' | 'bans' | 'activity' | 'ads' | 'media' | 'system' | 'newsroom';
+type SubTab = 'workflow' | 'comments' | 'newsletter' | 'editorial' | 'seoMetadata' | 'seo' | 'duplicates' | 'stale' | 'images' | 'deadlines' | 'bans' | 'activity' | 'ads' | 'media' | 'system' | 'newsroom';
 
 const SUB_TABS: [SubTab, string][] = [
+  ['workflow', '🗂️ Workflow & Calendar'],
+  ['comments', '💬 Comment Moderation'],
+  ['newsletter', '✉️ Newsletter Studio'],
   ['editorial', '🗞️ Editorial Desk'],
   ['newsroom', '📊 Newsroom Analytics'],
   ['media', '🖼️ Media Library'],
@@ -67,6 +73,9 @@ export default function AdminToolsHub() {
       </div>
 
       <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 12, padding: 20 }}>
+        {subTab === 'workflow' && <EditorialWorkflowManager />}
+        {subTab === 'comments' && <CommentModerationManager />}
+        {subTab === 'newsletter' && <NewsletterManager />}
         {subTab === 'editorial' && <EditorialDesk />}
         {subTab === 'newsroom' && <NewsroomAnalytics />}
         {subTab === 'media' && <MediaLibrary />}
