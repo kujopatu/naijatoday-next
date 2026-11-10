@@ -337,7 +337,16 @@ export default function AINewsroomStudio() {
         </div>
         {draft.image && <div style={{ marginTop: 10 }}><img src={draft.image} alt="Generated editorial image preview" style={{ width: '100%', maxWidth: 620, aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: 9, border: `1px solid ${border}` }}/></div>}
         <div style={{ marginTop: 10 }}><label style={label}>SCHEDULE PUBLICATION (OPTIONAL)</label><input type="datetime-local" style={{ ...input, maxWidth: 320 }} value={draft.scheduledAt} onChange={e => setDraft(d => ({ ...d, scheduledAt: e.target.value }))}/><div style={{ fontSize: 10, color: muted, marginTop: 4 }}>Leave blank to save as an unpublished draft. Scheduled stories are published by the existing five-minute publishing service.</div></div>
-        {story.source_image_url && <div style={{ fontSize: 10, color: muted, marginTop: 10 }}>A source image was found in the feed. Check its usage rights before using it; upload an authorised image to Cloudinary rather than copying the publisher's image URL.</div>}
+        {story.source_image_url?.startsWith('https://') && <div style={{ marginTop: 10, padding: 10, border: `1px solid ${border}`, borderRadius: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: text, marginBottom: 4 }}>Image found in the original news feed</div>
+          <div style={{ fontSize: 10, color: muted, marginBottom: 8 }}>Use this publisher image only if NaijaToday has permission or a licence to republish it. Otherwise keep the Cloudflare-generated image or upload an authorised alternative.</div>
+          <button type="button" style={button} onClick={() => {
+            if (window.confirm('Confirm that NaijaToday has permission or a valid licence to republish this image from the source publisher.')) {
+              setDraft(d => ({ ...d, image: story.source_image_url || '' }));
+              showToast('Source feed image selected. Confirm image credit and usage rights before publication.');
+            }
+          }}>Use source feed image (rights confirmed)</button>
+        </div>}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
           <button disabled={busy === story.id || uploading} style={{ ...button, background: G.green, borderColor: G.green, color: '#fff' }} onClick={() => void saveDraft(story)}>{busy === story.id ? 'Saving…' : draft.scheduledAt ? '✓ Review & schedule' : '✓ Save as draft'}</button>
           <button style={button} onClick={() => setActiveStory(null)}>Close editor</button>
