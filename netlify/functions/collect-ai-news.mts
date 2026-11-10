@@ -44,6 +44,33 @@ function cleanHtml(value: string) {
     .replace(/<(?!\/?(?:p|h2|h3|h4|ul|ol|li|strong|b|em|i|blockquote)\b)[^>]*>/gi,'')
     .replace(/<(p|h2|h3|h4|ul|ol|li|strong|b|em|i|blockquote)\b[^>]*>/gi,'<$1>');
 }
+async function callGeminiWithFallback(key: string, model: string, requestBody: unknown) {
+  const fallback = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite';
+  const models = [...new Set([model, fallback])];
+  let lastError = 'Gemini is temporarily unavailable.';
+  for (const candidate of models) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(candidate)}:generateContent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+          body: JSON.stringify(requestBody),
+          signal: AbortSignal.timeout(60000),
+        });
+        if (response.ok) return await response.json();
+        const detail = await response.text();
+        lastError = `Gemini model ${candidate} returned HTTP ${response.status}: ${detail.slice(0, 350)}`;
+        if (![429, 500, 502, 503, 504].includes(response.status)) throw new Error(lastError);
+      } catch (error) {
+        if (error instanceof Error && !error.message.includes('fetch failed') && !error.name.includes('Timeout')) throw error;
+        lastError = error instanceof Error ? error.message : String(error);
+      }
+      if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 1200));
+    }
+  }
+  throw new Error(lastError + ' Please retry in a few minutes; the fallback model was also unavailable.');
+}
+
 async function generate(item: Record<string, unknown>) {
   const key=process.env.GEMINI_API_KEY; if(!key) throw new Error('GEMINI_API_KEY is missing');
   const model=process.env.GEMINI_MODEL || 'gemini-3.8-flash';
@@ -53,13 +80,11 @@ Headline: ${item.source_title}
 URL: ${item.source_url}
 Date: ${item.source_published_at || 'Not supplied'}
 Extract: ${String(item.source_summary || '').slice(0,3000)}`;
-  const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
-    method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},
-    body:JSON.stringify({systemInstruction:{parts:[{text:'Act as a cautious Nigerian newsroom editor. Accuracy and attribution come before length.'}]},contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:0.3,responseMimeType:'application/json'}}),
-    signal:AbortSignal.timeout(60000),
+  const data=await callGeminiWithFallback(key,model,{
+    systemInstruction:{parts:[{text:'Act as a cautious Nigerian newsroom editor. Accuracy and attribution come before length.'}]},
+    contents:[{role:'user',parts:[{text:prompt}]}],
+    generationConfig:{temperature:0.3,responseMimeType:'application/json'},
   });
-  if(!response.ok) throw new Error('Gemini HTTP '+response.status);
-  const data=await response.json();
   const raw=data?.candidates?.[0]?.content?.parts?.map((p:{text?:string})=>p.text||'').join('');
   if(!raw) throw new Error('Gemini returned no text');
   const parsed=JSON.parse(raw.replace(/^```(?:json)?|\```$/g,'').trim());
