@@ -250,7 +250,7 @@ export default function SiteHeader({
         .naija-site-header .naija-header-row { min-height:126px; padding:15px 0 16px !important; gap:22px !important; border-bottom:0 !important; }
         .naija-site-header .naija-brand { display:flex; align-items:center; flex:0 0 auto; padding:7px; background:#101114; border:1px solid rgba(226,182,77,.72); border-radius:9px; box-shadow:0 5px 16px rgba(0,0,0,.16); }
         .naija-site-header .naija-brand img { display:block; width:250px !important; height:106px !important; object-fit:contain; border:0 !important; border-radius:4px; background:#101114 !important; filter:none !important; box-shadow:none !important; }
-        .naija-site-header .naija-header-stats { order:3; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:5px !important; min-width:105px; padding:8px 0 8px 17px !important; border:0 !important; border-left:1px solid #dce8df !important; border-radius:0 !important; background:transparent !important; }
+        .naija-site-header .naija-header-stats { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:5px !important; min-width:105px; padding:8px 0 8px 17px !important; border:0 !important; border-left:1px solid #dce8df !important; border-radius:0 !important; background:transparent !important; }
         .naija-site-header[data-theme='dark'] .naija-header-stats { border-left-color:#30443a !important; }
         .naija-site-header .naija-header-stats > div { display:flex; align-items:baseline; gap:6px; }
         .naija-site-header .naija-header-stats > div > div:first-child { font-size:14px !important; font-weight:900 !important; }
