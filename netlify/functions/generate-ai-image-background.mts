@@ -32,7 +32,7 @@ export default async function generateAiImageBackground(request: Request) {
   const db = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const title = String(body.title || '').trim().slice(0, 240);
   const excerpt = String(body.excerpt || '').trim().slice(0, 600);
-  const content = String(body.content || '').replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 2600);
+  const content = String(body.content || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2600);
   const category = String(body.category || 'Nigeria').trim().slice(0, 80);
   if (!title || !content) return new Response('A headline and article content are required.', { status: 400 });
 
@@ -57,7 +57,7 @@ export default async function generateAiImageBackground(request: Request) {
       'Headline: ' + title,
       'Summary: ' + excerpt,
       'Article context: ' + content,
-    ].join('\\n');
+    ].join('\n');
 
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
     const requestBody = JSON.stringify({
@@ -83,7 +83,7 @@ export default async function generateAiImageBackground(request: Request) {
       const rawError = await response.text();
       let parsedError: any = {};
       try { parsedError = JSON.parse(rawError); } catch { /* keep raw provider response */ }
-      const providerMessage = String(parsedError?.error?.message || rawError || 'No provider details returned').replace(/\\s+/g, ' ').slice(0, 700);
+      const providerMessage = String(parsedError?.error?.message || rawError || 'No provider details returned').replace(/\s+/g, ' ').slice(0, 700);
       const lowerMessage = providerMessage.toLowerCase();
 
       if (response.status === 429) {
