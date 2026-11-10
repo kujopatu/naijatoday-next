@@ -124,7 +124,7 @@ async function generateArticle(item: Record<string, unknown>, db: any) {
       'Source extract: ' + String(item.source_summary || 'No summary supplied').slice(0, 3500),
       'Previous draft (' + words + ' words):',
       content,
-    ].join('\\n');
+    ].join('\n');
     const expanded = await callGemini(key, model, {
       systemInstruction: { parts: [{ text: 'You are a meticulous Nigerian newsroom editor. Expand responsibly, preserve factual accuracy, and never fabricate details.' }] },
       contents: [{ role: 'user', parts: [{ text: expansionPrompt }] }],
@@ -141,7 +141,7 @@ async function generateArticle(item: Record<string, unknown>, db: any) {
     });
     const expandedText = expanded?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || '').join('');
     if (!expandedText) throw new Error('Gemini returned an empty expansion response. Retry generation.');
-    try { parsed = JSON.parse(expandedText.replace(/^\\`\\`\\`(?:json)?|\\`\\`\\`$/g, '').trim()); }
+    try { parsed = JSON.parse(expandedText.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/, '').trim()); }
     catch { throw new Error('Gemini returned an incomplete expansion. Retry generation.'); }
     if (!parsed.title || !parsed.excerpt || !parsed.content_html) throw new Error('Gemini expansion was missing required article fields.');
     content = safeHtml(String(parsed.content_html));
