@@ -66,7 +66,7 @@ async function callGemini(
   throw new Error(lastError + ' All configured Gemini models and retries were exhausted. Check the model availability and retry later.');
 }
 
-async function generateArticle(item: Record<string, unknown>, db: ReturnType<typeof createClient>) {
+async function generateArticle(item: Record<string, unknown>, db: any) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('Gemini is not configured. Add GEMINI_API_KEY to Netlify environment variables.');
   const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
