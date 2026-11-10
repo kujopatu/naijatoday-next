@@ -76,11 +76,10 @@ function parseFeed(xml: string) {
 }
 function safeHtml(input: string) {
   return input
-    .replace(/<\/?(script|style|iframe|object|embed|form|svg|math)[^>]*>[\s\S]*?<\/\1>/gi, '')
-    .replace(/<(?!\/?(?:p|h2|h3|h4|ul|ol|li|strong|b|em|i|blockquote|a)\b)[^>]*>/gi, '')
-    .replace(/\s+on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/href\s*=\s*(['"])\s*javascript:[\s\S]*?\1/gi, 'href="#"')
-    .replace(/<(a)\b(?![^>]*\brel=)/gi, '<$1 rel="nofollow noopener"');
+    .replace(/<(script|style|iframe|object|embed|form|svg|math)\\b[^>]*>[\\s\\S]*?<\\/\\1>/gi, '')
+    .replace(/<a\\b[^>]*>([\\s\\S]*?)<\\/a>/gi, '$1')
+    .replace(/<(?!\\/?(?:p|h2|h3|h4|ul|ol|li|strong|b|em|i|blockquote)\\b)[^>]*>/gi, '')
+    .replace(/<(p|h2|h3|h4|ul|ol|li|strong|b|em|i|blockquote)\\b[^>]*>/gi, '<$1>');
 }
 async function geminiDraft(item: Record<string, unknown>) {
   const key = process.env.GEMINI_API_KEY;
@@ -215,7 +214,8 @@ export async function POST(request: NextRequest) {
       const safeSourceUrl = new URL(String(item.source_url)).toString().replace(/&/g, '&amp;').replace(/"/g, '&quot;');
       const safeSourceName = String(item.source_name).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] || c));
       const sourceLink = `<p><strong>Source:</strong> <a href="${safeSourceUrl}" target="_blank" rel="nofollow noopener">${safeSourceName}</a></p>`;
-      const videoLink = video ? `<p><strong>Related video:</strong> <a href="${video}" target="_blank" rel="nofollow noopener">Watch video</a></p>` : '';
+      const safeVideoUrl = video ? new URL(video).toString().replace(/&/g, '&amp;').replace(/"/g, '&quot;') : '';
+      const videoLink = safeVideoUrl ? `<p><strong>Related video:</strong> <a href="${safeVideoUrl}" target="_blank" rel="nofollow noopener">Watch video</a></p>` : '';
       const content = articleContent + sourceLink + videoLink;
       const wordCount = content.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
       const now = new Date().toISOString();
