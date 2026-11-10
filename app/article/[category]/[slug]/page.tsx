@@ -24,12 +24,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const image = toCloudinaryWm(post.image, 1200, 'jpg') ?? '/og-image.jpg';
 
   return {
-    title: `${post.title} | NaijaToday`,
-    description: post.excerpt ?? undefined,
+    title: `${post.seo_title?.trim() || post.title} | NaijaToday`,
+    description: post.seo_description?.trim() || post.excerpt || undefined,
     keywords: post.tags?.length ? post.tags : [post.category, 'Nigeria news'].filter(Boolean),
     openGraph: {
-      title: post.title,
-      description: post.excerpt ?? undefined,
+      title: post.seo_title?.trim() || post.title,
+      description: post.seo_description?.trim() || post.excerpt || undefined,
       images: [{ url: image }],
       type: 'article',
       publishedTime: post.created_at,
@@ -39,8 +39,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
-      title: post.title,
-      description: post.excerpt ?? undefined,
+      title: post.seo_title?.trim() || post.title,
+      description: post.seo_description?.trim() || post.excerpt || undefined,
       images: [image],
     },
     alternates: { canonical: postPath(post) },
