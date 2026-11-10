@@ -127,7 +127,7 @@ export default function AINewsroomStudio() {
           setStories(newsroom.items || []);
           const updated = (newsroom.items || []).find((item: Story) => item.id === story.id) as Story | undefined;
           if (updated?.status === 'generated' && updated.generated_content) {
-            const words = updated.generated_content.replace(/<[^>]+>/g, ' ').split(/\\s+/).filter(Boolean).length;
+            const words = updated.generated_content.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
             if (words < 1600) throw new Error(`The background generator saved only ${words} words. The full-article minimum is 1,600; please retry or add more verified source material.`);
             setDraft({
               title: updated.generated_title || '', excerpt: updated.generated_excerpt || '',
@@ -265,7 +265,7 @@ export default function AINewsroomStudio() {
       </div>
       {story.source_image_url?.startsWith('https://') && <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 10 }}><img src={story.source_image_url} alt="Source feed image suggestion" style={{ width: 104, height: 68, objectFit: 'cover', borderRadius: 7, border: `1px solid ${border}` }}/><span style={{ fontSize: 10, color: muted }}>Preview only — use only if you have permission. Upload approved images to Cloudinary in the editor.</span></div>}
       {story.status !== 'draft_saved' && story.status !== 'scheduled' && story.status !== 'published' && <div style={{ display: 'flex', gap: 7, marginTop: 10, flexWrap: 'wrap' }}>
-        {story.generated_title && (articleFormat !== 'article' || (story.generated_content || '').replace(/<[^>]+>/g, ' ').split(/\\s+/).filter(Boolean).length >= 1600) ? <button style={{ ...button, background: G.green, color: '#fff', borderColor: G.green }} onClick={() => openDraft(story)}>Review generated article</button> : <button disabled={!providerConfigured || busy === story.id || story.status === 'generating'} style={{ ...button, background: G.green, color: '#fff', borderColor: G.green, opacity: !providerConfigured ? .5 : 1 }} onClick={() => void generate(story)}>{busy === story.id || story.status === 'generating' ? 'Generating…' : articleFormat === 'article' ? '✨ Generate full article' : story.status === 'generation_failed' ? '↻ Retry news brief' : '✨ Generate article with Gemini'}</button>}
+        {story.generated_title && (articleFormat !== 'article' || (story.generated_content || '').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length >= 1600) ? <button style={{ ...button, background: G.green, color: '#fff', borderColor: G.green }} onClick={() => openDraft(story)}>Review generated article</button> : <button disabled={!providerConfigured || busy === story.id || story.status === 'generating'} style={{ ...button, background: G.green, color: '#fff', borderColor: G.green, opacity: !providerConfigured ? .5 : 1 }} onClick={() => void generate(story)}>{busy === story.id || story.status === 'generating' ? 'Generating…' : articleFormat === 'article' ? '✨ Generate full article' : story.status === 'generation_failed' ? '↻ Retry news brief' : '✨ Generate article with Gemini'}</button>}
         <button disabled={busy === story.id} style={{ ...button, color: G.red, borderColor: G.red }} onClick={() => dismiss(story)}>Dismiss</button>
       </div>}
       {activeStory === story.id && <div style={{ borderTop: `1px solid ${border}`, marginTop: 12, paddingTop: 12 }}>
