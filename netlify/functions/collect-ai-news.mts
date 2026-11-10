@@ -27,16 +27,40 @@ function attr(xml: string, tag: string, name: string) {
   const m = xml.match(new RegExp('<' + tag.replace(':','\\:') + '\\b([^>]*)>','i'));
   return m?.[1]?.match(new RegExp(name + "=[\"']([^\"']+)[\"']", 'i'))?.[1] || '';
 }
+function safeFeedImage(value: string) {
+  const decoded = decode(value).trim();
+  try {
+    const u = new URL(decoded);
+    if (u.protocol !== 'https:' || u.username || u.password || !u.hostname || u.hostname === 'localhost') return '';
+    return u.toString();
+  } catch { return ''; }
+}
+function feedImage(block: string) {
+  const candidates: string[] = [attr(block, 'media:thumbnail', 'url'), attr(block, 'itunes:image', 'href')];
+  for (const match of block.matchAll(/<(enclosure|media:content)\b([^>]*)>/gi)) {
+    const attrs = match[2] || '';
+    const url = attrs.match(/\burl=["']([^"']+)["']/i)?.[1] || '';
+    const type = attrs.match(/\btype=["']([^"']+)["']/i)?.[1] || '';
+    const medium = attrs.match(/\bmedium=["']([^"']+)["']/i)?.[1] || '';
+    if (type.startsWith('image/') || medium.toLowerCase() === 'image' || /\.(?:jpe?g|png|webp|gif)(?:[?#]|$)/i.test(url)) candidates.push(url);
+  }
+  candidates.push(block.match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i)?.[1] || '');
+  for (const candidate of candidates) {
+    const safe = safeFeedImage(candidate);
+    if (safe) return safe;
+  }
+  return '';
+}
 function parse(xml: string) {
   return [...xml.matchAll(/<(item|entry)\b[^>]*>([\s\S]*?)<\/\1>/gi)].slice(0,12).map(m => {
     const b=m[2]; const title=textTag(b,'title');
     const link=textTag(b,'link') || attr(b,'link','href') || textTag(b,'guid') || textTag(b,'id');
     const summary=(textTag(b,'description') || textTag(b,'summary') || textTag(b,'content:encoded')).slice(0,3000);
     const date=textTag(b,'pubDate') || textTag(b,'published') || textTag(b,'updated');
-    const image=attr(b,'enclosure','url') || attr(b,'media:thumbnail','url');
-    const mediaTag=b.match(/<media:content\\b[^>]*>/i)?.[0] || '';
+    const image=feedImage(b);
+    const mediaTag=b.match(/<media:content\b[^>]*>/i)?.[0] || '';
     const video=/video/i.test(mediaTag)?attr(b,'media:content','url'):'';
-    return {title,link,summary,date,image:image.startsWith('https://')?image:'',video};
+    return {title,link,summary,date,image,video};
   }).filter(x=>x.title && approved(x.link));
 }
 function cleanHtml(value: string) {
