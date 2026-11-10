@@ -126,6 +126,10 @@ async function generateArticle(item: Record<string, unknown>, db: any) {
 }
 
 export default async function generateAiArticleBackground(request: Request) {
+  console.log('AI Newsroom background function invocation received.', {
+    method: request.method,
+    hasAuthorization: !!request.headers.get('authorization'),
+  });
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
