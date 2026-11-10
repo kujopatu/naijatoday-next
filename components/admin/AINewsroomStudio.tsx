@@ -197,7 +197,7 @@ export default function AINewsroomStudio() {
     </div>
 
     <div style={{ fontWeight: 800, color: text, marginBottom: 8 }}>2. Story discovery & generation</div>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12, padding: 11, border: \`1px solid \${border}\`, borderRadius: 9 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12, padding: 11, border: `1px solid ${border}`, borderRadius: 9 }}>
       <div style={{ flex: 1, minWidth: 190 }}><div style={{ fontSize: 12, fontWeight: 800, color: text }}>Generation format</div><div style={{ fontSize: 10, color: muted, marginTop: 3 }}>Choose a short news report or a full article.</div></div>
       <select value={articleFormat} onChange={e => setArticleFormat(e.target.value === 'article' ? 'article' : 'news')} style={{ ...input, width: 'auto', minWidth: 190 }}><option value="news">News brief (350–600 words)</option><option value="article">Full article (minimum 1,600 words)</option></select>
     </div>
