@@ -168,7 +168,7 @@ export default function SiteHeader({
         .naija-site-header .naija-header-row {
           min-height: 112px;
           padding: 15px 0 13px !important;
-          border-bottom: 1px solid ${darkMode ? "#26352e" : "#e8eee9};
+          border-bottom: 1px solid ${darkMode ? "#26352e" : "#e8eee9"};
         }
         .naija-site-header .naija-header-row > a {
           border-left: 0 !important;
