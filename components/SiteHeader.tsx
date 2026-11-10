@@ -71,17 +71,9 @@ export default function SiteHeader({
       <div style={{ height: 2, background: `linear-gradient(90deg, ${G.green}, #e4b84c, transparent)`, width: '100%' }} />
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '0 18px' }}>
         <div className="naija-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 0 9px', gap: 14 }}>
-          <Link href="/" aria-label="NaijaToday home" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flexShrink: 0, textDecoration: 'none' }}>
-            {/* Official NaijaToday brand logo */}
+          <Link href="/" aria-label="NaijaToday home" className="naija-brand">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo.jpg"
-              alt="NaijaToday"
-              style={{ display: 'block', width: 310, height: 100, objectFit: 'contain', background: '#101114', border: '3px solid #e2b64d', borderRadius: 8, boxShadow: '0 3px 12px rgba(0,0,0,.18)', filter: 'brightness(1.55) contrast(1.08)' }}
-            />
-            <span style={{ display: 'block', marginTop: 5, paddingLeft: 5, color: '#075c37', fontSize: 12, lineHeight: 1.3, fontWeight: 900, letterSpacing: '1.7px', textTransform: 'uppercase' }}>
-              Nigeria's No. 1 Digital Media
-            </span>
+            <img src="/logo.jpg" alt="NaijaToday — Nigeria's No. 1 Digital Media" />
           </Link>
 
           <div className="naija-header-stats" aria-label="Site statistics" style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '5px 11px', borderRadius: 9, background: darkMode ? 'rgba(0,135,81,0.08)' : '#f0f7f3', border: `1px solid ${darkMode ? 'rgba(0,135,81,0.2)' : '#e0eee5'}` }}>
@@ -142,14 +134,15 @@ export default function SiteHeader({
         </nav>
       </div>
       <style>{`
-        .naija-main-nav { display:flex; align-items:center; gap:5px; padding:3px 0 8px; flex-wrap:wrap; }
+        .naija-main-nav { display:flex; align-items:center; gap:5px; padding:5px 18px 6px; margin:0 -18px; min-height:49px; flex-wrap:wrap; background:#075c37; }
         .naija-main-nav > a:hover, .naija-more-panel a:hover { background:${darkMode ? 'rgba(0,135,81,.16)' : '#edf6f0'} !important; color:${G.green} !important; }
         .naija-more-menu { position:relative; }
         .naija-more-menu summary { display:inline-flex; align-items:center; gap:7px; min-height:40px; padding:9px 12px; border-radius:8px; color:${muted}; font-size:12px; font-weight:700; cursor:pointer; list-style:none; }
         .naija-more-menu summary::-webkit-details-marker { display:none; }
         .naija-more-menu[open] summary { color:${G.green}; background:${darkMode ? 'rgba(0,135,81,.14)' : '#edf6f0'}; }
-        .naija-more-panel { position:absolute; top:calc(100% + 7px); left:0; z-index:300; display:flex; flex-direction:column; min-width:205px; padding:7px; border:1px solid ${border}; border-radius:11px; background:${darkMode ? '#101a24' : '#fff'}; box-shadow:0 14px 35px rgba(0,0,0,.16); }
-        .naija-more-panel a { width:100%; }
+        .naija-more-panel { position:absolute; top:calc(100% + 7px); left:0; z-index:300; display:flex; flex-direction:column; min-width:210px; padding:7px; border:1px solid ${darkMode ? '#30443a' : '#dce8df'}; border-radius:10px; background:${darkMode ? '#101a24' : '#ffffff'}; box-shadow:0 14px 35px rgba(0,0,0,.18); }
+        .naija-more-panel a { width:100%; padding:9px 10px; border-radius:6px; color:${darkMode ? '#e2eee7' : '#254535'} !important; }
+        .naija-more-panel a:hover { background:${darkMode ? '#1b3026' : '#edf6f0'} !important; color:#008751 !important; }
         .naija-main-nav a:focus-visible, .naija-more-menu summary:focus-visible { outline:2px solid ${G.green}; outline-offset:2px; }
         @media (max-width: 900px) {
           .naija-header-stats { display:none !important; }
@@ -157,39 +150,41 @@ export default function SiteHeader({
         }
         /* Premium NaijaToday masthead and navigation refresh */
         .naija-site-header {
-          background: ${darkMode ? "#0a0e17" : "#ffffff"} !important;
-          border-bottom: 0 !important;
-          box-shadow: ${darkMode ? "0 5px 22px rgba(0,0,0,.38)" : "0 5px 22px rgba(9,48,30,.12)"} !important;
+          background: ${darkMode ? "#0d1520" : "#ffffff"} !important;
+          border-bottom: 1px solid ${darkMode ? "#26352e" : "#e4ebe6"} !important;
+          box-shadow: ${darkMode ? "0 5px 22px rgba(0,0,0,.28)" : "0 5px 22px rgba(18,45,30,.07)"} !important;
         }
         .naija-site-header > div:first-child {
           height: 4px !important;
           background: linear-gradient(90deg, #006b3c 0%, #008751 48%, #e2b64d 100%) !important;
         }
         .naija-site-header .naija-header-row {
-          min-height: 112px;
-          padding: 15px 0 13px !important;
+          min-height: 108px;
+          padding: 10px 0 !important;
+          gap: 16px !important;
           border-bottom: 1px solid ${darkMode ? "#26352e" : "#e8eee9"};
+        }
+        .naija-site-header .naija-brand { display:flex; align-items:center; flex:0 0 auto; line-height:0; }
+        .naija-site-header .naija-brand img {
+          display:block; width:270px; height:104px; object-fit:contain;
+          border:0; border-radius:7px; background:transparent; filter:none;
+          box-shadow:0 3px 12px rgba(0,0,0,.12);
         }
         .naija-site-header .naija-header-row > a {
           border-left: 0 !important;
           padding-left: 0 !important;
         }
-        .naija-site-header .naija-header-row > a > span > span:first-child {
-          font-size: 31px !important;
-          letter-spacing: -1.25px !important;
-          color: #075c37 !important;
+        .naija-site-header .naija-header-stats {
+          padding:8px 12px !important; gap:14px !important;
+          border-radius:10px !important;
+          background:${darkMode ? "#111f28" : "#f5f9f6"} !important;
+          border:1px solid ${darkMode ? "#294236" : "#e1ebe4"} !important;
         }
-        .naija-site-header .naija-header-row > a > span > span:last-child {
-          color: #718078 !important;
-          letter-spacing: 2.4px !important;
-          font-size: 9px !important;
-        }
+        .naija-site-header .naija-header-search { max-width:310px; }
+        .naija-site-header .naija-header-actions { gap:8px; }
         .naija-site-header .naija-main-nav {
-          background: #075c37;
-          margin: 0 -18px;
-          padding: 5px 18px 6px;
-          gap: 5px;
-          min-height: 51px;
+          background:#075c37; margin:0 -18px; padding:5px 18px 6px;
+          gap:5px; min-height:49px;
         }
         .naija-site-header .naija-main-nav > a,
         .naija-site-header .naija-more-menu summary {
@@ -212,16 +207,17 @@ export default function SiteHeader({
           background: rgba(255,255,255,.12) !important;
         }
         .naija-site-header .naija-more-panel {
-          top: calc(100% + 5px);
-          background: #ffffff !important;
-          border-color: #dce8df !important;
+          top:calc(100% + 5px);
+          background:${darkMode ? "#101a24" : "#ffffff"} !important;
+          border-color:${darkMode ? "#30443a" : "#dce8df"} !important;
         }
         .naija-site-header .naija-more-panel a {
-          color: #254535 !important;
+          color:${darkMode ? "#e2eee7" : "#254535"} !important;
+          padding:9px 10px; border-radius:6px;
         }
         .naija-site-header .naija-more-panel a:hover {
-          background: #edf6f0 !important;
-          color: #006b3c !important;
+          background:${darkMode ? "#1b3026" : "#edf6f0"} !important;
+          color:#008751 !important;
         }
         @media (max-width: 900px) {
           .naija-site-header .naija-header-row { min-height: 92px; }
@@ -230,7 +226,7 @@ export default function SiteHeader({
         }
         @media (max-width: 680px) {
           .naija-site-header .naija-header-row { min-height: 0; padding: 11px 0 !important; }
-          .naija-site-header .naija-header-row > a img { width: 230px !important; height: 76px !important; }
+          .naija-site-header .naija-brand img { width:218px !important; height:84px !important; }
           .naija-site-header .naija-main-nav {
             margin: 0 -18px;
             padding: 5px 12px 6px;
