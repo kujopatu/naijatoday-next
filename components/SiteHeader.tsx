@@ -35,7 +35,7 @@ export default function SiteHeader({
   memberCount: number | null;
 }) {
   const { darkMode, toggleDarkMode, border, muted } = useTheme();
-  const { canModerate, loggedIn } = useAuth();
+  const { isAdmin, loggedIn } = useAuth();
   const pathname = usePathname();
 
   const isActive = (href: string) =>
@@ -99,7 +99,7 @@ export default function SiteHeader({
           </div>
 
           <div className="naija-header-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            {canModerate && (
+            {isAdmin && (
               <Link href="/admin" className="naija-admin-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8, background: G.green, color: '#fff', fontSize: 12, fontWeight: 800, textDecoration: 'none', boxShadow: '0 3px 10px rgba(0,135,81,.2)' }}>
                 ⚙ Admin
               </Link>
@@ -130,7 +130,7 @@ export default function SiteHeader({
                 <Link key={href} href={href} aria-current={isActive(href) ? 'page' : undefined} style={linkStyle(isActive(href))}>{label}</Link>
               ))}
               {loggedIn && <Link href="/profile" aria-current={isActive('/profile') ? 'page' : undefined} style={linkStyle(isActive('/profile'))}>My profile</Link>}
-              {canModerate && <Link href="/admin" aria-current={isActive('/admin') ? 'page' : undefined} style={linkStyle(isActive('/admin'))}>Admin dashboard</Link>}
+              {isAdmin && <Link href="/admin" aria-current={isActive('/admin') ? 'page' : undefined} style={linkStyle(isActive('/admin'))}>Admin dashboard</Link>}
             </div>
           </details>
         </nav>
