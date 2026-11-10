@@ -10,7 +10,7 @@ type Source = { id: string; name: string; feed_url: string; domain: string; is_a
 type Story = {
   id: string; source_name: string; source_url: string; source_title: string;
   source_summary: string | null; source_published_at: string | null;
-  source_image_url: string | null; source_video_url: string | null; generated_image_url?: string | null; status: string;
+  source_image_url: string | null; source_video_url: string | null; generated_image_url?: string | null; image_generation_status?: string; image_generation_error?: string | null; status: string;
   generated_title: string | null; generated_excerpt: string | null;
   generated_content: string | null; generated_category: string | null;
   generated_seo_title: string | null; generated_seo_description: string | null;
@@ -203,29 +203,32 @@ export default function AINewsroomStudio() {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       if (!token) throw new Error('Your admin session has expired. Sign in again.');
-      const response = await fetch('/api/admin/ai-newsroom/image', {
+      const response = await fetch('/.netlify/functions/generate-ai-image-background', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, excerpt, content, category }),
+        body: JSON.stringify({ item_id: story.id, title, excerpt, content, category }),
       });
-      const raw = await response.text();
-      let generated: any = {};
-      try { generated = raw ? JSON.parse(raw) : {}; } catch { generated = {}; }
-      if (!response.ok || !generated.imageBase64) throw new Error(generated.error || 'The image provider did not return an image.');
-
-      const form = new FormData();
-      form.append('file', `data:${generated.mimeType || 'image/png'};base64,${generated.imageBase64}`);
-      form.append('upload_preset', CLOUDINARY_PRESET);
-      form.append('folder', 'naijatorday/articles/ai-generated');
-      const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method: 'POST', body: form });
-      const uploaded = await uploadResponse.json();
-      if (!uploadResponse.ok || !uploaded.secure_url) throw new Error(uploaded.error?.message || 'Could not save the generated image to Cloudinary.');
-
-      await api({ action: 'save_generated_image', item_id: story.id, image_url: uploaded.secure_url }, 'POST');
-      setDraft(d => ({ ...d, image: uploaded.secure_url }));
-      setStories(current => current.map(item => item.id === story.id ? { ...item, generated_image_url: uploaded.secure_url } : item));
-      showToast('AI editorial image generated and saved to Cloudinary.');
-      return uploaded.secure_url as string;
+      if (!response.ok && response.status !== 202) {
+        const message = await response.text();
+        throw new Error(message.slice(0, 240) || 'Could not start background image generation.');
+      }
+      showToast('AI image generation started. NaijaToday will save the finished image to Cloudinary.');
+      for (let check = 0; check < 90; check++) {
+        await new Promise(resolve => setTimeout(resolve, 4000));
+        const newsroom = await api();
+        setSources(newsroom.sources || []);
+        setStories(newsroom.items || []);
+        const updated = (newsroom.items || []).find((item: Story) => item.id === story.id) as Story | undefined;
+        if (updated?.image_generation_status === 'generated' && updated.generated_image_url) {
+          setDraft(d => ({ ...d, image: updated.generated_image_url || '' }));
+          showToast('AI editorial image generated and saved to Cloudinary.');
+          return updated.generated_image_url;
+        }
+        if (updated?.image_generation_status === 'failed') {
+          throw new Error(updated.image_generation_error || 'The image provider could not complete the request.');
+        }
+      }
+      throw new Error('Image generation is taking longer than expected. Refresh the newsroom shortly to check its status.');
     } catch (error) {
       showToast(error instanceof Error ? `Article is ready, but image generation failed: ${error.message}` : 'Article is ready, but image generation failed. You can retry from the editor.');
       return null;
