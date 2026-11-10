@@ -39,6 +39,15 @@ export default async function publishScheduledArticles() {
     return new Response('Scheduled publishing failed.', { status: 500 });
   }
 
+  const publishedIds = (data || []).map((row: { id: string }) => row.id);
+  if (publishedIds.length) {
+    const { error: newsroomError } = await supabase
+      .from('ai_newsroom_items')
+      .update({ status: 'published', updated_at: now })
+      .in('post_id', publishedIds);
+    if (newsroomError) console.error('Could not sync AI newsroom publication statuses:', newsroomError.message);
+  }
+
   console.log(`Published ${data?.length || 0} scheduled NaijaToday article(s).`);
   return new Response(JSON.stringify({ published: data?.length || 0 }), {
     headers: { 'Content-Type': 'application/json' },
