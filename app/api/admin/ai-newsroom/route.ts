@@ -217,6 +217,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const db = serviceClient();
 
+    if (body.action === 'save_generated_image') {
+      const itemId = String(body.item_id || '');
+      const imageUrl = String(body.image_url || '');
+      if (!/^[0-9a-f-]{36}$/i.test(itemId)) return NextResponse.json({ error: 'A valid story ID is required.' }, { status: 400 });
+      let parsedImage: URL;
+      try { parsedImage = new URL(imageUrl); } catch { return NextResponse.json({ error: 'A valid Cloudinary image URL is required.' }, { status: 400 }); }
+      if (parsedImage.protocol !== 'https:' || parsedImage.hostname !== 'res.cloudinary.com' || !parsedImage.pathname.startsWith('/dywtb9ky3/image/upload/')) {
+        return NextResponse.json({ error: 'Only NaijaToday Cloudinary image URLs can be attached.' }, { status: 400 });
+      }
+      const { error } = await db.from('ai_newsroom_items').update({
+        generated_image_url: imageUrl,
+        updated_at: new Date().toISOString(),
+      }).eq('id', itemId);
+      if (error) throw error;
+      return NextResponse.json({ ok: true, image_url: imageUrl });
+    }
+
     if (body.action === 'add_source') {
       const name = String(body.name || '').trim().slice(0, 100);
       const feedUrl = String(body.feed_url || '').trim();
