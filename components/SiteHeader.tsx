@@ -77,7 +77,7 @@ export default function SiteHeader({
             <img
               src="/logo.jpg"
               alt="NaijaToday — Nigeria's #1 Digital Media"
-              style={{ display: 'block', width: 250, height: 86, objectFit: 'contain', background: '#101114', borderRadius: 6 }}
+              style={{ display: 'block', width: 310, height: 100, objectFit: 'contain', background: '#101114', border: '3px solid #e2b64d', borderRadius: 8, boxShadow: '0 3px 12px rgba(0,0,0,.18)' }}
             />
           </Link>
 
@@ -163,7 +163,7 @@ export default function SiteHeader({
           background: linear-gradient(90deg, #006b3c 0%, #008751 48%, #e2b64d 100%) !important;
         }
         .naija-site-header .naija-header-row {
-          min-height: 86px;
+          min-height: 112px;
           padding: 15px 0 13px !important;
           border-bottom: 1px solid #e8eee9;
         }
@@ -221,13 +221,13 @@ export default function SiteHeader({
           color: #006b3c !important;
         }
         @media (max-width: 900px) {
-          .naija-site-header .naija-header-row { min-height: 76px; }
+          .naija-site-header .naija-header-row { min-height: 92px; }
           .naija-site-header .naija-main-nav > a,
           .naija-site-header .naija-more-menu summary { padding-left: 10px !important; padding-right: 10px !important; }
         }
         @media (max-width: 680px) {
           .naija-site-header .naija-header-row { min-height: 0; padding: 11px 0 !important; }
-          .naija-site-header .naija-header-row > a img { width: 210px !important; height: 72px !important; }
+          .naija-site-header .naija-header-row > a img { width: 230px !important; height: 76px !important; }
           .naija-site-header .naija-main-nav {
             margin: 0 -18px;
             padding: 5px 12px 6px;
