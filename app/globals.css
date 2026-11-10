@@ -208,3 +208,53 @@ img { max-width: 100%; }
   }
   .naija-post-card-premium .naija-post-title { font-size: 15px !important; }
 }
+
+
+/* NaijaToday homepage card refinement — desktop editorial proportions */
+.naija-post-card-premium {
+  gap: 20px !important;
+  padding: 19px !important;
+  margin-bottom: 17px !important;
+  border-radius: 15px !important;
+  box-shadow: 0 3px 16px rgba(18,45,30,.06);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.naija-post-card-premium > div:first-child {
+  width: 176px !important;
+  height: 132px !important;
+  flex: 0 0 176px !important;
+  border-radius: 11px !important;
+}
+.naija-post-card-premium .naija-post-title {
+  font-size: 19px !important;
+  line-height: 1.32 !important;
+  letter-spacing: -.3px;
+}
+.naija-post-card-premium:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(18,45,30,.11);
+}
+@media (max-width: 680px) {
+  .naija-post-card-premium {
+    gap: 13px !important;
+    padding: 13px !important;
+    margin-bottom: 12px !important;
+  }
+  .naija-post-card-premium > div:first-child {
+    width: 112px !important;
+    height: 100px !important;
+    flex-basis: 112px !important;
+  }
+  .naija-post-card-premium .naija-post-title {
+    font-size: 16px !important;
+    line-height: 1.32 !important;
+  }
+}
+@media (max-width: 380px) {
+  .naija-post-card-premium > div:first-child {
+    width: 96px !important;
+    height: 88px !important;
+    flex-basis: 96px !important;
+  }
+  .naija-post-card-premium .naija-post-title { font-size: 15px !important; }
+}
