@@ -71,11 +71,14 @@ export default function SiteHeader({
       <div style={{ height: 2, background: `linear-gradient(90deg, ${G.green}, #e4b84c, transparent)`, width: '100%' }} />
       <div style={{ maxWidth: 1240, margin: '0 auto', padding: '0 18px' }}>
         <div className="naija-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 0 9px', gap: 14 }}>
-          <Link href="/" aria-label="NaijaToday home" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, textDecoration: 'none', borderLeft: `3px solid ${G.green}`, paddingLeft: 11 }}>
-            <span>
-              <span style={{ display: 'block', fontSize: 25, fontWeight: 900, color: G.green, letterSpacing: '-0.8px', lineHeight: 1 }}>NaijaToday</span>
-              <span style={{ display: 'block', fontSize: 9, color: '#929e97', letterSpacing: 2, textTransform: 'uppercase', marginTop: 5 }}>Nigeria&apos;s Digital Media</span>
-            </span>
+          <Link href="/" aria-label="NaijaToday home" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, textDecoration: 'none' }}>
+            {/* Official NaijaToday brand logo */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.jpg"
+              alt="NaijaToday — Nigeria's #1 Digital Media"
+              style={{ display: 'block', width: 250, height: 86, objectFit: 'contain', background: '#101114', borderRadius: 6 }}
+            />
           </Link>
 
           <div className="naija-header-stats" aria-label="Site statistics" style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '5px 11px', borderRadius: 9, background: darkMode ? 'rgba(0,135,81,0.08)' : '#f0f7f3', border: `1px solid ${darkMode ? 'rgba(0,135,81,0.2)' : '#e0eee5'}` }}>
@@ -224,7 +227,7 @@ export default function SiteHeader({
         }
         @media (max-width: 680px) {
           .naija-site-header .naija-header-row { min-height: 0; padding: 11px 0 !important; }
-          .naija-site-header .naija-header-row > a > span > span:first-child { font-size: 26px !important; }
+          .naija-site-header .naija-header-row > a img { width: 210px !important; height: 72px !important; }
           .naija-site-header .naija-main-nav {
             margin: 0 -18px;
             padding: 5px 12px 6px;
