@@ -28,14 +28,14 @@ async function callGemini(
   let lastError = 'Gemini is temporarily unavailable.';
 
   for (const candidate of candidates) {
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= 2; attempt++) {
       let shouldRetry = false;
       try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(candidate)}:generateContent`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
           body: JSON.stringify(requestBody),
-          signal: AbortSignal.timeout(90000),
+          signal: AbortSignal.timeout(60000),
         });
         if (response.ok) return await response.json();
         const detail = await response.text();
@@ -107,9 +107,47 @@ async function generateArticle(item: Record<string, unknown>, db: any) {
   try { parsed = JSON.parse(text.replace(/^\`\`\`(?:json)?|\`\`\`$/g, '').trim()); }
   catch { throw new Error('Gemini returned an incomplete response instead of valid article JSON. Retry generation.'); }
   if (!parsed.title || !parsed.excerpt || !parsed.content_html) throw new Error('Gemini response was missing required article fields.');
-  const content = safeHtml(String(parsed.content_html));
-  const words = wordCount(content);
-  if (words < 1600) throw new Error(`The AI returned only ${words} words. A full article must contain at least 1,600 words. Retry generation or research the story further.`);
+  let content = safeHtml(String(parsed.content_html));
+  let words = wordCount(content);
+
+  // Expand short drafts in the background worker, away from the browser's
+  // synchronous request timeout. Keep the factuality requirement unchanged.
+  if (words < 1600) {
+    const expansionPrompt = [
+      'The previous draft is too short. Return a complete replacement article in the same JSON schema: title, excerpt, content_html, category, seo_title, seo_description, tags.',
+      'The replacement content_html must contain 1,700-1,900 words and must not be shorter than 1,600 words.',
+      'Add substantive, non-repetitive context and explanation. Do not invent quotes, statistics, events, names, dates, official positions or unsupported claims.',
+      'If the source cannot responsibly support a 1,600-word article, state that clearly rather than fabricating information.',
+      'Source headline: ' + String(item.source_title || ''),
+      'Source publisher: ' + String(item.source_name || ''),
+      'Source URL: ' + String(item.source_url || ''),
+      'Source extract: ' + String(item.source_summary || 'No summary supplied').slice(0, 3500),
+      'Previous draft (' + words + ' words):',
+      content,
+    ].join('\\n');
+    const expanded = await callGemini(key, model, {
+      systemInstruction: { parts: [{ text: 'You are a meticulous Nigerian newsroom editor. Expand responsibly, preserve factual accuracy, and never fabricate details.' }] },
+      contents: [{ role: 'user', parts: [{ text: expansionPrompt }] }],
+      generationConfig: { temperature: 0.3, responseMimeType: 'application/json', maxOutputTokens: 8192 },
+    }, async ({ model: retryModel, attempt, message, delayMs }) => {
+      const { data: current } = await db.from('ai_newsroom_items')
+        .select('generation_retry_count').eq('id', String(item.id)).single();
+      const retryCount = Number(current?.generation_retry_count || 0) + 1;
+      await db.from('ai_newsroom_items').update({
+        generation_retry_count: retryCount,
+        generation_error: `Temporary Gemini issue on ${retryModel} (retry ${attempt}/2). Retrying in ${Math.ceil(delayMs / 1000)} seconds. ${message.slice(0, 350)}`,
+        updated_at: new Date().toISOString(),
+      }).eq('id', String(item.id));
+    });
+    const expandedText = expanded?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || '').join('');
+    if (!expandedText) throw new Error('Gemini returned an empty expansion response. Retry generation.');
+    try { parsed = JSON.parse(expandedText.replace(/^\\`\\`\\`(?:json)?|\\`\\`\\`$/g, '').trim()); }
+    catch { throw new Error('Gemini returned an incomplete expansion. Retry generation.'); }
+    if (!parsed.title || !parsed.excerpt || !parsed.content_html) throw new Error('Gemini expansion was missing required article fields.');
+    content = safeHtml(String(parsed.content_html));
+    words = wordCount(content);
+  }
+  if (words < 1600) throw new Error(`The AI returned only ${words} words after expansion. A full article must contain at least 1,600 words. Add more verified source material before retrying.`);
   return {
     generated_title: String(parsed.title).slice(0, 240),
     generated_excerpt: String(parsed.excerpt).slice(0, 500),
