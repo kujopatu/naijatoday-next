@@ -9,7 +9,7 @@ import { G } from '@/lib/theme';
 const PAGE_SIZE = 20;
 
 export default function HomeFeed({ posts, title = '📰 Latest Stories' }: { posts: Post[]; title?: string }) {
-  const { muted, border } = useTheme();
+  const { muted, border, darkMode, text } = useTheme();
   const [page, setPage] = useState(1);
 
   const totalPages = Math.max(1, Math.ceil(posts.length / PAGE_SIZE));
@@ -38,8 +38,8 @@ export default function HomeFeed({ posts, title = '📰 Latest Stories' }: { pos
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ color: G.green, fontSize: 10, fontWeight: 800, letterSpacing: '1.8px' }}>NAIJATODAY NEWS DESK</span>
-          <span style={{ fontSize: 24, lineHeight: 1.15, fontWeight: 800, fontFamily: 'Georgia,serif', letterSpacing: '-.5px' }}>{title.replace('📰 ', '').toUpperCase()}</span>
+          <span style={{ color: darkMode ? '#72d6a0' : G.green, fontSize: 10, fontWeight: 800, letterSpacing: '1.8px' }}>NAIJATODAY NEWS DESK</span>
+          <span style={{ color: text, fontSize: 24, lineHeight: 1.15, fontWeight: 800, fontFamily: 'Georgia,serif', letterSpacing: '-.5px' }}>{title.replace('📰 ', '').toUpperCase()}</span>
           <span style={{ fontSize: 12, color: muted }}>The newest headlines, published first</span>
         </div>
         <span style={{ fontSize: 11, color: muted, whiteSpace: 'nowrap', alignSelf: 'flex-end' }}>{posts.length} stories</span>
