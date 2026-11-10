@@ -15,7 +15,7 @@ type Story = {
   generated_content: string | null; generated_category: string | null;
   generated_seo_title: string | null; generated_seo_description: string | null;
   generated_tags: string[] | null; post_id: string | null;
-  generation_error?: string | null; generation_started_at?: string | null; generation_attempts?: number;
+  generation_error?: string | null; generation_started_at?: string | null; generation_attempts?: number; generation_retry_count?: number;
 };
 type Draft = { title: string; excerpt: string; content: string; category: string; image: string; video: string; scheduledAt: string };
 const CLOUDINARY_CLOUD = 'dywtb9ky3';
@@ -118,7 +118,7 @@ export default function AINewsroomStudio() {
           throw new Error(message || 'Could not start background article generation.');
         }
         showToast('Full article generation started. This may take a few minutes; you can safely refresh the newsroom.');
-        const deadline = Date.now() + 12 * 60 * 1000;
+        const deadline = Date.now() + 14 * 60 * 1000;
         while (Date.now() < deadline) {
           await new Promise(resolve => setTimeout(resolve, 4000));
           const status = await api();
@@ -250,6 +250,7 @@ export default function AINewsroomStudio() {
           <div style={{ fontSize: 14, fontWeight: 800, color: text }}>{story.source_title}</div>
           {story.source_summary && <div style={{ fontSize: 11, color: muted, marginTop: 5 }}>{story.source_summary.slice(0, 260)}{story.source_summary.length > 260 ? '…' : ''}</div>}
           {story.status === 'generation_failed' && story.generation_error && <div style={{ fontSize: 11, color: G.red, marginTop: 7 }}>Generation failed: {story.generation_error}</div>}
+          {story.status === 'generating' && <div style={{ fontSize: 11, color: G.gold, marginTop: 7 }}>Generation in progress{typeof story.generation_retry_count === 'number' && story.generation_retry_count > 0 ? ` · ${story.generation_retry_count} provider retry(s)` : ''}{story.generation_error ? `: ${story.generation_error}` : ' · Waiting for the AI provider.'}</div>}
           <a href={story.source_url} target="_blank" rel="noreferrer" style={{ color: G.green, fontSize: 11, display: 'inline-block', marginTop: 6 }}>Open original source ↗</a>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
