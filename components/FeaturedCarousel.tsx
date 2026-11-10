@@ -16,7 +16,9 @@ export default function FeaturedCarousel({ posts }: { posts: Post[] }) {
   const activeIdx = idx % posts.length;
   const post = posts[activeIdx];
   const cat = findCategory(post.category);
-  const image = cloudinaryTransform(post.image, { width: 1200 });
+  // Cloudinary's fill crop needs both dimensions. Supplying only a width
+  // generated a c_fill URL without a height, which can prevent delivery.
+  const image = cloudinaryTransform(post.image, { width: 1200, height: 650 });
 
   return (
     <div
