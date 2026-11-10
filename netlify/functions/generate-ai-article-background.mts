@@ -5,15 +5,15 @@ export const config = { type: 'background' };
 const ADMIN_EMAIL = 'kujopatu@gmail.com';
 
 function wordCount(html: string) {
-  return html.replace(/<[^>]+>/g, ' ').split(/\\s+/).filter(Boolean).length;
+  return html.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
 }
 
 function safeHtml(input: string) {
   return input
-    .replace(/<(script|style|iframe|object|embed|form|svg|math)\\b[^>]*>[\\s\\S]*?<\\/\\1>/gi, '')
-    .replace(/<a\\b[^>]*>([\\s\\S]*?)<\\/a>/gi, '$1')
-    .replace(/<(?!\\/?(?:p|h2|h3|h4|ul|ol|li|strong|b|em|i|blockquote)\\b)[^>]*>/gi, '')
-    .replace(/<(p|h2|h3|h4|ul|ol|li|strong|b|em|i|blockquote)\\b[^>]*>/gi, '<$1>');
+    .replace(/<(script|style|iframe|object|embed|form|svg|math)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
+    .replace(/<a\b[^>]*>([\s\S]*?)<\/a>/gi, '$1')
+    .replace(/<(?!\/?(?:p|h2|h3|h4|ul|ol|li|strong|b|em|i|blockquote)\b)[^>]*>/gi, '')
+    .replace(/<(p|h2|h3|h4|ul|ol|li|strong|b|em|i|blockquote)\b[^>]*>/gi, '<$1>');
 }
 
 async function callGemini(key: string, model: string, requestBody: unknown) {
@@ -59,7 +59,7 @@ async function generateArticle(item: Record<string, unknown>) {
     'Source publication date: ' + String(item.source_published_at || 'Not supplied'),
     'Source summary/extract: ' + String(item.source_summary || 'No summary supplied').slice(0, 3500),
     'Suggested category: ' + String(item.category || 'Nigeria'),
-  ].join('\\n');
+  ].join('\n');
   const payload = await callGemini(key, model, {
     systemInstruction: { parts: [{ text: 'Be a careful, neutral Nigerian newsroom editor. Never fabricate facts or sources.' }] },
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
