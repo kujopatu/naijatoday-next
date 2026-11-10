@@ -41,7 +41,9 @@ export default function AINewsroomStudio() {
   const [feedUrl, setFeedUrl] = useState('');
   const [activeStory, setActiveStory] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>({ title: '', excerpt: '', content: '', category: 'Nigeria', image: '', video: '', scheduledAt: '' });
-  const [uploading, setUploading] = useState(false);\n  const [imageGenerating, setImageGenerating] = useState(false);\n  const [imageMode, setImageMode] = useState<'both' | 'automatic' | 'manual'>('both');
+  const [uploading, setUploading] = useState(false);
+  const [imageGenerating, setImageGenerating] = useState(false);
+  const [imageMode, setImageMode] = useState<'both' | 'automatic' | 'manual'>('both');
 
   const api = useCallback(async (payload?: Record<string, unknown>, method: 'GET' | 'POST' = 'GET') => {
     const { data } = await supabase.auth.getSession();
