@@ -49,12 +49,10 @@ export default function PollWidget({ postId }: { postId: string }) {
     const key = getVoterKey(userEmail);
     const { error } = await supabase.from('poll_votes').insert({ poll_id: poll.id, option_index: i, voter_key: key });
     const { data: refreshed } = await supabase.rpc('get_poll_results', { p_poll_ids: [Number(poll.id)], p_voter_key: key });
-    if (!error || error.code === '23505') {
-      const rows = (refreshed ?? []) as PollResult[];
-      setCounts(poll.options.map((_, idx) => Number(rows.find(v => v.option_index === idx)?.vote_count ?? 0)));
-      const own = rows.find(v => v.is_mine);
-      if (own) setMine(own.option_index);
-    }
+    const rows = (refreshed ?? []) as PollResult[];
+    setCounts(poll.options.map((_, idx) => Number(rows.find(v => v.option_index === idx)?.vote_count ?? 0)));
+    const own = rows.find(v => v.is_mine);
+    setMine(own ? own.option_index : null);
   };
 
   return (
