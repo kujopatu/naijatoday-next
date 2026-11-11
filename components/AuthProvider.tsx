@@ -79,14 +79,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     let active = true;
     setRoleLoading(true);
-    supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
-      .then(({ data, error }) => {
+    (async () => {
+      try {
+        const { data, error } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
         if (!active) return;
         const role = !error ? String(data?.role ?? 'user') : 'user';
         setAccountRole(['admin', 'editor', 'writer', 'moderator'].includes(role) ? role as AccountRole : 'user');
-      })
-      .catch(() => { if (active) setAccountRole('user'); })
-      .finally(() => { if (active) setRoleLoading(false); });
+      } catch {
+        if (active) setAccountRole('user');
+      } finally {
+        if (active) setRoleLoading(false);
+      }
+    })();
     return () => { active = false; };
   }, [user?.id]);
 
