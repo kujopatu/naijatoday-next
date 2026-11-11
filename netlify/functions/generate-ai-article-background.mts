@@ -66,18 +66,18 @@ async function callGemini(
 ) {
   const fallback = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite';
   const fallback2 = process.env.GEMINI_FALLBACK_MODEL_2 || '';
-  const candidates = [...new Set([model, fallback, fallback2].filter(Boolean))];
+  const candidates = [...new Set([model, fallback, fallback2].filter(Boolean))].slice(0, 2);
   let lastError = 'Gemini is temporarily unavailable.';
 
   for (const candidate of candidates) {
-    for (let attempt = 1; attempt <= 2; attempt++) {
+    for (let attempt = 1; attempt <= 1; attempt++) {
       let shouldRetry = false;
       try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(candidate)}:generateContent`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
           body: JSON.stringify(requestBody),
-          signal: AbortSignal.timeout(45000),
+          signal: AbortSignal.timeout(35000),
         });
         if (response.ok) return await response.json();
         const detail = await response.text();
@@ -88,7 +88,7 @@ async function callGemini(
         const delayMs = Number.isFinite(retryAfter) && retryAfter > 0
           ? Math.min(retryAfter * 1000, 30000)
           : Math.min(2000 * (2 ** (attempt - 1)), 20000);
-        if (attempt < 2) {
+        if (attempt < 1) {
           await onRetry({ model: candidate, attempt, message: lastError, delayMs });
           await new Promise(resolve => setTimeout(resolve, delayMs));
         }
