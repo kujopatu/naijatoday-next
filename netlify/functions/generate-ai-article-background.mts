@@ -35,7 +35,7 @@ async function callGemini(
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
           body: JSON.stringify(requestBody),
-          signal: AbortSignal.timeout(60000),
+          signal: AbortSignal.timeout(45000),
         });
         if (response.ok) return await response.json();
         const detail = await response.text();
@@ -46,7 +46,7 @@ async function callGemini(
         const delayMs = Number.isFinite(retryAfter) && retryAfter > 0
           ? Math.min(retryAfter * 1000, 30000)
           : Math.min(2000 * (2 ** (attempt - 1)), 20000);
-        if (attempt < 3) {
+        if (attempt < 2) {
           await onRetry({ model: candidate, attempt, message: lastError, delayMs });
           await new Promise(resolve => setTimeout(resolve, delayMs));
         }
@@ -54,7 +54,7 @@ async function callGemini(
         if (error instanceof Error && !error.message.includes('fetch failed') && !error.name.includes('Timeout') && !error.name.includes('AbortError')) throw error;
         lastError = error instanceof Error ? error.message : String(error);
         shouldRetry = true;
-        if (attempt < 3) {
+        if (attempt < 2) {
           const delayMs = Math.min(2000 * (2 ** (attempt - 1)), 20000);
           await onRetry({ model: candidate, attempt, message: lastError, delayMs });
           await new Promise(resolve => setTimeout(resolve, delayMs));
