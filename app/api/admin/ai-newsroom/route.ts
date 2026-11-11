@@ -117,30 +117,27 @@ async function callGeminiWithFallback(key: string, model: string, requestBody: u
   const models = [...new Set([model, fallback])];
   let lastError = 'Gemini is temporarily unavailable.';
   for (const candidate of models) {
-    // A 503 is usually temporary. Give each model three attempts with
-    // increasing delays before moving to the configured fallback model.
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(candidate)}:generateContent`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-          body: JSON.stringify(requestBody),
-          signal: AbortSignal.timeout(60000),
-        });
-        if (response.ok) return await response.json();
-        const detail = await response.text();
-        const shortDetail = detail.replace(/\s+/g, ' ').slice(0, 180);
-        lastError = response.status === 503
-          ? `Gemini model ${candidate} is temporarily unavailable (503).`
-          : `Gemini model ${candidate} returned HTTP ${response.status}: ${shortDetail}`;
-        if (![429, 500, 502, 503, 504].includes(response.status)) throw new Error(lastError);
-      } catch (error) {
-        if (error instanceof Error && !error.message.includes('fetch failed') && !error.name.includes('Timeout') && !error.name.includes('Abort')) throw error;
-        lastError = error instanceof Error && error.name.includes('Timeout')
-          ? `Gemini model ${candidate} timed out. Please retry.`
-          : 'Could not reach Gemini. Please check the connection and retry.';
-      }
-      if (attempt < 2) await new Promise(resolve => setTimeout(resolve, attempt === 0 ? 1800 : 4000));
+    // Keep this synchronous API inside the hosting request window: one
+    // bounded attempt per model, then return a useful error to the editor.
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(candidate)}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (response.ok) return await response.json();
+      const detail = await response.text();
+      const shortDetail = detail.replace(/\\s+/g, ' ').slice(0, 180);
+      lastError = response.status === 503
+        ? `Gemini model ${candidate} is temporarily unavailable (503).`
+        : `Gemini model ${candidate} returned HTTP ${response.status}: ${shortDetail}`;
+      if (![429, 500, 502, 503, 504].includes(response.status)) throw new Error(lastError);
+    } catch (error) {
+      if (error instanceof Error && !error.message.includes('fetch failed') && !error.name.includes('Timeout') && !error.name.includes('Abort')) throw error;
+      lastError = error instanceof Error && error.name.includes('Timeout')
+        ? `Gemini model ${candidate} timed out after 10 seconds. Please retry.`
+        : 'Could not reach Gemini. Please check the connection and retry.';
     }
   }
   throw new Error(lastError + ' The primary and fallback models could not complete the request. Please retry in a few minutes.');
