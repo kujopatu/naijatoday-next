@@ -95,7 +95,7 @@ export default function PollsExperience({ featuredOnly = false }: { featuredOnly
     return (
       <article key={poll.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: compact ? 18 : 22, boxShadow: compact ? '0 8px 26px rgba(0,0,0,.06)' : 'none' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-          <span style={{ color: G.green, fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: 'uppercase' }}>{poll.is_featured ? '★ Poll of the Day' : '🗳 Reader Poll'}</span>
+          <span style={{ color: G.green, fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: 'uppercase' }}>{compact || poll.is_featured ? '★ Poll of the Day' : '🗳 Reader Poll'}</span>
           <span style={{ fontSize: 11, color: muted }}>{open ? '● Voting open' : 'Voting closed'}</span>
         </div>
         <h2 style={{ color: text, fontSize: compact ? 19 : 21, lineHeight: 1.35, fontWeight: 850, margin: '0 0 8px' }}>{poll.question}</h2>
