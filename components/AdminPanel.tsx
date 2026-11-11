@@ -1271,20 +1271,21 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {activeSection === 'ai-newsroom' && <AINewsroomMonitor />}
-      {activeSection === 'breaking' && <BreakingNewsManager />}
-      {activeSection === 'jobs' && <JobsScholarshipsManager />}
-      {activeSection === 'forum' && <ForumManager />}
-      {activeSection === 'trends' && <TrendManagerPanel />}
-      {activeSection === 'dataplans' && <DataPlansManagerPanel />}
-      {activeSection === 'fuel' && <FuelPriceManagerPanel />}
-      {activeSection === 'social' && <SocialLinksManagerPanel />}
-      {activeSection === 'products' && <ProductsManagerPanel />}
-      {activeSection === 'fixtures' && <FixturesManagerPanel />}
-      {activeSection === 'polls' && <PollAnalyticsPanel />}
-      {activeSection === 'users' && <UserManagementPanel />}
+      {isAdmin && activeSection === 'ai-newsroom' && <AINewsroomMonitor />}
+      {isAdmin && activeSection === 'breaking' && <BreakingNewsManager />}
+      {isAdmin && activeSection === 'jobs' && <JobsScholarshipsManager />}
+      {canModerate && activeSection === 'forum' && <ForumManager />}
+      {isAdmin && activeSection === 'trends' && <TrendManagerPanel />}
+      {isAdmin && activeSection === 'dataplans' && <DataPlansManagerPanel />}
+      {isAdmin && activeSection === 'fuel' && <FuelPriceManagerPanel />}
+      {isAdmin && activeSection === 'social' && <SocialLinksManagerPanel />}
+      {isAdmin && activeSection === 'products' && <ProductsManagerPanel />}
+      {isAdmin && activeSection === 'fixtures' && <FixturesManagerPanel />}
+      {isAdmin && activeSection === 'polls' && <PollAnalyticsPanel />}
+      {isAdmin && activeSection === 'team' && <EditorialTeamPanel />}
+      {isAdmin && activeSection === 'users' && <UserManagementPanel />}
       {isAdmin && activeSection === 'tools' && <AdminToolsHub isAdmin={isAdmin} />}
-      {activeSection === 'sitemap' && <SitemapPanel />}
+      {isAdmin && activeSection === 'sitemap' && <SitemapPanel />}
     </div>
   );
 }
