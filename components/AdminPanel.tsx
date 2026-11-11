@@ -19,6 +19,7 @@ import ProductsManagerPanel from './admin/ProductsManagerPanel';
 import FixturesManagerPanel from './admin/FixturesManagerPanel';
 import PollAnalyticsPanel from './admin/PollAnalyticsPanel';
 import UserManagementPanel from './admin/UserManagementPanel';
+import EditorialTeamPanel from './admin/EditorialTeamPanel';
 import AdminDiagnostic from './admin/AdminDiagnostic';
 import AdminToolsHub from './admin/AdminToolsHub';
 import RichTextEditor from './admin/RichTextEditor';
@@ -66,7 +67,7 @@ const emptyForm: ArticleForm = {
 const ADMIN_MENU_GROUPS: { label: string; items: [string, string][] }[] = [
   { label: 'Dashboard', items: [['overview', '📊 Analytics']] },
   { label: 'Articles & Publishing', items: [['new', '✍️ Write New Article'], ['manage', '📋 Manage Articles'], ['breaking', '🔴 Breaking News'], ['ai-newsroom', '🤖 AI Newsroom Monitor']] },
-  { label: 'Community & Users', items: [['forum', '💬 Forum Manager'], ['reports', '🚩 Reports'], ['moderators', '🛡️ Moderators'], ['users', '👥 User Management']] },
+  { label: 'Community & Users', items: [['forum', '💬 Forum Manager'], ['reports', '🚩 Reports'], ['moderators', '🛡️ Moderators'], ['users', '👥 User Management'], ['team', '🧑‍💻 Editorial Team']] },
   { label: 'Content & Engagement', items: [['trends', '🔥 Trend Manager'], ['social', '🔗 Social Links'], ['polls', '🗳️ Poll Analytics'], ['products', '🛍️ Products / Resources']] },
   { label: 'Services & Updates', items: [['jobs', '💼 Jobs & Scholarships'], ['fuel', '⛽ Fuel Prices'], ['dataplans', '📱 Data Plans'], ['fixtures', '⚽ Fixtures & Scores']] },
   { label: 'Website Tools', items: [['sitemap', '🗺️ Sitemap'], ['tools', '🛠️ Admin Tools']] },
@@ -75,16 +76,16 @@ const ADMIN_MENU_GROUPS: { label: string; items: [string, string][] }[] = [
 // Tabs with a real implementation below. Everything else in TABS renders
 // a plain "coming soon" placeholder — kept visible so the panel's shape
 // matches the original, but honest about what's actually built.
-const BUILT_TABS = new Set(['overview', 'new', 'manage', 'ai-newsroom', 'moderators', 'reports', 'breaking', 'jobs', 'forum', 'trends', 'dataplans', 'fuel', 'social', 'products', 'fixtures', 'polls', 'users', 'tools', 'sitemap']);
+const BUILT_TABS = new Set(['overview', 'new', 'manage', 'ai-newsroom', 'moderators', 'reports', 'breaking', 'jobs', 'forum', 'trends', 'dataplans', 'fuel', 'social', 'products', 'fixtures', 'polls', 'users', 'team', 'tools', 'sitemap']);
 
 export default function AdminPanel() {
-  const { userEmail, isAdmin, isEditor, isWriter, isModerator, canModerate } = useAuth();
+  const { userEmail, isAdmin, isWriter, isModerator, canModerate } = useAuth();
   const { showToast } = useToast();
   const { darkMode, card, border, text, muted } = useTheme();
 
   const [activeSection, setActiveSection] = useState(isAdmin || isModerator ? 'overview' : 'new');
   const visibleMenuGroups = isAdmin ? ADMIN_MENU_GROUPS : isModerator
-    ? ADMIN_MENU_GROUPS.filter((group) => group.label === 'Community & Users')
+    ? ADMIN_MENU_GROUPS.filter((group) => group.label === 'Community & Users').map((group) => ({ ...group, items: group.items.filter(([key]) => key === 'forum' || key === 'reports') }))
     : ADMIN_MENU_GROUPS.filter((group) => group.label === 'Articles & Publishing').map((group) => ({
         ...group,
         items: group.items.filter(([key]) => key === 'new' || key === 'manage'),
