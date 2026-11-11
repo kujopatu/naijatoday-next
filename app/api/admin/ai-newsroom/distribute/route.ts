@@ -111,7 +111,22 @@ export async function POST(request: NextRequest) {
       const itemId = safeText(body.item_id, 50);
       const destination = safeText(body.destination, 30);
       if (!/^[0-9a-f-]{36}$/i.test(itemId) || !['forum_thread','job','scholarship'].includes(destination)) return NextResponse.json({ error: 'Select a valid story and destination.' }, { status: 400 });
-      const payload = body.payload && typeof body.payload === 'object' ? body.payload : {};
+      let payload = body.payload && typeof body.payload === 'object' ? body.payload : {};
+      // News-classified items can still be sent to the Forum as a discussion starter.
+      // Never leave a queued forum distribution without the required title and body.
+      if (destination === 'forum_thread' && (!safeText(payload.title, 240) || !safeText(payload.body, 5000))) {
+        const { data: sourceItem, error: sourceError } = await db.from('ai_newsroom_items')
+          .select('source_title,source_name').eq('id', itemId).single();
+        if (sourceError || !sourceItem) return NextResponse.json({ error: 'Could not load the source story to prepare its forum discussion.' }, { status: 404 });
+        const headline = safeText(sourceItem.source_title, 200) || 'A current Nigerian news story';
+        const publisher = safeText(sourceItem.source_name, 120) || 'the source publisher';
+        payload = {
+          ...payload,
+          title: safeText(payload.title, 240) || 'Discussion: ' + headline,
+          body: safeText(payload.body, 5000) || `This story was reported by ${publisher}: “${headline}”. What are your views on this development and its possible impact? Please keep the discussion respectful and focus on verified information.`,
+          category: safeText(payload.category, 80) || 'Nigeria',
+        };
+      }
       const { data, error } = await db.from('ai_newsroom_distributions').upsert({
         item_id: itemId, destination, payload, confidence: Math.max(0, Math.min(100, Number(body.confidence) || 0)),
         reason: safeText(body.reason, 800), status: 'pending',
