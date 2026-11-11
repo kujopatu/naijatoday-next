@@ -21,10 +21,8 @@ type Props = {
   postAuthorEmail?: string | null;
 };
 
-// Port of the original CommentsSection: comments live in the `comments`
-// table, posting needs a login, and new comments from other readers appear
-// live — but only once the section scrolls into view, so most article views
-// never open a realtime connection.
+// Comments are public to read and post. Guests may use an optional display name;
+// live updates start only when the section scrolls near the viewport.
 export default function CommentsSection({ postId, postTitle, postAuthorEmail }: Props) {
   const { card, border, text, muted, darkMode } = useTheme();
   const { username, userEmail } = useAuth();
