@@ -32,6 +32,8 @@ export default function AINewsroomMonitor() {
   const [collectionRunning, setCollectionRunning] = useState(false);
   const [retryingId, setRetryingId] = useState('');
   const [actionMessage, setActionMessage] = useState('');
+  const [queueFilter, setQueueFilter] = useState('all');
+  const [queueSearch, setQueueSearch] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -43,8 +45,8 @@ export default function AINewsroomMonitor() {
       const [newsroomResponse, activityResult, scheduledResult] = await Promise.all([
         fetch('/api/admin/ai-newsroom', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }),
         supabase.from('admin_activity_log').select('action,detail,created_at')
-          .in('action', ['ai_newsroom_cycle', 'ai_newsroom_feed_failed', 'ai_newsroom_queue_failed', 'ai_newsroom_draft_failed', 'scheduled_articles_published', 'scheduled_publishing_failed', 'scheduled_publishing_sync_failed'])
-          .order('created_at', { ascending: false }).limit(12),
+          .in('action', ['ai_newsroom_cycle', 'ai_newsroom_manual_collection_started', 'ai_newsroom_manual_collection_failed', 'ai_newsroom_feed_checked', 'ai_newsroom_feed_failed', 'ai_newsroom_queue_failed', 'ai_newsroom_draft_failed', 'scheduled_articles_published', 'scheduled_publishing_failed', 'scheduled_publishing_sync_failed'])
+          .order('created_at', { ascending: false }).limit(60),
         supabase.from('posts').select('id,title,scheduled_at').eq('workflow_status', 'scheduled')
           .eq('published', false).order('scheduled_at', { ascending: true }).limit(12),
       ]);
@@ -78,7 +80,9 @@ export default function AINewsroomMonitor() {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok && response.status !== 202) throw new Error(payload.error || payload.message || 'Could not start news collection.');
-      setActionMessage(payload.message || 'News collection has started in the background. Refresh the monitor in a few moments to see the results.');
+      setActionMessage(typeof payload.feedsChecked === 'number'
+        ? 'Collection finished: checked ' + payload.feedsChecked + ' feeds, discovered ' + payload.storiesAdded + ' new stories, generated ' + payload.drafted + ' drafts, with ' + payload.failed + ' errors.'
+        : payload.message || 'News collection has started in the background. Refresh the monitor in a few moments to see the results.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not start news collection.');
     } finally {
@@ -110,6 +114,27 @@ export default function AINewsroomMonitor() {
     }
   }, [load]);
 
+  const dismissItem = useCallback(async (itemId: string) => {
+    setError('');
+    setActionMessage('');
+    try {
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (sessionError || !token) throw new Error('Your admin session has expired. Sign in again.');
+      const response = await fetch('/api/admin/ai-newsroom', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'dismiss', item_id: itemId }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Could not dismiss this story.');
+      setActionMessage('Story removed from the active newsroom queue.');
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not dismiss this story.');
+    }
+  }, [load]);
+
   useEffect(() => { void load(); }, [load]);
 
   const stats = useMemo(() => [
@@ -120,6 +145,14 @@ export default function AINewsroomMonitor() {
     { label: 'Scheduled articles', value: scheduled.length, note: 'awaiting publication' },
   ], [sources, items, scheduled]);
 
+  const visibleItems = useMemo(() => items.filter((item) => {
+    const matchesStatus = queueFilter === 'all' || item.status === queueFilter;
+    const haystack = (item.generated_title || item.source_title) + ' ' + item.source_name;
+    return matchesStatus && haystack.toLowerCase().includes(queueSearch.toLowerCase().trim());
+  }), [items, queueFilter, queueSearch]);
+  const latestFeedEvent = (sourceName: string) => activity.find((entry) =>
+    ['ai_newsroom_feed_checked', 'ai_newsroom_feed_failed'].includes(entry.action)
+    && (entry.detail || '').startsWith(sourceName + ':'));
   const panel: React.CSSProperties = { background: card, border: `1px solid ${border}`, borderRadius: 11, padding: 15 };
   const statusColor = (status: string) => status === 'generation_failed' || status.includes('failed') ? G.red
     : ['published', 'scheduled', 'draft_saved', 'generated'].includes(status) ? G.green : G.gold;
@@ -165,7 +198,15 @@ export default function AINewsroomMonitor() {
                 <div style={{ color: text, fontSize: 12, fontWeight: 700 }}>{source.name}</div>
                 <div style={{ color: muted, fontSize: 10, overflowWrap: 'anywhere' }}>{source.feed_url}</div>
               </div>
-              <span style={{ color: source.is_active ? G.green : G.red, fontSize: 10, fontWeight: 800, whiteSpace: 'nowrap' }}>{source.is_active ? 'ACTIVE' : 'PAUSED'}</span>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ color: source.is_active ? G.green : G.red, fontSize: 10, fontWeight: 800 }}>{source.is_active ? 'ACTIVE' : 'PAUSED'}</div>
+                {(() => {
+                  const last = latestFeedEvent(source.name);
+                  const health = !last ? 'NOT CHECKED' : last.action === 'ai_newsroom_feed_failed' ? 'FEED ERROR' : 'HEALTHY';
+                  const color = !last ? muted : last.action === 'ai_newsroom_feed_failed' ? G.red : G.green;
+                  return <div style={{ color, fontSize: 9, marginTop: 4, fontWeight: 800 }}>{health}<div style={{ color: muted, fontWeight: 400, marginTop: 2 }}>{last ? fmt(last.created_at) : 'No check recorded'}</div></div>;
+                })()}
+              </div>
             </div>
           ))}
         </section>
@@ -183,8 +224,23 @@ export default function AINewsroomMonitor() {
       </div>
 
       <section style={{ ...panel, marginBottom: 14 }}>
-        <div style={{ color: text, fontSize: 14, fontWeight: 800, marginBottom: 10 }}>📰 Latest newsroom items</div>
-        {loading ? <div style={{ color: muted, fontSize: 12 }}>Loading queue…</div> : items.length === 0 ? <div style={{ color: muted, fontSize: 12 }}>No newsroom items found.</div> : items.slice(0, 12).map((item) => (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+          <div style={{ color: text, fontSize: 14, fontWeight: 800 }}>📰 Draft queue management</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <input aria-label="Search newsroom queue" value={queueSearch} onChange={(event) => setQueueSearch(event.target.value)} placeholder="Search title or feed…" style={{ minWidth: 170, maxWidth: '100%', background: 'transparent', color: text, border: `1px solid ${border}`, borderRadius: 7, padding: '7px 9px', fontSize: 11 }} />
+            <select aria-label="Filter newsroom queue" value={queueFilter} onChange={(event) => setQueueFilter(event.target.value)} style={{ background: card, color: text, border: `1px solid ${border}`, borderRadius: 7, padding: '7px 9px', fontSize: 11 }}>
+              <option value="all">All statuses</option>
+              <option value="discovered">Discovered</option>
+              <option value="generated">Generated</option>
+              <option value="generation_failed">Generation failed</option>
+              <option value="draft_saved">Saved drafts</option>
+              <option value="scheduled">Scheduled</option>
+              <option value="published">Published</option>
+            </select>
+          </div>
+        </div>
+        <div style={{ color: muted, fontSize: 10, marginBottom: 8 }}>Showing {visibleItems.length} of {items.length} recent newsroom stories. Use filters to focus on items needing attention.</div>
+        {loading ? <div style={{ color: muted, fontSize: 12 }}>Loading queue…</div> : visibleItems.length === 0 ? <div style={{ color: muted, fontSize: 12 }}>No stories match this filter.</div> : visibleItems.slice(0, 20).map((item) => (
           <div key={item.id} style={{ padding: '10px 0', borderTop: `1px solid ${border}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
               <div style={{ minWidth: 0 }}>
@@ -199,13 +255,18 @@ export default function AINewsroomMonitor() {
                 {retryingId === item.id ? 'Retrying draft…' : '↻ Retry draft generation'}
               </button>
             )}
+            {['discovered', 'generation_failed'].includes(item.status) && (
+              <button onClick={() => void dismissItem(item.id)} style={{ marginTop: 8, marginLeft: 7, background: 'transparent', color: muted, border: `1px solid ${border}`, borderRadius: 7, padding: '6px 9px', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>
+                Dismiss from queue
+              </button>
+            )}
           </div>
         ))}
       </section>
 
       <section style={panel}>
         <div style={{ color: text, fontSize: 14, fontWeight: 800, marginBottom: 10 }}>📜 Automation activity & errors</div>
-        {loading ? <div style={{ color: muted, fontSize: 12 }}>Loading activity…</div> : activity.length === 0 ? <div style={{ color: muted, fontSize: 12 }}>No automation activity has been recorded yet. Check again after the next scheduled run.</div> : activity.map((entry, index) => (
+        {loading ? <div style={{ color: muted, fontSize: 12 }}>Loading activity…</div> : activity.length === 0 ? <div style={{ color: muted, fontSize: 12 }}>No automation activity has been recorded yet. Check again after the next scheduled run.</div> : activity.slice(0, 25).map((entry, index) => (
           <div key={`${entry.created_at}-${index}`} style={{ padding: '9px 0', borderTop: `1px solid ${border}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
               <span style={{ color: statusColor(entry.action), fontSize: 11, fontWeight: 800 }}>{entry.action.replace(/_/g, ' ').toUpperCase()}</span>
@@ -215,7 +276,7 @@ export default function AINewsroomMonitor() {
           </div>
         ))}
       </section>
-      <div style={{ color: muted, fontSize: 10, marginTop: 12 }}>Last refreshed: {updatedAt || '—'}. The scheduled collector checks feeds every two hours and generates up to five drafts per cycle. All generated content remains subject to editorial review.</div>
+      <div style={{ color: muted, fontSize: 10, marginTop: 12 }}>Last refreshed: {updatedAt || '—'}. The scheduled collector checks feeds every two hours and generates up to five drafts per cycle. Feed health reflects the latest recorded check or failure. The queue shows the 60 most recent stories returned by the newsroom API. All generated content remains subject to editorial review.</div>
     </div>
   );
 }
