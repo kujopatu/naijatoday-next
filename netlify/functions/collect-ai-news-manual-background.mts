@@ -74,7 +74,9 @@ export default async function collectNewsManually(event: NetlifyEvent) {
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || 'Feed request failed (HTTP ' + response.status + ').');
         feedsChecked++;
-        storiesAdded += Number(result.added || 0);
+        const addedFromFeed = Number(result.added || 0);
+        storiesAdded += addedFromFeed;
+        await logEvent(db, 'ai_newsroom_feed_checked', source.name + ': checked successfully; ' + addedFromFeed + ' new stories added.');
       } catch (error) {
         failed++;
         await logEvent(db, 'ai_newsroom_feed_failed', source.name + ': ' + (error instanceof Error ? error.message : String(error)));
