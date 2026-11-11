@@ -7,7 +7,7 @@ import { getVoterKey } from '@/lib/voter';
 import { useAuth } from '../AuthProvider';
 import { useTheme } from '../ThemeProvider';
 
-type Poll = { id: string; question: string; options: string[]; post_id?: string | null };
+type Poll = { id: string; question: string; options: string[]; post_id?: string | null; is_active?: boolean; closes_at?: string | null };
 
 // Shows the poll attached to this article (polls.post_id), if any. One vote
 // per member/device, stored in poll_votes.
@@ -39,9 +39,10 @@ export default function PollWidget({ postId }: { postId: string }) {
 
   if (!poll || poll.options.length === 0) return null;
   const total = counts.reduce((a, b) => a + b, 0);
+  const pollOpen = poll.is_active !== false && (!poll.closes_at || new Date(poll.closes_at).getTime() > Date.now());
 
   const vote = async (i: number) => {
-    if (mine !== null) return;
+    if (mine !== null || !pollOpen) return;
     setMine(i);
     setCounts((c) => c.map((n, idx) => (idx === i ? n + 1 : n)));
     const { error } = await supabase.from('poll_votes').insert({ poll_id: poll.id, option_index: i, voter_key: getVoterKey(userEmail) });
@@ -59,7 +60,7 @@ export default function PollWidget({ postId }: { postId: string }) {
         const pct = total ? Math.round((counts[i] / total) * 100) : 0;
         const voted = mine !== null;
         return (
-          <button key={i} onClick={() => vote(i)} disabled={voted}
+          <button key={i} onClick={() => vote(i)} disabled={voted || !pollOpen}
             style={{ position: 'relative', display: 'block', width: '100%', textAlign: 'left', marginBottom: 8, padding: '10px 14px', borderRadius: 8, border: `1px solid ${mine === i ? G.green : border}`, background: 'transparent', color: text, cursor: voted ? 'default' : 'pointer', overflow: 'hidden', fontSize: 14 }}>
             {voted && <span style={{ position: 'absolute', inset: 0, width: `${pct}%`, background: 'rgba(0,135,81,0.15)' }} />}
             <span style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
@@ -69,7 +70,7 @@ export default function PollWidget({ postId }: { postId: string }) {
           </button>
         );
       })}
-      <div style={{ fontSize: 11, color: muted }}>{total} vote{total !== 1 ? 's' : ''}</div>
+      <div style={{ fontSize: 11, color: muted }}>{total} vote{total !== 1 ? 's' : ''}{!pollOpen ? ' · Voting closed' : voted ? ' · Results are live' : ' · Vote to see results'}</div>
     </div>
   );
 }
