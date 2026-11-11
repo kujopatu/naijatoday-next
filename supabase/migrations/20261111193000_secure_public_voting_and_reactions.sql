@@ -101,8 +101,12 @@ REVOKE ALL PRIVILEGES ON TABLE public.forum_votes FROM PUBLIC, anon, authenticat
 GRANT SELECT, INSERT, DELETE ON TABLE public.forum_votes TO authenticated;
 GRANT USAGE, SELECT ON SEQUENCE public.forum_votes_id_seq TO authenticated;
 
+DROP POLICY IF EXISTS "Public read access for post_votes" ON public.post_votes;
 DROP POLICY IF EXISTS "Public insert access for post_votes" ON public.post_votes;
 DROP POLICY IF EXISTS "Public delete access for post_votes" ON public.post_votes;
+CREATE POLICY "Members read their own post votes" ON public.post_votes
+FOR SELECT TO authenticated
+USING (auth.uid() IS NOT NULL AND lower(voter_key) = lower((SELECT auth.jwt() ->> 'email')));
 CREATE POLICY "Signed-in members insert their own post votes" ON public.post_votes
 FOR INSERT TO authenticated
 WITH CHECK (auth.uid() IS NOT NULL AND lower(voter_key) = lower((SELECT auth.jwt() ->> 'email')));
@@ -110,8 +114,12 @@ CREATE POLICY "Signed-in members delete their own post votes" ON public.post_vot
 FOR DELETE TO authenticated
 USING (auth.uid() IS NOT NULL AND lower(voter_key) = lower((SELECT auth.jwt() ->> 'email')));
 
+DROP POLICY IF EXISTS "Public read access for forum_votes" ON public.forum_votes;
 DROP POLICY IF EXISTS "Public insert access for forum_votes" ON public.forum_votes;
 DROP POLICY IF EXISTS "Public delete access for forum_votes" ON public.forum_votes;
+CREATE POLICY "Members read their own forum votes" ON public.forum_votes
+FOR SELECT TO authenticated
+USING (auth.uid() IS NOT NULL AND lower(voter_key) = lower((SELECT auth.jwt() ->> 'email')));
 CREATE POLICY "Signed-in members insert their own forum votes" ON public.forum_votes
 FOR INSERT TO authenticated
 WITH CHECK (auth.uid() IS NOT NULL AND lower(voter_key) = lower((SELECT auth.jwt() ->> 'email')));
