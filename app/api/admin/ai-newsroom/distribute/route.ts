@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
         const { data: created, error: insertError } = await db.from('forum_threads').insert({
           title, body: bodyText, preview: bodyText.slice(0, 240), category: safeText(p.category, 80) || 'Nigeria',
           author: 'NaijaToday Desk', author_email: 'system@naijatoday', status: 'pending',
-          replies: 0, views: 0, hot: false, pinned: false, closed: false, upvotes: 0,
+          replies: 0, views: 'New', hot: false, pinned: false, closed: false, upvotes: 0,
         }).select('id').single();
         if (insertError) throw insertError;
         targetId = created.id;
