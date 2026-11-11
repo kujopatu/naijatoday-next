@@ -16,6 +16,48 @@ function safeHtml(input: string) {
     .replace(/<(p|h2|h3|h4|ul|ol|li|strong|b|em|i|blockquote)\b[^>]*>/gi, '<$1>');
 }
 
+function parseGeminiJson(raw: string, label: string) {
+  const clean = raw.replace(/^\x60{3}(?:json)?\s*/i, '').replace(/\s*\x60{3}$/, '').trim();
+  const start = clean.indexOf('{');
+  const end = clean.lastIndexOf('}');
+  if (start < 0 || end <= start) throw new Error('Gemini returned an incomplete ' + label + ' JSON response. Retry generation.');
+  const json = clean.slice(start, end + 1);
+  try { return JSON.parse(json); }
+  catch (firstError) {
+    try { return JSON.parse(json.replace(/,\s*([}\]])/g, '$1')); }
+    catch {
+      const detail = firstError instanceof Error ? firstError.message : 'Invalid JSON';
+      throw new Error('Gemini returned malformed ' + label + ' JSON (' + detail + '). Retry generation.');
+    }
+  }
+}
+
+async function fetchSourceMaterial(sourceUrl: unknown) {
+  if (typeof sourceUrl !== 'string' || !sourceUrl.trim()) return '';
+  try {
+    const parsed = new URL(sourceUrl);
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password ||
+        /^(localhost|.*\.localhost|.*\.local)$/i.test(parsed.hostname) ||
+        /^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(parsed.hostname) ||
+        parsed.hostname === '::1') return '';
+    const response = await fetch(parsed.toString(), {
+      headers: { 'User-Agent': 'NaijaTodayNewsroomBot/1.0' },
+      signal: AbortSignal.timeout(12000),
+      redirect: 'follow',
+    });
+    if (!response.ok || !/text\/(html|plain)/i.test(response.headers.get('content-type') || '')) return '';
+    const html = (await response.text()).slice(0, 1000000);
+    const text = html
+      .replace(/<(script|style|noscript|svg|iframe|nav|footer|header)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ')
+      .replace(/<br\s*\/?\s*>|<\/(p|h1|h2|h3|h4|li|article|section)>/gi, '\n')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&').replace(/&quot;/gi, '"')
+      .replace(/&#39;|&apos;/gi, "'").replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+      .replace(/\s+/g, ' ').trim();
+    return text.slice(0, 12000);
+  } catch { return ''; }
+}
+
 async function callGemini(
   key: string,
   model: string,
@@ -70,6 +112,11 @@ async function generateArticle(item: Record<string, unknown>, db: any) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('Gemini is not configured. Add GEMINI_API_KEY to Netlify environment variables.');
   const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+  const fetchedSourceMaterial = await fetchSourceMaterial(item.source_url);
+  const verifiedSourceMaterial = [
+    String(item.source_summary || '').slice(0, 3500),
+    fetchedSourceMaterial ? 'Publisher page extract: ' + fetchedSourceMaterial : '',
+  ].filter(Boolean).join('\n\n').slice(0, 15000);
   const prompt = [
     'You are the newsroom drafting assistant for NaijaToday, a Nigerian digital news publication.',
     'Create an ORIGINAL, publication-ready LONG-FORM ARTICLE using only the source details supplied below plus clearly labelled, reliable general background knowledge.',
@@ -81,7 +128,7 @@ async function generateArticle(item: Record<string, unknown>, db: any) {
     'Source headline: ' + String(item.source_title || ''),
     'Source URL: ' + String(item.source_url || ''),
     'Source publication date: ' + String(item.source_published_at || 'Not supplied'),
-    'Source summary/extract: ' + String(item.source_summary || 'No summary supplied').slice(0, 3500),
+    'Verified source material: ' + (verifiedSourceMaterial || 'No source summary or retrievable publisher text was supplied.'),
     'Suggested category: ' + String(item.category || 'Nigeria'),
   ].join('\n');
   const payload = await callGemini(key, model, {
@@ -103,20 +150,7 @@ async function generateArticle(item: Record<string, unknown>, db: any) {
   const candidate = payload?.candidates?.[0];
   const text = candidate?.content?.parts?.map((p: { text?: string }) => p.text || '').join('');
   if (!text) throw new Error('Gemini returned an empty response. Check the API key, model access and quota.');
-  let parsed: any;
-  const cleanText = text.replace(/^\`\`\`(?:json)?\s*/i, '').replace(/\s*\`\`\`$/, '').trim();
-  const jsonStart = cleanText.indexOf('{');
-  const jsonEnd = cleanText.lastIndexOf('}');
-  if (jsonStart < 0 || jsonEnd <= jsonStart) throw new Error('Gemini returned text that was not a complete JSON article. Retry generation.');
-  const jsonText = cleanText.slice(jsonStart, jsonEnd + 1);
-  try { parsed = JSON.parse(jsonText); }
-  catch (firstError) {
-    try { parsed = JSON.parse(jsonText.replace(/,\s*([}\]])/g, '$1')); }
-    catch {
-      const detail = firstError instanceof Error ? firstError.message : 'Invalid JSON';
-      throw new Error('Gemini returned malformed article JSON (' + detail + '). Retry generation or check Gemini model availability.');
-    }
-  }
+  let parsed: any = parseGeminiJson(text, 'article');
   if (!parsed.title || !parsed.excerpt || !parsed.content_html) throw new Error('Gemini response was missing required article fields.');
   let content = safeHtml(String(parsed.content_html));
   let words = wordCount(content);
@@ -132,7 +166,7 @@ async function generateArticle(item: Record<string, unknown>, db: any) {
       'Source headline: ' + String(item.source_title || ''),
       'Source publisher: ' + String(item.source_name || ''),
       'Source URL: ' + String(item.source_url || ''),
-      'Source extract: ' + String(item.source_summary || 'No summary supplied').slice(0, 3500),
+      'Verified source material: ' + (verifiedSourceMaterial || 'No source summary or retrievable publisher text was supplied.'),
       'Previous draft (' + words + ' words):',
       content,
     ].join('\n');
@@ -152,13 +186,14 @@ async function generateArticle(item: Record<string, unknown>, db: any) {
     });
     const expandedText = expanded?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || '').join('');
     if (!expandedText) throw new Error('Gemini returned an empty expansion response. Retry generation.');
-    try { parsed = JSON.parse(expandedText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()); }
-    catch { throw new Error('Gemini returned an incomplete expansion. Retry generation.'); }
+    parsed = parseGeminiJson(expandedText, 'expanded article');
     if (!parsed.title || !parsed.excerpt || !parsed.content_html) throw new Error('Gemini expansion was missing required article fields.');
     content = safeHtml(String(parsed.content_html));
     words = wordCount(content);
   }
-  if (words < 1600) throw new Error(`The AI returned only ${words} words after expansion. A full article must contain at least 1,600 words. Add more verified source material before retrying.`);
+  if (words < 1600) {
+    throw new Error('The AI returned only ' + words + ' words after using ' + verifiedSourceMaterial.length + ' characters of available source material. The 1,600-word minimum was not met, so the draft was not saved as complete. The publisher page may block automated access or contain too little detail. Add another reliable source or a fuller verified extract, then retry.');
+  }
   return {
     generated_title: String(parsed.title).slice(0, 240),
     generated_excerpt: String(parsed.excerpt).slice(0, 500),
