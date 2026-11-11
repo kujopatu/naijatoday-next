@@ -14,26 +14,14 @@ const REACTIONS = [
   { emoji: '👏', label: 'Clap' },
 ];
 
-function getVisitorKey() {
-  const storageKey = 'naijatoday_reaction_visitor';
-  let key = localStorage.getItem(storageKey);
-  if (!key) {
-    key = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-    localStorage.setItem(storageKey, key);
-  }
-  return `visitor:${key}`;
-}
-
 export default function ReactionBar({ postId }: { postId: string }) {
   const { border, muted, darkMode } = useTheme();
   const { showToast } = useToast();
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [mine, setMine] = useState<string | null>(null);
-  const [visitorKey, setVisitorKey] = useState<string | null>(null);
+  const [actorKey, setActorKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const storageKey = `naijatoday_public_reaction_${postId}`;
+  const [identityReady, setIdentityReady] = useState(false);
 
   const loadCounts = async () => {
     const { data, error } = await supabase
@@ -53,47 +41,71 @@ export default function ReactionBar({ postId }: { postId: string }) {
 
   useEffect(() => {
     let active = true;
-    try {
-      const key = getVisitorKey();
-      if (active) {
-        setVisitorKey(key);
-        setMine(localStorage.getItem(storageKey));
+    const initialise = async () => {
+      try {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        let user = sessionData.session?.user ?? null;
+
+        // A visitor receives a private anonymous Supabase identity automatically.
+        // No email, password, registration form or login prompt is shown.
+        if (!user) {
+          const { data, error } = await supabase.auth.signInAnonymously();
+          if (error) throw error;
+          user = data.user;
+        }
+        if (!user) throw new Error('Could not create a reaction identity.');
+
+        const key = `auth:${user.id}`;
+        if (!active) return;
+        setActorKey(key);
+
+        const { data: ownReaction, error: ownError } = await supabase
+          .from('post_reaction_users')
+          .select('emoji')
+          .eq('post_id', postId)
+          .eq('actor_key', key)
+          .maybeSingle();
+        if (ownError) throw ownError;
+        if (active) setMine(ownReaction?.emoji ?? null);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error('[reactions] anonymous identity failed:', message);
+        if (active) showToast('Reactions are temporarily unavailable. Please try again later.');
+      } finally {
+        if (active) setIdentityReady(true);
       }
-    } catch {
-      showToast('Please enable browser storage to react to this story.');
-    }
+    };
+
+    void initialise();
     void loadCounts();
     return () => { active = false; };
-  }, [postId, storageKey]);
+  }, [postId]);
 
   const handleReact = async (emoji: string) => {
-    if (!visitorKey || busy) return;
+    if (!actorKey || busy) return;
     setBusy(true);
     const previous = mine;
     const next = previous === emoji ? null : emoji;
     try {
-      // Remove this browser's previous choice, if any, then save the new one.
-      if (previous) {
+      if (next) {
+        const { error } = await supabase
+          .from('post_reaction_users')
+          .upsert(
+            { post_id: postId, actor_key: actorKey, emoji: next },
+            { onConflict: 'post_id,actor_key' }
+          );
+        if (error) throw error;
+      } else if (previous) {
         const { error } = await supabase
           .from('post_reaction_users')
           .delete()
           .eq('post_id', postId)
-          .eq('actor_key', visitorKey);
-        if (error) throw error;
-      }
-
-      if (next) {
-        const { error } = await supabase
-          .from('post_reaction_users')
-          .insert({ post_id: postId, actor_key: visitorKey, emoji: next });
+          .eq('actor_key', actorKey);
         if (error) throw error;
       }
 
       setMine(next);
-      try {
-        if (next) localStorage.setItem(storageKey, next);
-        else localStorage.removeItem(storageKey);
-      } catch { /* local preference is optional */ }
       await loadCounts();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -126,7 +138,7 @@ export default function ReactionBar({ postId }: { postId: string }) {
               type="button"
               onClick={() => void handleReact(emoji)}
               title={label}
-              disabled={!visitorKey || busy}
+              disabled={!identityReady || !actorKey || busy}
               aria-pressed={active}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
@@ -136,7 +148,7 @@ export default function ReactionBar({ postId }: { postId: string }) {
                 fontSize: 13, fontWeight: active ? 700 : 400,
                 color: active ? G.green : darkMode ? '#c8d0dc' : '#4a5568',
                 transform: active ? 'scale(1.08)' : 'scale(1)',
-                transition: 'all 0.15s ease', opacity: busy ? 0.7 : 1,
+                transition: 'all 0.15s ease', opacity: busy || !identityReady ? 0.7 : 1,
               }}
             >
               <span style={{ fontSize: 17 }}>{emoji}</span>
@@ -146,7 +158,7 @@ export default function ReactionBar({ postId }: { postId: string }) {
         })}
       </div>
       <div style={{ marginTop: 8, fontSize: 11, color: muted }}>
-        No account needed. Your choice is remembered on this browser.
+        No account or sign-in needed. You can react instantly.
       </div>
     </div>
   );
