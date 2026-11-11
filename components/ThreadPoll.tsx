@@ -8,7 +8,7 @@ import { useAuth } from './AuthProvider';
 import { useTheme } from './ThemeProvider';
 import { useToast } from './ToastProvider';
 
-type Poll = { id: string | number; question: string; options: string[] };
+type Poll = { id: string | number; question: string; options: string[]; is_active?: boolean; closes_at?: string | null };
 type Vote = { option_index: number; voter_key: string };
 
 // Poll attached to a forum thread (polls.thread_id). One vote per member
@@ -39,9 +39,10 @@ export default function ThreadPoll({ threadId }: { threadId: number }) {
   }, [threadId, userEmail]);
 
   if (!poll || poll.options.length === 0) return null;
+  const pollOpen = poll.is_active !== false && (!poll.closes_at || new Date(poll.closes_at).getTime() > Date.now());
 
   const vote = async (i: number) => {
-    if (myVote !== null || voting) return;
+    if (myVote !== null || voting || !pollOpen) return;
     setVoting(true);
     const key = getVoterKey(userEmail);
     const { error } = await supabase.from('poll_votes').insert([{ poll_id: poll.id, option_index: i, voter_key: key }]);
@@ -66,8 +67,8 @@ export default function ThreadPoll({ threadId }: { threadId: number }) {
           const mine = myVote === i;
           const show = myVote !== null;
           return (
-            <div key={i} onClick={() => vote(i)}
-              style={{ position: 'relative', border: `1px solid ${mine ? G.green : border}`, borderRadius: 8, padding: '10px 14px', cursor: myVote === null ? 'pointer' : 'default', overflow: 'hidden', background: D ? '#111520' : '#fff' }}>
+            <div key={i} onClick={() => pollOpen && vote(i)}
+              style={{ position: 'relative', border: `1px solid ${mine ? G.green : border}`, borderRadius: 8, padding: '10px 14px', cursor: myVote === null && pollOpen ? 'pointer' : 'default', overflow: 'hidden', background: D ? '#111520' : '#fff' }}>
               {show && <div style={{ position: 'absolute', inset: 0, width: `${pct}%`, background: mine ? G.green + '22' : D ? '#1e2535' : '#f0f4f8', transition: 'width 0.4s' }} />}
               <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', fontSize: 13, color: text, fontWeight: mine ? 700 : 400 }}>
                 <span>{mine && '✓ '}{opt}</span>
@@ -78,7 +79,7 @@ export default function ThreadPoll({ threadId }: { threadId: number }) {
         })}
       </div>
       <div style={{ fontSize: 11, color: muted, marginTop: 10 }}>
-        {total} vote{total !== 1 ? 's' : ''}{myVote === null && ' · Tap an option to vote'}
+        {total} vote{total !== 1 ? 's' : ''}{!pollOpen ? ' · Voting closed' : myVote === null ? ' · Tap an option to vote' : ' · Results are live'}
       </div>
     </div>
   );
