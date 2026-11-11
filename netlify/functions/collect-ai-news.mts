@@ -18,11 +18,18 @@ async function recordAutomationEvent(db: any, action: string, detail: string, no
   }
   if (notify) {
     try {
-      const { error } = await db.from('notifications').insert({
-        recipient_email: ADMIN_EMAIL, type: 'system', message: 'NaijaToday AI Newsroom needs attention',
-        preview: detail.slice(0, 500), read: false, post_id: null,
-      });
-      if (error) console.error('Could not create AI Newsroom failure notification:', error.message);
+      const message = 'NaijaToday AI Newsroom needs attention';
+      const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data: recent } = await db.from('notifications').select('id')
+        .eq('recipient_email', ADMIN_EMAIL).eq('type', 'system').eq('message', message)
+        .gte('created_at', since).limit(1);
+      if (!recent?.length) {
+        const { error } = await db.from('notifications').insert({
+          recipient_email: ADMIN_EMAIL, type: 'system', message,
+          preview: detail.slice(0, 500), read: false, post_id: null,
+        });
+        if (error) console.error('Could not create AI Newsroom failure notification:', error.message);
+      }
     } catch (error) {
       console.error('AI Newsroom failure notification failed:', error);
     }
