@@ -32,18 +32,21 @@ export default function ActivityLogPanel() {
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
-    const { data, error: queryError } = await supabase
-      .from('admin_activity_log')
-      .select('id,action,detail,admin_email,created_at')
-      .order('created_at', { ascending: false })
-      .limit(500);
-
-    if (queryError) {
-      setError(queryError.message);
-      setLog([]);
-    } else {
-      setLog((data ?? []) as ActivityEntry[]);
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (sessionError || !accessToken) throw new Error('Your administrator session has expired. Please sign in again.');
+      const response = await fetch('/api/admin/activity-log', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: 'no-store',
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to load activity records.');
+      setLog((result.entries ?? []) as ActivityEntry[]);
       setUpdatedAt(new Date().toLocaleString());
+    } catch (queryError) {
+      setError(queryError instanceof Error ? queryError.message : 'Unable to load activity records.');
+      setLog([]);
     }
     setLoading(false);
   }, []);
