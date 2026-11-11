@@ -27,11 +27,12 @@ type Props = {
 // never open a realtime connection.
 export default function CommentsSection({ postId, postTitle, postAuthorEmail }: Props) {
   const { card, border, text, muted, darkMode } = useTheme();
-  const { loggedIn, username, userEmail, openModal } = useAuth();
+  const { username, userEmail } = useAuth();
   const { showToast } = useToast();
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [comment, setComment] = useState('');
+  const [guestName, setGuestName] = useState('');
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [newCount, setNewCount] = useState(0);
@@ -122,10 +123,6 @@ export default function CommentsSection({ postId, postTitle, postAuthorEmail }: 
   const handlePost = async () => {
     const commentText = comment.trim();
     if (!commentText) return;
-    if (!loggedIn) {
-      openModal('login');
-      return;
-    }
     setPosting(true);
     try {
       const { data, error } = await supabase
@@ -133,7 +130,7 @@ export default function CommentsSection({ postId, postTitle, postAuthorEmail }: 
         .insert([
           {
             post_id: postId,
-            user: username || 'Anonymous',
+            user: username || guestName.trim().slice(0, 30) || 'Guest Reader',
             text: commentText,
             created_at: new Date().toISOString(),
           },
@@ -184,62 +181,39 @@ export default function CommentsSection({ postId, postTitle, postAuthorEmail }: 
         )}
       </div>
 
-      {loggedIn ? (
-        <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+      <div style={{ marginBottom: 16 }}>
+        {!username && (
+          <input
+            value={guestName}
+            onChange={(e) => setGuestName(e.target.value.slice(0, 30))}
+            placeholder="Display name (optional)"
+            maxLength={30}
+            style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', marginBottom: 8, borderRadius: 8, border: `1px solid ${border}`, background: darkMode ? '#111520' : '#f5f7fa', color: text, fontSize: 13 }}
+          />
+        )}
+        <div style={{ display: 'flex', gap: 10 }}>
           <input
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="Share your thoughts…"
+            placeholder="Join the conversation — share your thoughts…"
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handlePost()}
             maxLength={2000}
             style={{
-              flex: 1,
-              padding: '10px 14px',
-              borderRadius: 8,
-              border: `1px solid ${border}`,
-              background: darkMode ? '#111520' : '#f5f7fa',
-              color: text,
-              fontSize: 14,
-              outline: 'none',
-              fontFamily: 'Georgia,serif',
+              flex: 1, minWidth: 0, padding: '10px 14px', borderRadius: 8,
+              border: `1px solid ${border}`, background: darkMode ? '#111520' : '#f5f7fa',
+              color: text, fontSize: 14, outline: 'none', fontFamily: 'Georgia,serif',
             }}
           />
           <button
             onClick={handlePost}
-            disabled={posting}
-            style={{
-              background: G.green,
-              color: '#fff',
-              border: 'none',
-              borderRadius: 8,
-              padding: '10px 18px',
-              fontWeight: 600,
-              cursor: posting ? 'not-allowed' : 'pointer',
-              opacity: posting ? 0.7 : 1,
-            }}
+            disabled={posting || !comment.trim()}
+            style={{ background: G.green, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 600, cursor: posting || !comment.trim() ? 'not-allowed' : 'pointer', opacity: posting || !comment.trim() ? 0.7 : 1 }}
           >
             {posting ? 'Posting…' : 'Post'}
           </button>
         </div>
-      ) : (
-        <div
-          style={{
-            background: darkMode ? '#111520' : '#f5f7fa',
-            borderRadius: 8,
-            padding: '12px 16px',
-            marginBottom: 16,
-            fontSize: 13,
-            color: muted,
-            textAlign: 'center',
-          }}
-        >
-          Please{' '}
-          <span style={{ color: G.green, fontWeight: 600, cursor: 'pointer' }} onClick={() => openModal('login')}>
-            log in
-          </span>{' '}
-          to leave a comment
-        </div>
-      )}
+        <div style={{ fontSize: 11, color: muted, marginTop: 7 }}>No sign-in required. Keep comments respectful; comments may be reviewed by our moderators.</div>
+      </div>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 20, color: muted }}>Loading comments…</div>
