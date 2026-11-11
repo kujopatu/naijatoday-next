@@ -131,41 +131,42 @@ export default function ThreadView({ thread: initial }: { thread: ForumThread })
   };
 
   const handleThreadUpvote = async () => {
+    if (!loggedIn) {
+      openModal('login');
+      return;
+    }
     const voterKey = getVoterKey(userEmail);
     const was = threadUpvoted;
-    setThreadUpvoted(!was);
-    setThread((t) => ({ ...t, upvotes: Math.max(0, (t.upvotes || 0) + (was ? -1 : 1)) }));
-    try {
-      if (was) {
-        await supabase.from('forum_votes').delete().eq('target_type', 'thread').eq('target_id', thread.id).eq('voter_key', voterKey);
-        await supabase.rpc('decrement_thread_upvotes', { t_id: thread.id });
-        showToast('Vote removed');
-      } else {
-        const { error } = await supabase.from('forum_votes').insert([{ target_type: 'thread', target_id: thread.id, voter_key: voterKey }]);
-        if (!error) await supabase.rpc('increment_thread_upvotes', { t_id: thread.id });
-        showToast('Upvoted! 👍');
-      }
-    } catch {
-      /* the screen already shows the change */
+    const result = was
+      ? await supabase.from('forum_votes').delete().eq('target_type', 'thread').eq('target_id', thread.id).eq('voter_key', voterKey)
+      : await supabase.from('forum_votes').insert([{ target_type: 'thread', target_id: thread.id, voter_key: voterKey }]);
+    if (result.error) {
+      showToast('Vote could not be saved: ' + result.error.message);
+      return;
     }
+    setThreadUpvoted(!was);
+    setThread((current) => ({ ...current, upvotes: Math.max(0, (current.upvotes || 0) + (was ? -1 : 1)) }));
+    showToast(was ? 'Vote removed' : 'Upvoted! 👍');
   };
 
   const handleReplyUpvote = async (r: ForumReply) => {
+    if (!loggedIn) {
+      openModal('login');
+      return;
+    }
     const voterKey = getVoterKey(userEmail);
     const was = !!replyUpvoted[r.id];
-    setReplyUpvoted((u) => ({ ...u, [r.id]: !was }));
-    setReplies((rs) => rs.map((x) => (x.id === r.id ? { ...x, upvotes: Math.max(0, (x.upvotes || 0) + (was ? -1 : 1)) } : x)));
-    try {
-      if (was) {
-        await supabase.from('forum_votes').delete().eq('target_type', 'reply').eq('target_id', r.id).eq('voter_key', voterKey);
-        await supabase.rpc('decrement_reply_upvotes', { r_id: r.id });
-      } else {
-        const { error } = await supabase.from('forum_votes').insert([{ target_type: 'reply', target_id: r.id, voter_key: voterKey }]);
-        if (!error) await supabase.rpc('increment_reply_upvotes', { r_id: r.id });
-      }
-    } catch {
-      /* best-effort */
+    const result = was
+      ? await supabase.from('forum_votes').delete().eq('target_type', 'reply').eq('target_id', r.id).eq('voter_key', voterKey)
+      : await supabase.from('forum_votes').insert([{ target_type: 'reply', target_id: r.id, voter_key: voterKey }]);
+    if (result.error) {
+      showToast('Vote could not be saved: ' + result.error.message);
+      return;
     }
+    setReplyUpvoted((current) => ({ ...current, [r.id]: !was }));
+    setReplies((current) => current.map((item) => item.id === r.id
+      ? { ...item, upvotes: Math.max(0, (item.upvotes || 0) + (was ? -1 : 1)) }
+      : item));
   };
 
   const submitReport = async (reason: string) => {
