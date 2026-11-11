@@ -20,10 +20,14 @@ export default function ArticleActions({ post }: { post: Post }) {
 
   useEffect(() => {
     let active = true;
+    if (!loggedIn || !userEmail) {
+      setVoted(false);
+      return () => { active = false; };
+    }
     supabase.from('post_votes').select('post_id').eq('post_id', post.id).eq('voter_key', getVoterKey(userEmail)).maybeSingle()
       .then(({ data }) => { if (active) setVoted(!!data); });
     return () => { active = false; };
-  }, [post.id, userEmail]);
+  }, [post.id, userEmail, loggedIn]);
 
   const toggleVote = async () => {
     if (!loggedIn) {
