@@ -27,6 +27,9 @@ export default function PollAnalyticsPanel() {
   const [newQuestion, setNewQuestion] = useState('');
   const [newOptions, setNewOptions] = useState(['', '']);
   const [creating, setCreating] = useState(false);
+  const [editingPollId, setEditingPollId] = useState<number | null>(null);
+  const [editQuestion, setEditQuestion] = useState('');
+  const [editOptions, setEditOptions] = useState<string[]>([]);
 
   const loadPolls = async () => {
     setLoading(true);
@@ -94,6 +97,29 @@ export default function PollAnalyticsPanel() {
     setNewOptions(['', '']);
     showToast('Poll published to the public polls page.');
     loadPolls();
+  };
+
+  const beginEdit = (poll: EnrichedPoll) => {
+    setEditingPollId(poll.id);
+    setEditQuestion(poll.question);
+    setEditOptions([...(poll.options || [])]);
+  };
+
+  const savePollEdit = async (poll: EnrichedPoll) => {
+    const question = editQuestion.trim();
+    const options = editOptions.map((option) => option.trim()).filter(Boolean);
+    if (!question || options.length < 2) {
+      showToast('A poll needs a question and at least two options.');
+      return;
+    }
+    const { error } = await supabase.from('polls').update({ question, options }).eq('id', poll.id);
+    if (error) {
+      showToast('Could not save poll: ' + error.message);
+      return;
+    }
+    setPolls((items) => items.map((item) => item.id === poll.id ? { ...item, question, options, optionCounts: options.map((_, i) => item.optionCounts[i] ?? 0) } : item));
+    setEditingPollId(null);
+    showToast('Poll updated');
   };
 
   const updatePoll = async (poll: EnrichedPoll, changes: Partial<Pick<Poll, 'is_active' | 'is_featured' | 'closes_at'>>) => {
@@ -175,6 +201,7 @@ export default function PollAnalyticsPanel() {
                   <div style={{ background: G.green + '22', color: G.green, fontSize: 13, fontWeight: 700, padding: '4px 12px', borderRadius: 20 }}>
                     {poll.totalVotes} vote{poll.totalVotes !== 1 ? 's' : ''}
                   </div>
+                  <button onClick={() => beginEdit(poll)} style={{ background: 'transparent', color: muted, border: `1px solid ${border}`, borderRadius: 6, padding: '5px 9px', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>Edit</button>
                   <button onClick={() => updatePoll(poll, { is_active: !poll.is_active })} style={{ background: poll.is_active ? '#d9770620' : G.green + '22', color: poll.is_active ? '#d97706' : G.green, border: `1px solid ${poll.is_active ? '#d9770666' : G.green + '55'}`, borderRadius: 6, padding: '5px 9px', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
                     {poll.is_active ? 'Close poll' : 'Reopen'}
                   </button>
@@ -187,6 +214,20 @@ export default function PollAnalyticsPanel() {
                 </div>
               </div>
 
+              {editingPollId === poll.id && <div style={{ background: darkMode ? '#111520' : '#f5f7fa', border: `1px solid ${border}`, borderRadius: 10, padding: 12, marginBottom: 14 }}>
+                <input value={editQuestion} onChange={(e) => setEditQuestion(e.target.value)} maxLength={240} aria-label="Edit poll question"
+                  style={{ width: '100%', boxSizing: 'border-box', background: card, color: text, border: `1px solid ${border}`, borderRadius: 7, padding: 9, marginBottom: 8 }} />
+                {editOptions.map((option, index) => <div key={index} style={{ display: 'flex', gap: 7, marginBottom: 7 }}>
+                  <input value={option} onChange={(e) => setEditOptions((items) => items.map((item, i) => i === index ? e.target.value : item))} maxLength={100} aria-label={`Edit option ${index + 1}`}
+                    style={{ flex: 1, minWidth: 0, background: card, color: text, border: `1px solid ${border}`, borderRadius: 7, padding: 8 }} />
+                  {editOptions.length > 2 && <button onClick={() => setEditOptions((items) => items.filter((_, i) => i !== index))} style={{ color: G.red, background: 'transparent', border: `1px solid ${G.red}55`, borderRadius: 6, padding: '0 9px' }}>×</button>}
+                </div>)}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {editOptions.length < 6 && <button onClick={() => setEditOptions((items) => [...items, ''])} style={{ background: 'transparent', color: G.green, border: `1px solid ${G.green}`, borderRadius: 6, padding: '6px 9px', fontSize: 11 }}>＋ Option</button>}
+                  <button onClick={() => savePollEdit(poll)} style={{ background: G.green, color: '#fff', border: 0, borderRadius: 6, padding: '6px 12px', fontSize: 11, fontWeight: 800 }}>Save changes</button>
+                  <button onClick={() => setEditingPollId(null)} style={{ background: 'transparent', color: muted, border: `1px solid ${border}`, borderRadius: 6, padding: '6px 12px', fontSize: 11 }}>Cancel</button>
+                </div>
+              </div>}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 14px' }}>
                 <label style={{ fontSize: 12, color: muted, fontWeight: 700 }}>Close voting at</label>
                 <input
