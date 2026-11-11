@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { ADMIN_EMAIL } from '@/lib/auth';
+import { CATEGORIES, normalizeCategory } from '@/lib/theme';
+
+const CATEGORIES_FOR_PROMPT = CATEGORIES.map((category) => category.name).join(', ');
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -160,7 +163,8 @@ async function geminiDraft(item: Record<string, unknown>, format: 'news' | 'arti
     'Source URL: ' + String(item.source_url || ''),
     'Source publication date: ' + String(item.source_published_at || 'Not supplied'),
     'Source summary/extract: ' + String(item.source_summary || 'No summary supplied').slice(0, 3500),
-    'Suggested category: ' + String(item.category || 'Nigeria')
+    'Choose exactly one category from this list: ' + CATEGORIES_FOR_PROMPT,
+    'Suggested category: ' + String(item.category || 'National')
   ].join('\n');
   const payload = await callGeminiWithFallback(key, model, {
     systemInstruction: { parts: [{ text: 'Be a careful, neutral Nigerian newsroom editor. Never fabricate facts or sources.' }] },
@@ -210,7 +214,7 @@ async function geminiDraft(item: Record<string, unknown>, format: 'news' | 'arti
     title: String(parsed.title).slice(0, 240),
     excerpt: String(parsed.excerpt).slice(0, 500),
     content: cleanedContent,
-    category: String(parsed.category || item.category || 'Nigeria').slice(0, 80),
+    category: normalizeCategory(String(parsed.category || item.category || 'National')),
     seo_title: String(parsed.seo_title || parsed.title).slice(0, 70),
     seo_description: String(parsed.seo_description || parsed.excerpt).slice(0, 160),
     tags: Array.isArray(parsed.tags) ? parsed.tags.map((x: unknown) => String(x).slice(0, 40)).slice(0, 8) : [],
@@ -325,7 +329,7 @@ export async function POST(request: NextRequest) {
       const format = body.format === 'article' ? 'article' : 'news';
       const articleWords = articleContent.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
       if (format === 'article' && articleWords < 1600) return NextResponse.json({ error: 'This article has ' + articleWords + ' words. Full articles must contain at least 1,600 words. Expand the draft before saving, or select News brief.' }, { status: 400 });
-      const category = String(body.category || item.generated_category || 'Nigeria').trim().slice(0, 80);
+      const category = normalizeCategory(String(body.category || item.generated_category || 'National'));
       if (!title || !excerpt || !articleContent) return NextResponse.json({ error: 'Headline, summary and article body are required.' }, { status: 400 });
       const image = typeof body.image_url === 'string' && /^https:\/\/res\.cloudinary\.com\//.test(body.image_url) ? body.image_url : (item.generated_image_url || '📰');
       const video = typeof body.video_url === 'string' && (allowedUrl(body.video_url) || isVideoUrl(body.video_url)) ? body.video_url : '';
