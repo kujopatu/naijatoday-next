@@ -19,11 +19,18 @@ async function recordPublishingEvent(supabase: any, action: string, detail: stri
   }
   if (notify) {
     try {
-      const { error } = await supabase.from('notifications').insert({
-        recipient_email: ADMIN_EMAIL, type: 'system', message: 'NaijaToday scheduled publishing needs attention',
-        preview: detail.slice(0, 500), read: false, post_id: null,
-      });
-      if (error) console.error('Could not create scheduled-publishing notification:', error.message);
+      const message = 'NaijaToday scheduled publishing needs attention';
+      const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data: recent } = await supabase.from('notifications').select('id')
+        .eq('recipient_email', ADMIN_EMAIL).eq('type', 'system').eq('message', message)
+        .gte('created_at', since).limit(1);
+      if (!recent?.length) {
+        const { error } = await supabase.from('notifications').insert({
+          recipient_email: ADMIN_EMAIL, type: 'system', message,
+          preview: detail.slice(0, 500), read: false, post_id: null,
+        });
+        if (error) console.error('Could not create scheduled-publishing notification:', error.message);
+      }
     } catch (error) {
       console.error('Scheduled-publishing notification failed:', error);
     }
