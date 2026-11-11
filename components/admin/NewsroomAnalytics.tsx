@@ -22,6 +22,7 @@ const number = (value: number) => new Intl.NumberFormat('en-NG').format(value);
 export default function NewsroomAnalytics() {
   const { card, border, text, muted, darkMode } = useTheme();
   const [articles, setArticles] = useState<ArticleMetric[]>([]);
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const [range, setRange] = useState<Range>('30');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -41,7 +42,28 @@ export default function NewsroomAnalytics() {
       setError(queryError.message);
       setArticles([]);
     } else {
-      setArticles((data ?? []) as ArticleMetric[]);
+      const rows = (data ?? []) as ArticleMetric[];
+      setArticles(rows);
+      const postIds = rows.map((article) => article.id);
+      if (postIds.length) {
+        const { data: commentRows, error: commentsError } = await supabase
+          .from('comments')
+          .select('post_id')
+          .eq('is_hidden', false)
+          .in('post_id', postIds);
+        if (commentsError) {
+          setError(`Articles loaded, but comment totals could not be read: ${commentsError.message}`);
+          setCommentCounts({});
+        } else {
+          const counts: Record<string, number> = {};
+          (commentRows ?? []).forEach((row: { post_id: string }) => {
+            counts[row.post_id] = (counts[row.post_id] || 0) + 1;
+          });
+          setCommentCounts(counts);
+        }
+      } else {
+        setCommentCounts({});
+      }
       setUpdatedAt(new Date().toLocaleString());
     }
     setLoading(false);
@@ -58,9 +80,9 @@ export default function NewsroomAnalytics() {
   const totals = useMemo(() => ({
     views: filtered.reduce((sum, article) => sum + (Number(article.views) || 0), 0),
     upvotes: filtered.reduce((sum, article) => sum + (Number(article.upvotes) || 0), 0),
-    comments: filtered.reduce((sum, article) => sum + (Number(article.comments) || 0), 0),
+    comments: filtered.reduce((sum, article) => sum + (commentCounts[article.id] || 0), 0),
     published: filtered.length,
-  }), [filtered]);
+  }), [filtered, commentCounts]);
 
   const topArticles = useMemo(() => [...filtered]
     .sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0))
