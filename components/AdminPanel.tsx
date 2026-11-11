@@ -78,11 +78,17 @@ const ADMIN_MENU_GROUPS: { label: string; items: [string, string][] }[] = [
 const BUILT_TABS = new Set(['overview', 'new', 'manage', 'ai-newsroom', 'moderators', 'reports', 'breaking', 'jobs', 'forum', 'trends', 'dataplans', 'fuel', 'social', 'products', 'fixtures', 'polls', 'users', 'tools', 'sitemap']);
 
 export default function AdminPanel() {
-  const { userEmail, isAdmin } = useAuth();
+  const { userEmail, isAdmin, isEditor, isWriter, isModerator, canModerate } = useAuth();
   const { showToast } = useToast();
   const { darkMode, card, border, text, muted } = useTheme();
 
-  const [activeSection, setActiveSection] = useState('overview');
+  const [activeSection, setActiveSection] = useState(isAdmin || isModerator ? 'overview' : 'new');
+  const visibleMenuGroups = isAdmin ? ADMIN_MENU_GROUPS : isModerator
+    ? ADMIN_MENU_GROUPS.filter((group) => group.label === 'Community & Users')
+    : ADMIN_MENU_GROUPS.filter((group) => group.label === 'Articles & Publishing').map((group) => ({
+        ...group,
+        items: group.items.filter(([key]) => key === 'new' || key === 'manage'),
+      }));
   const [pendingCount, setPendingCount] = useState(0);
   // Count of forum threads waiting for approval (shown on the Queue tab).
   useEffect(() => {
@@ -256,7 +262,7 @@ export default function AdminPanel() {
     setSaving(true);
     const tagsArray = form.tags.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean);
     const { pollQuestion, pollOptions, ...rest } = form;
-    const payload = { ...rest, tags: tagsArray, published: publish };
+    const payload = { ...rest, tags: tagsArray, published: isWriter ? false : publish };
     const validPollOptions = pollOptions.map((o) => o.trim()).filter(Boolean);
 
     try {
@@ -589,7 +595,7 @@ export default function AdminPanel() {
         </div>
       </div>
 
-      <AdminDiagnostic userEmail={userEmail} />
+      {isAdmin && <AdminDiagnostic userEmail={userEmail} />}
 
       <div className="admin-menu-groups" style={{
         display: 'grid',
@@ -601,7 +607,7 @@ export default function AdminPanel() {
         border: `1px solid ${border}`,
         borderRadius: 12,
       }}>
-        {ADMIN_MENU_GROUPS.map((group) => {
+        {visibleMenuGroups.map((group) => {
           const selected = group.items.some(([key]) => key === activeSection);
           return (
             <label key={group.label} style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
@@ -648,7 +654,7 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {activeSection === 'overview' && (
+      {canModerate && activeSection === 'overview' && (
         <div>
           <div style={{ fontSize: 18, fontWeight: 700, color: text, marginBottom: 16, fontFamily: 'Georgia,serif' }}>📊 Site Analytics</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
@@ -954,7 +960,7 @@ export default function AdminPanel() {
             >
               📝 Save as Draft
             </button>
-            <button
+            {!isWriter && <button
               onClick={() => handleSave(true)}
               disabled={saving}
               style={{
@@ -971,7 +977,7 @@ export default function AdminPanel() {
               }}
             >
               {saving ? 'Saving…' : editId ? '✅ Update & Publish' : '🚀 Publish Article Now'}
-            </button>
+            </button>}
           </div>
         </div>
       )}
@@ -1092,7 +1098,7 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {activeSection === 'moderators' && (
+      {isAdmin && activeSection === 'moderators' && (
         <div>
           <div style={{ fontSize: 18, fontWeight: 700, color: text, marginBottom: 16 }}>🛡️ Moderator Management</div>
 
@@ -1194,7 +1200,7 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {activeSection === 'reports' && (
+      {canModerate && activeSection === 'reports' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
             <div>
@@ -1276,7 +1282,7 @@ export default function AdminPanel() {
       {activeSection === 'fixtures' && <FixturesManagerPanel />}
       {activeSection === 'polls' && <PollAnalyticsPanel />}
       {activeSection === 'users' && <UserManagementPanel />}
-      {activeSection === 'tools' && <AdminToolsHub isAdmin={isAdmin} />}
+      {isAdmin && activeSection === 'tools' && <AdminToolsHub isAdmin={isAdmin} />}
       {activeSection === 'sitemap' && <SitemapPanel />}
     </div>
   );
