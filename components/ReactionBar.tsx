@@ -33,7 +33,7 @@ export default function ReactionBar({ postId }: { postId: string }) {
   const [mine, setMine] = useState<string | null>(null);
   const [visitorKey, setVisitorKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const storageKey = `naija_reaction_${postId}`;
+  const storageKey = `naijatoday_public_reaction_${postId}`;
 
   const loadCounts = async () => {
     const { data, error } = await supabase
