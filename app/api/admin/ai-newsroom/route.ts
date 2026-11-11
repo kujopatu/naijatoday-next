@@ -300,7 +300,7 @@ export async function POST(request: NextRequest) {
         generated_content: generated.content, generated_category: generated.category,
         generated_seo_title: generated.seo_title, generated_seo_description: generated.seo_description,
         generated_tags: generated.tags, generated_at: new Date().toISOString(),
-        status: 'generated', updated_at: new Date().toISOString(),
+        generation_error: null, status: 'generated', updated_at: new Date().toISOString(),
       }).eq('id', item.id);
       if (updateError) throw updateError;
       return NextResponse.json({ generated });
