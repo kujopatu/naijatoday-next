@@ -134,7 +134,7 @@ export default function AINewsroomMonitor() {
           <div style={{ color: muted, fontSize: 12, marginTop: 4 }}>Feed health, automated drafting, failures and scheduled publishing in one view.</div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button onClick={() => void runCollection()} disabled={collectionRunning || loading} style={{ background: G.blue, color: '#fff', border: 'none', borderRadius: 8, padding: '9px 12px', cursor: collectionRunning ? 'wait' : 'pointer', fontWeight: 800, opacity: collectionRunning ? 0.7 : 1 }}>
+          <button onClick={() => void runCollection()} disabled={collectionRunning || loading} style={{ background: G.green, color: '#fff', border: 'none', borderRadius: 8, padding: '9px 12px', cursor: collectionRunning ? 'wait' : 'pointer', fontWeight: 800, opacity: collectionRunning ? 0.7 : 1 }}>
             {collectionRunning ? 'Starting collection…' : '▶ Run feed collection'}
           </button>
           <button onClick={() => void load()} disabled={loading} style={{ background: 'transparent', color: text, border: `1px solid ${border}`, borderRadius: 8, padding: '9px 12px', cursor: loading ? 'wait' : 'pointer', fontWeight: 700 }}>
@@ -195,7 +195,7 @@ export default function AINewsroomMonitor() {
             </div>
             {item.generation_error && <div style={{ color: G.red, fontSize: 10, marginTop: 5, overflowWrap: 'anywhere' }}>{item.generation_error}</div>}
             {item.status === 'generation_failed' && (
-              <button onClick={() => void retryDraft(item.id)} disabled={retryingId === item.id} style={{ marginTop: 8, background: 'transparent', color: G.blue, border: `1px solid ${border}`, borderRadius: 7, padding: '6px 9px', cursor: retryingId === item.id ? 'wait' : 'pointer', fontSize: 11, fontWeight: 800 }}>
+              <button onClick={() => void retryDraft(item.id)} disabled={retryingId === item.id} style={{ marginTop: 8, background: 'transparent', color: G.green, border: `1px solid ${border}`, borderRadius: 7, padding: '6px 9px', cursor: retryingId === item.id ? 'wait' : 'pointer', fontSize: 11, fontWeight: 800 }}>
                 {retryingId === item.id ? 'Retrying draft…' : '↻ Retry draft generation'}
               </button>
             )}
