@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json() as { email?: string; role?: string };
     const email = String(body.email || '').trim().toLowerCase();
     const role = String(body.role || '') as TeamRole;
-    if (!email || !/^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(email)) {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'Enter a valid account email.' }, { status: 400 });
     }
     if (!['editor', 'writer', 'moderator', 'user'].includes(role)) {
