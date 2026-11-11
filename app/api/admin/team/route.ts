@@ -50,9 +50,17 @@ export async function GET(request: NextRequest) {
       ? await admin.from('profiles').select('id,role').in('id', ids)
       : { data: [], error: null };
     if (error) throw error;
+    const { data: legacyModerators, error: moderatorError } = await admin.from('moderators').select('email');
+    if (moderatorError) throw moderatorError;
     const roles = new Map((profiles || []).map((profile) => [profile.id, profile.role]));
+    const moderatorEmails = new Set((legacyModerators || []).map((item) => String(item.email).toLowerCase()));
     return NextResponse.json({
-      users: users.map((user) => ({ ...user, role: roles.get(user.id) || 'user' }))
+      users: users.map((user) => ({
+        ...user,
+        role: roles.get(user.id) === 'user' && moderatorEmails.has(user.email.toLowerCase())
+          ? 'moderator'
+          : roles.get(user.id) || (moderatorEmails.has(user.email.toLowerCase()) ? 'moderator' : 'user'),
+      }))
         .sort((a, b) => a.email.localeCompare(b.email)),
     });
   } catch (error) {
@@ -82,6 +90,10 @@ export async function POST(request: NextRequest) {
     if (!target) return NextResponse.json({ error: 'No registered account was found for that email.' }, { status: 404 });
     const { error } = await admin.from('profiles').upsert({ id: target.id, role }, { onConflict: 'id' });
     if (error) throw error;
+    if (role !== 'moderator') {
+      const { error: moderatorCleanupError } = await admin.from('moderators').delete().eq('email', email);
+      if (moderatorCleanupError) throw moderatorCleanupError;
+    }
     return NextResponse.json({ success: true, email, role });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unable to update account role.' }, { status: 500 });
