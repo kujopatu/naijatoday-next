@@ -43,7 +43,7 @@ export default function SiteFooter() {
 
           <div>
             <div style={colTitle}>Quick Links</div>
-            {[['/', 'Home'], ['/trending', 'Trending'], ['/forum', 'Forum'], ['/jobs', 'Jobs & Scholarships'], ['/resources', 'Resources'], ['/scores', 'Fixtures & Scores'], ['/saved', 'Saved Articles'], ['/about', 'About Us'], ['/submit-story', 'Submit a Story'], ['/advertise', 'Advertise'], ['/contact', 'Contact Us']].map(([h, l]) => <Link key={h} href={h} style={lnk}>{l}</Link>)}
+            {[['/', 'Home'], ['/trending', 'Trending'], ['/polls', 'Polls & Opinions'], ['/forum', 'Forum'], ['/jobs', 'Jobs & Scholarships'], ['/resources', 'Resources'], ['/scores', 'Fixtures & Scores'], ['/saved', 'Saved Articles'], ['/about', 'About Us'], ['/submit-story', 'Submit a Story'], ['/advertise', 'Advertise'], ['/contact', 'Contact Us']].map(([h, l]) => <Link key={h} href={h} style={lnk}>{l}</Link>)}
             
           </div>
 
