@@ -1091,7 +1091,7 @@ export default function AdminPanel() {
                     <button onClick={() => setDeleteConfirm(post.id)} style={{ background: G.red + '22', color: G.red, border: `1px solid ${G.red}33`, borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                       🗑️ Delete
                     </button>
-                  )}
+                  ))}
                 </div>
               </div>
             ))
