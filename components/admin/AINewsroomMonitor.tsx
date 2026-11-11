@@ -155,7 +155,8 @@ export default function AINewsroomMonitor() {
     && (entry.detail || '').startsWith(sourceName + ':'));
   const panel: React.CSSProperties = { background: card, border: `1px solid ${border}`, borderRadius: 11, padding: 15 };
   const statusColor = (status: string) => status === 'generation_failed' || status.includes('failed') ? G.red
-    : ['published', 'scheduled', 'draft_saved', 'generated'].includes(status) ? G.green : G.gold;
+    : ['published', 'scheduled', 'draft_saved', 'generated'].includes(status) || status.includes('checked') || status.includes('published') ? G.green : G.gold;
+  const lastCycle = activity.find((entry) => entry.action === 'ai_newsroom_cycle');
 
   if (!isAdmin) return <div style={{ ...panel, color: muted }}>The AI Newsroom monitor is available to administrators only.</div>;
 
@@ -276,7 +277,7 @@ export default function AINewsroomMonitor() {
           </div>
         ))}
       </section>
-      <div style={{ color: muted, fontSize: 10, marginTop: 12 }}>Last refreshed: {updatedAt || '—'}. The scheduled collector checks feeds every two hours and generates up to five drafts per cycle. Feed health reflects the latest recorded check or failure. The queue shows the 60 most recent stories returned by the newsroom API. All generated content remains subject to editorial review.</div>
+      <div style={{ color: muted, fontSize: 10, marginTop: 12 }}>Last newsroom cycle: {lastCycle ? fmt(lastCycle.created_at) : 'Not recorded yet'} · Last refreshed: {updatedAt || '—'}. The scheduled collector checks feeds every two hours and generates up to five drafts per cycle. Feed health reflects the latest recorded check or failure. The queue shows the 60 most recent stories returned by the newsroom API. All generated content remains subject to editorial review.</div>
     </div>
   );
 }
