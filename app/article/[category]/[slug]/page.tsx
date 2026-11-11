@@ -59,21 +59,23 @@ export default async function ArticlePage({ params }: Props) {
   const post = await getPostBySlug(category, slug);
   if (!post) notFound();
 
-  const [{ data: recent }, { count: articleCount }, { count: memberCount }] = await Promise.all([
+  const [{ data: recent }, { count: articleCount }, { count: memberCount }, { data: authorProfile }] = await Promise.all([
     supabase.from('posts').select('*').eq('published', true).neq('id', post.id).order('created_at', { ascending: false }).limit(60),
     supabase.from('posts').select('*', { count: 'exact', head: true }).eq('published', true),
     supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'user'),
+    supabase.from('author_profiles').select('bio,avatar_url,role_title').eq('author_name', post.author || '').maybeSingle(),
   ]);
 
-  // Related = shared tags (x10) + same category, best three.
+  // Rank related stories by shared tags and category; use newest published stories as a fallback.
   const myTags = new Set((post.tags ?? []).map((t: string) => t.toLowerCase()));
   const related = ((recent ?? []) as Post[])
-    .map((p) => ({
+    .map((p, index) => ({
       p,
-      score: (p.tags ?? []).filter((t: string) => myTags.has(t.toLowerCase())).length * 10 + (p.category === post.category ? 1 : 0),
+      index,
+      score: (p.tags ?? []).filter((t: string) => myTags.has(t.toLowerCase())).length * 10
+        + (p.category?.toLowerCase() === post.category?.toLowerCase() ? 6 : 0),
     }))
-    .filter((x) => x.score > 0)
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => b.score - a.score || a.index - b.index)
     .slice(0, 3)
     .map((x) => x.p);
 
@@ -110,7 +112,7 @@ export default async function ArticlePage({ params }: Props) {
           },
         ]}
       />
-      <ArticleView post={post} html={watermarkHtml(post.content ?? '')} related={related} />
+      <ArticleView post={post} html={watermarkHtml(post.content ?? '')} related={related} authorProfile={authorProfile ?? null} />
     </>
   );
 }
