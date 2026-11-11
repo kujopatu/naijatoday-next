@@ -182,9 +182,16 @@ export default function AdminPanel() {
 
   const logActivity = async (action: string, detail: string) => {
     try {
-      await supabase.from('admin_activity_log').insert([{ action, detail, admin_email: userEmail, created_at: new Date().toISOString() }]);
+      const { data } = await supabase.auth.getSession();
+      const accessToken = data.session?.access_token;
+      if (!accessToken) return;
+      await fetch('/api/admin/activity-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ action, detail }),
+      });
     } catch {
-      /* table may not exist yet — non-critical, silently skip */
+      /* Activity logging is best-effort and must not interrupt editorial work. */
     }
   };
 
