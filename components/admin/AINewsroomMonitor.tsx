@@ -29,6 +29,9 @@ export default function AINewsroomMonitor() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updatedAt, setUpdatedAt] = useState('');
+  const [collectionRunning, setCollectionRunning] = useState(false);
+  const [retryingId, setRetryingId] = useState('');
+  const [actionMessage, setActionMessage] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -61,6 +64,52 @@ export default function AINewsroomMonitor() {
     }
   }, []);
 
+  const runCollection = useCallback(async () => {
+    setCollectionRunning(true);
+    setActionMessage('');
+    setError('');
+    try {
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (sessionError || !token) throw new Error('Your admin session has expired. Sign in again.');
+      const response = await fetch('/.netlify/functions/collect-ai-news-manual-background', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok && response.status !== 202) throw new Error(payload.error || payload.message || 'Could not start news collection.');
+      setActionMessage(payload.message || 'News collection has started in the background. Refresh the monitor in a few moments to see the results.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not start news collection.');
+    } finally {
+      setCollectionRunning(false);
+    }
+  }, []);
+
+  const retryDraft = useCallback(async (itemId: string) => {
+    setRetryingId(itemId);
+    setActionMessage('');
+    setError('');
+    try {
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (sessionError || !token) throw new Error('Your admin session has expired. Sign in again.');
+      const response = await fetch('/api/admin/ai-newsroom', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'generate', item_id: itemId, format: 'news' }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || 'Draft retry failed.');
+      setActionMessage('Draft generated successfully. Please review it in the AI Newsroom before saving it to Articles.');
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Draft retry failed.');
+    } finally {
+      setRetryingId('');
+    }
+  }, [load]);
+
   useEffect(() => { void load(); }, [load]);
 
   const stats = useMemo(() => [
@@ -84,12 +133,18 @@ export default function AINewsroomMonitor() {
           <div style={{ color: text, fontSize: 18, fontWeight: 800 }}>🤖 AI Newsroom Monitor</div>
           <div style={{ color: muted, fontSize: 12, marginTop: 4 }}>Feed health, automated drafting, failures and scheduled publishing in one view.</div>
         </div>
-        <button onClick={() => void load()} disabled={loading} style={{ background: 'transparent', color: text, border: `1px solid ${border}`, borderRadius: 8, padding: '9px 12px', cursor: loading ? 'wait' : 'pointer', fontWeight: 700 }}>
-          {loading ? 'Refreshing…' : '↻ Refresh status'}
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={() => void runCollection()} disabled={collectionRunning || loading} style={{ background: G.blue, color: '#fff', border: 'none', borderRadius: 8, padding: '9px 12px', cursor: collectionRunning ? 'wait' : 'pointer', fontWeight: 800, opacity: collectionRunning ? 0.7 : 1 }}>
+            {collectionRunning ? 'Starting collection…' : '▶ Run feed collection'}
+          </button>
+          <button onClick={() => void load()} disabled={loading} style={{ background: 'transparent', color: text, border: `1px solid ${border}`, borderRadius: 8, padding: '9px 12px', cursor: loading ? 'wait' : 'pointer', fontWeight: 700 }}>
+            {loading ? 'Refreshing…' : '↻ Refresh status'}
+          </button>
+        </div>
       </div>
 
       {error && <div style={{ ...panel, borderColor: G.red, color: G.red, marginBottom: 14, fontSize: 12 }}>{error}</div>}
+      {actionMessage && <div style={{ ...panel, borderColor: G.green, color: G.green, marginBottom: 14, fontSize: 12 }}>{actionMessage}</div>}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(145px,1fr))', gap: 10, marginBottom: 16 }}>
         {stats.map((stat) => (
@@ -139,6 +194,11 @@ export default function AINewsroomMonitor() {
               <span style={{ color: statusColor(item.status), fontSize: 10, fontWeight: 850, whiteSpace: 'nowrap' }}>{item.status.replace(/_/g, ' ').toUpperCase()}</span>
             </div>
             {item.generation_error && <div style={{ color: G.red, fontSize: 10, marginTop: 5, overflowWrap: 'anywhere' }}>{item.generation_error}</div>}
+            {item.status === 'generation_failed' && (
+              <button onClick={() => void retryDraft(item.id)} disabled={retryingId === item.id} style={{ marginTop: 8, background: 'transparent', color: G.blue, border: `1px solid ${border}`, borderRadius: 7, padding: '6px 9px', cursor: retryingId === item.id ? 'wait' : 'pointer', fontSize: 11, fontWeight: 800 }}>
+                {retryingId === item.id ? 'Retrying draft…' : '↻ Retry draft generation'}
+              </button>
+            )}
           </div>
         ))}
       </section>
