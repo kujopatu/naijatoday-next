@@ -1,0 +1,143 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { ADMIN_EMAIL } from '@/lib/auth';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+function dbClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error('Server database credentials are not configured.');
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+async function isAdmin(request: NextRequest) {
+  const token = (request.headers.get('authorization') || '').replace(/^Bearer /, '');
+  if (!token) return false;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return false;
+  const auth = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await auth.auth.getUser(token);
+  return !error && data.user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+}
+function safeText(value: unknown, max = 500) {
+  return typeof value === 'string' ? value.trim().slice(0, max) : '';
+}
+function safeHttps(value: unknown) {
+  try { const u = new URL(String(value || '')); return u.protocol === 'https:' ? u.toString() : ''; }
+  catch { return ''; }
+}
+async function classify(item: any) {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error('Gemini is not configured. Add GEMINI_API_KEY and redeploy.');
+  const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+  const prompt = `Classify this Nigerian news-feed item for NaijaToday. Return ONLY JSON with destination ("forum_thread", "job", "scholarship", or "news"), confidence (0-100), reason, and payload. For forum_thread payload use title, body, category. For job use title, company, location, salary, type, experience_level, deadline, category, apply_url, description, requirements. For scholarship use title, provider, deadline, country, fully (boolean), level, field, apply_url. Never invent missing facts, URLs, dates, employers or providers; use empty strings/null where absent. Only classify as job or scholarship if the source clearly describes a real opportunity and provides a specific application URL; otherwise use news or forum_thread. Forum payload must be a neutral discussion starter with a question and source attribution. Do not treat ordinary news about hiring or education policy as an actual vacancy or scholarship.
+Headline: ${item.source_title}
+Publisher: ${item.source_name}
+Source URL: ${item.source_url}
+Summary: ${String(item.source_summary || '').slice(0, 3500)}
+Generated headline: ${item.generated_title || ''}
+Generated summary: ${item.generated_excerpt || ''}`;
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+    body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, responseMimeType: 'application/json' } }),
+    signal: AbortSignal.timeout(45000),
+  });
+  if (!response.ok) throw new Error('Gemini classification failed (HTTP ' + response.status + ').');
+  const result = await response.json();
+  const raw = result?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || '').join('');
+  if (!raw) throw new Error('Gemini returned an empty classification.');
+  const parsed = JSON.parse(raw.replace(/^```(?:json)?|\`\`\`$/g, '').trim());
+  const allowed = ['forum_thread','job','scholarship','news'];
+  if (!allowed.includes(parsed.destination)) throw new Error('AI returned an unsupported destination.');
+  return { destination: parsed.destination, confidence: Math.max(0, Math.min(100, Number(parsed.confidence) || 0)), reason: safeText(parsed.reason, 800), payload: parsed.payload || {} };
+}
+
+export async function GET(request: NextRequest) {
+  if (!(await isAdmin(request))) return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
+  const db = dbClient();
+  const { data, error } = await db.from('ai_newsroom_distributions').select('*, ai_newsroom_items(source_title,source_name,source_url)').order('created_at', { ascending: false }).limit(50);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ distributions: data || [] });
+}
+
+export async function POST(request: NextRequest) {
+  if (!(await isAdmin(request))) return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
+  try {
+    const body = await request.json();
+    const db = dbClient();
+    if (body.action === 'classify') {
+      const { data: item, error } = await db.from('ai_newsroom_items').select('*').eq('id', body.item_id).single();
+      if (error || !item) return NextResponse.json({ error: 'Newsroom story not found.' }, { status: 404 });
+      const result = await classify(item);
+      return NextResponse.json({ classification: result });
+    }
+    if (body.action === 'queue') {
+      const itemId = safeText(body.item_id, 50);
+      const destination = safeText(body.destination, 30);
+      if (!/^[0-9a-f-]{36}$/i.test(itemId) || !['forum_thread','job','scholarship'].includes(destination)) return NextResponse.json({ error: 'Select a valid story and destination.' }, { status: 400 });
+      const payload = body.payload && typeof body.payload === 'object' ? body.payload : {};
+      const { data, error } = await db.from('ai_newsroom_distributions').upsert({
+        item_id: itemId, destination, payload, confidence: Math.max(0, Math.min(100, Number(body.confidence) || 0)),
+        reason: safeText(body.reason, 800), status: 'pending',
+      }, { onConflict: 'item_id,destination' }).select('*').single();
+      if (error) throw error;
+      return NextResponse.json({ distribution: data });
+    }
+    if (body.action === 'review') {
+      const id = safeText(body.id, 50);
+      const decision = body.decision === 'approve' ? 'approve' : body.decision === 'reject' ? 'reject' : '';
+      if (!id || !decision) return NextResponse.json({ error: 'Invalid review action.' }, { status: 400 });
+      const { data: record, error } = await db.from('ai_newsroom_distributions').select('*').eq('id', id).eq('status', 'pending').single();
+      if (error || !record) return NextResponse.json({ error: 'Pending distribution not found.' }, { status: 404 });
+      if (decision === 'reject') {
+        const { error: updateError } = await db.from('ai_newsroom_distributions').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', id);
+        if (updateError) throw updateError;
+        return NextResponse.json({ ok: true, status: 'rejected' });
+      }
+      const p = record.payload || {};
+      let targetId: number | null = null;
+      if (record.destination === 'forum_thread') {
+        const title = safeText(p.title, 240);
+        const bodyText = safeText(p.body, 5000);
+        if (!title || !bodyText) return NextResponse.json({ error: 'Forum title and discussion text must be completed before approval.' }, { status: 400 });
+        const { data: created, error: insertError } = await db.from('forum_threads').insert({
+          title, body: bodyText, preview: bodyText.slice(0, 240), category: safeText(p.category, 80) || 'Nigeria',
+          author: 'NaijaToday Desk', author_email: 'system@naijatoday', status: 'pending',
+          replies: 0, views: 0, hot: false, pinned: false, closed: false, upvotes: 0,
+        }).select('id').single();
+        if (insertError) throw insertError;
+        targetId = created.id;
+      } else if (record.destination === 'job') {
+        const title = safeText(p.title, 240), company = safeText(p.company, 180), applyUrl = safeHttps(p.apply_url);
+        if (!title || !company || !applyUrl) return NextResponse.json({ error: 'A verified job title, employer and HTTPS application link are required.' }, { status: 400 });
+        const { data: created, error: insertError } = await db.from('jobs').insert({
+          title, company, location: safeText(p.location, 180), salary: safeText(p.salary, 120) || null,
+          type: safeText(p.type, 80) || 'Not specified', experience_level: safeText(p.experience_level, 100) || null,
+          deadline: safeText(p.deadline, 100) || null, posted_date: new Date().toISOString(),
+          logo: '💼', category: safeText(p.category, 100) || 'General', apply_url: applyUrl,
+          description: safeText(p.description, 4000), requirements: safeText(p.requirements, 3000),
+        }).select('id').single();
+        if (insertError) throw insertError;
+        targetId = created.id;
+      } else if (record.destination === 'scholarship') {
+        const title = safeText(p.title, 240), provider = safeText(p.provider, 180), applyUrl = safeHttps(p.apply_url);
+        if (!title || !provider || !applyUrl) return NextResponse.json({ error: 'A verified scholarship title, provider and HTTPS application link are required.' }, { status: 400 });
+        const { data: created, error: insertError } = await db.from('scholarships').insert({
+          title, provider, deadline: safeText(p.deadline, 100) || null, country: safeText(p.country, 100) || null,
+          fully: Boolean(p.fully), level: safeText(p.level, 100) || null, field: safeText(p.field, 180) || null, apply_url: applyUrl,
+        }).select('id').single();
+        if (insertError) throw insertError;
+        targetId = created.id;
+      }
+      const { error: updateError } = await db.from('ai_newsroom_distributions').update({ status: 'published', reviewed_at: new Date().toISOString(), payload: { ...p, target_id: targetId } }).eq('id', id);
+      if (updateError) throw updateError;
+      await db.from('admin_activity_log').insert({ action: 'ai_newsroom_distribution_approved', detail: record.destination + ' distribution approved for ' + safeText(p.title, 180), admin_email: 'system@naijatoday' });
+      return NextResponse.json({ ok: true, status: 'published', target_id: targetId });
+    }
+    return NextResponse.json({ error: 'Unknown distribution action.' }, { status: 400 });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Distribution action failed.' }, { status: 500 });
+  }
+}
