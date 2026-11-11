@@ -12,6 +12,9 @@ type Poll = {
   question: string;
   options: string[];
   created_at: string;
+  is_active: boolean;
+  is_featured: boolean;
+  closes_at: string | null;
 };
 type EnrichedPoll = Poll & { totalVotes: number; optionCounts: number[]; postTitle: string };
 
@@ -62,6 +65,25 @@ export default function PollAnalyticsPanel() {
     loadPolls();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const updatePoll = async (poll: EnrichedPoll, changes: Partial<Pick<Poll, 'is_active' | 'is_featured'>>) => {
+    try {
+      if (changes.is_featured) {
+        const { error: clearError } = await supabase.from('polls').update({ is_featured: false }).neq('id', poll.id);
+        if (clearError) throw clearError;
+      }
+      const { error } = await supabase.from('polls').update(changes).eq('id', poll.id);
+      if (error) throw error;
+      setPolls((items) => items.map((item) => ({
+        ...item,
+        ...(item.id === poll.id ? changes : {}),
+        ...(changes.is_featured ? { is_featured: item.id === poll.id } : {}),
+      })));
+      showToast('Poll settings updated');
+    } catch (error) {
+      showToast('Could not update poll: ' + (error instanceof Error ? error.message : 'Please try again.'));
+    }
+  };
+
   const deletePoll = async (pollId: number) => {
     if (!window.confirm('Delete this poll and all its votes?')) return;
     try {
@@ -97,13 +119,19 @@ export default function PollAnalyticsPanel() {
             <div key={poll.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: 12, padding: 20, marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, color: muted, marginBottom: 4 }}>📰 {poll.postTitle}</div>
+                  <div style={{ fontSize: 11, color: muted, marginBottom: 4 }}>📰 {poll.postTitle} · {poll.is_active ? 'Open' : 'Closed'}{poll.is_featured ? ' · Poll of the Day' : ''}</div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: text, fontFamily: 'Georgia,serif' }}>🗳️ {poll.question}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignItems: 'center' }}>
                   <div style={{ background: G.green + '22', color: G.green, fontSize: 13, fontWeight: 700, padding: '4px 12px', borderRadius: 20 }}>
                     {poll.totalVotes} vote{poll.totalVotes !== 1 ? 's' : ''}
                   </div>
+                  <button onClick={() => updatePoll(poll, { is_active: !poll.is_active })} style={{ background: poll.is_active ? '#d9770620' : G.green + '22', color: poll.is_active ? '#d97706' : G.green, border: `1px solid ${poll.is_active ? '#d9770666' : G.green + '55'}`, borderRadius: 6, padding: '5px 9px', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
+                    {poll.is_active ? 'Close poll' : 'Reopen'}
+                  </button>
+                  <button onClick={() => updatePoll(poll, { is_featured: !poll.is_featured })} style={{ background: poll.is_featured ? '#e4b84c22' : 'transparent', color: poll.is_featured ? '#b8860b' : muted, border: `1px solid ${border}`, borderRadius: 6, padding: '5px 9px', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
+                    {poll.is_featured ? '★ Featured' : '☆ Feature'}
+                  </button>
                   <button onClick={() => deletePoll(poll.id)} style={{ background: G.red + '22', color: G.red, border: `1px solid ${G.red}44`, borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}>
                     🗑
                   </button>
