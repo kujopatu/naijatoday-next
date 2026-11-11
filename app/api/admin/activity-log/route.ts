@@ -13,7 +13,7 @@ function serviceClient() {
 }
 
 async function authorisedAdmin(request: NextRequest) {
-  const token = (request.headers.get('authorization') || '').replace(/^Bearer\\s+/i, '');
+  const token = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
   if (!token) return null;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
