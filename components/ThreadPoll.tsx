@@ -9,7 +9,7 @@ import { useTheme } from './ThemeProvider';
 import { useToast } from './ToastProvider';
 
 type Poll = { id: string | number; question: string; options: string[]; is_active?: boolean; closes_at?: string | null };
-type Vote = { option_index: number; voter_key: string };
+type Vote = { option_index: number; vote_count: number; is_mine: boolean };
 
 // Poll attached to a forum thread (polls.thread_id). One vote per member
 // or device; results show once you've voted.
@@ -29,10 +29,11 @@ export default function ThreadPoll({ threadId }: { threadId: number }) {
       if (!active || !p) return;
       const options: string[] = Array.isArray(p.options) ? p.options : [];
       setPoll({ id: p.id, question: p.question, options });
-      const { data: vs } = await supabase.from('poll_votes').select('option_index, voter_key').eq('poll_id', p.id);
+      const { data: vs } = await supabase.rpc('get_poll_results', { p_poll_ids: [Number(p.id)], p_voter_key: getVoterKey(userEmail) });
       if (!active) return;
-      setVotes((vs ?? []) as Vote[]);
-      const mine = (vs ?? []).find((v) => v.voter_key === getVoterKey(userEmail));
+      const rows = (vs ?? []) as Vote[];
+      setVotes(rows);
+      const mine = rows.find((v) => v.is_mine);
       if (mine) setMyVote(mine.option_index);
     })();
     return () => { active = false; };
@@ -46,17 +47,19 @@ export default function ThreadPoll({ threadId }: { threadId: number }) {
     setVoting(true);
     const key = getVoterKey(userEmail);
     const { error } = await supabase.from('poll_votes').insert([{ poll_id: poll.id, option_index: i, voter_key: key }]);
-    if (error) showToast('Error: ' + error.message);
-    else {
-      setVotes((v) => [...v, { option_index: i, voter_key: key }]);
-      setMyVote(i);
+    const { data: refreshed } = await supabase.rpc('get_poll_results', { p_poll_ids: [Number(poll.id)], p_voter_key: key });
+    if (!error || error.code === '23505') {
+      const rows = (refreshed ?? []) as Vote[];
+      setVotes(rows);
+      const mine = rows.find(v => v.is_mine);
+      if (mine) setMyVote(mine.option_index);
       showToast('Vote recorded! 🗳️');
-    }
+    } else showToast('Error: ' + error.message);
     setVoting(false);
   };
 
-  const total = votes.length;
-  const counts = poll.options.map((_, i) => votes.filter((v) => v.option_index === i).length);
+  const total = votes.reduce((sum, vote) => sum + Number(vote.vote_count), 0);
+  const counts = poll.options.map((_, i) => Number(votes.find((v) => v.option_index === i)?.vote_count ?? 0));
 
   return (
     <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 12, padding: 18, margin: '20px 0' }}>
