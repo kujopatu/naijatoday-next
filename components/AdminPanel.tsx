@@ -83,7 +83,7 @@ export default function AdminPanel() {
   const { showToast } = useToast();
   const { darkMode, card, border, text, muted } = useTheme();
 
-  const [activeSection, setActiveSection] = useState(isAdmin || isModerator ? 'overview' : 'new');
+  const [activeSection, setActiveSection] = useState(isAdmin ? 'overview' : isModerator ? 'forum' : 'new');
   const visibleMenuGroups = isAdmin ? ADMIN_MENU_GROUPS : isModerator
     ? ADMIN_MENU_GROUPS.filter((group) => group.label === 'Community & Users').map((group) => ({ ...group, items: group.items.filter(([key]) => key === 'forum' || key === 'reports') }))
     : ADMIN_MENU_GROUPS.filter((group) => group.label === 'Articles & Publishing').map((group) => ({
@@ -655,7 +655,7 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {canModerate && activeSection === 'overview' && (
+      {isAdmin && activeSection === 'overview' && (
         <div>
           <div style={{ fontSize: 18, fontWeight: 700, color: text, marginBottom: 16, fontFamily: 'Georgia,serif' }}>📊 Site Analytics</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
