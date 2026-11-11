@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { G } from '@/lib/theme';
+import { CATEGORIES, G, normalizeCategory } from '@/lib/theme';
 import { useTheme } from '../ThemeProvider';
 import { useToast } from '../ToastProvider';
 
@@ -40,7 +40,7 @@ export default function AINewsroomStudio() {
   const [sourceName, setSourceName] = useState('');
   const [feedUrl, setFeedUrl] = useState('');
   const [activeStory, setActiveStory] = useState<string | null>(null);
-  const [draft, setDraft] = useState<Draft>({ title: '', excerpt: '', content: '', category: 'Nigeria', image: '', video: '', scheduledAt: '' });
+  const [draft, setDraft] = useState<Draft>({ title: '', excerpt: '', content: '', category: 'National', image: '', video: '', scheduledAt: '' });
   const [uploading, setUploading] = useState(false);
   const [imageGenerating, setImageGenerating] = useState(false);
   const [imageMode, setImageMode] = useState<'both' | 'automatic' | 'manual'>('both');
@@ -133,13 +133,13 @@ export default function AINewsroomStudio() {
             if (words < 1600) throw new Error(`The background generator saved only ${words} words. The full-article minimum is 1,600; please retry or add more verified source material.`);
             setDraft({
               title: updated.generated_title || '', excerpt: updated.generated_excerpt || '',
-              content: updated.generated_content, category: updated.generated_category || 'Nigeria',
+              content: updated.generated_content, category: normalizeCategory(updated.generated_category),
               image: updated.generated_image_url || '', video: story.source_video_url || '', scheduledAt: '',
             });
             setActiveStory(story.id);
             showToast('Full article generated. Review and edit it before saving.');
             if (imageMode !== 'manual') {
-              await generateEditorialImage(story, updated.generated_title || '', updated.generated_excerpt || '', updated.generated_content, updated.generated_category || 'Nigeria');
+              await generateEditorialImage(story, updated.generated_title || '', updated.generated_excerpt || '', updated.generated_content, normalizeCategory(updated.generated_category));
             }
             return;
           }
@@ -153,7 +153,7 @@ export default function AINewsroomStudio() {
       const result = await api({ action: 'generate', item_id: story.id, format: 'news' }, 'POST');
       setDraft({
         title: result.generated.title, excerpt: result.generated.excerpt,
-        content: result.generated.content, category: result.generated.category,
+        content: result.generated.content, category: normalizeCategory(result.generated.category),
         image: story.generated_image_url || '', video: story.source_video_url || '', scheduledAt: '',
       });
       setActiveStory(story.id);
@@ -172,7 +172,7 @@ export default function AINewsroomStudio() {
     setActiveStory(story.id);
     setDraft({
       title: story.generated_title || '', excerpt: story.generated_excerpt || '',
-      content: story.generated_content || '', category: story.generated_category || 'Nigeria',
+      content: story.generated_content || '', category: normalizeCategory(story.generated_category),
       image: story.generated_image_url || '', video: story.source_video_url || '', scheduledAt: '',
     });
   };
@@ -322,7 +322,7 @@ export default function AINewsroomStudio() {
         <label style={label}>HEADLINE</label><input style={{ ...input, marginBottom: 9 }} value={draft.title} onChange={e => setDraft(d => ({ ...d, title: e.target.value }))}/>
         <label style={label}>SUMMARY / EXCERPT</label><textarea style={{ ...input, minHeight: 65, marginBottom: 9, resize: 'vertical' }} value={draft.excerpt} onChange={e => setDraft(d => ({ ...d, excerpt: e.target.value }))}/>
         <label style={label}>ARTICLE BODY (HTML)</label><div style={{ fontSize: 10, color: muted, marginBottom: 5 }}>Approx. {draft.content.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length.toLocaleString()} words {articleFormat === 'article' ? '· Minimum required: 1,600' : '· News brief format'}</div><textarea style={{ ...input, minHeight: 300, marginBottom: 9, resize: 'vertical', fontFamily: 'monospace', fontSize: 11 }} value={draft.content} onChange={e => setDraft(d => ({ ...d, content: e.target.value }))}/>
-        <label style={label}>CATEGORY</label><input style={{ ...input, marginBottom: 9 }} value={draft.category} onChange={e => setDraft(d => ({ ...d, category: e.target.value }))}/>
+        <label style={label}>CATEGORY</label><select style={{ ...input, marginBottom: 9 }} value={draft.category} onChange={e => setDraft(d => ({ ...d, category: e.target.value }))}>{CATEGORIES.map(category => <option key={category.name} value={category.name}>{category.icon} {category.name}</option>)}</select>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 9 }}>
           <div>
             <label style={label}>EDITORIAL IMAGE (AI + CLOUDINARY)</label>
