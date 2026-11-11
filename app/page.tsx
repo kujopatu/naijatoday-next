@@ -13,22 +13,12 @@ import JsonLd from '@/components/JsonLd';
 import { SITE_URL } from '@/lib/site';
 import { postPath } from '@/lib/posts';
 
-// Refresh homepage data at most every 5 minutes (ISR) rather than on
-// every single request.
 export const revalidate = 300;
 
 export default async function HomePage() {
   const [{ data: posts }, { count: totalArticleCount }] = await Promise.all([
-    supabase
-      .from('posts')
-      .select('*')
-      .eq('published', true)
-      .order('created_at', { ascending: false })
-      .limit(200),
-    supabase
-      .from('posts')
-      .select('id', { count: 'exact', head: true })
-      .eq('published', true),
+    supabase.from('posts').select('*').eq('published', true).order('created_at', { ascending: false }).limit(200),
+    supabase.from('posts').select('id', { count: 'exact', head: true }).eq('published', true),
   ]);
 
   const allPosts = posts ?? [];
@@ -54,12 +44,14 @@ export default async function HomePage() {
       <SiteHeader articleCount={totalArticleCount ?? allPosts.length} memberCount={memberCount ?? null} />
       <BreakingNewsBar />
       <CategoryPills />
-      <div className="home-grid" style={{ maxWidth: 1240, margin: '0 auto', padding: '24px 18px' }}>
+      <div className="home-grid" style={{ maxWidth: 1240, margin: '0 auto', padding: '18px 18px 28px' }}>
         <main style={{ minWidth: 0 }}>
           <FeaturedCarousel posts={featuredList} />
           <TrendingTicker />
-          <PollsExperience featuredOnly />
           <HomeFeed posts={allPosts} />
+          <div style={{ marginTop: 24 }}>
+            <PollsExperience featuredOnly />
+          </div>
         </main>
         <aside>
           <MostReadSidebar posts={allPosts} />
@@ -68,9 +60,11 @@ export default async function HomePage() {
         </aside>
       </div>
       <style>{`
-        .home-grid { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
+        .home-grid { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 22px; align-items: start; }
+        .home-grid aside { position: sticky; top: 16px; }
         @media (max-width: 900px) {
-          .home-grid { grid-template-columns: 1fr; }
+          .home-grid { grid-template-columns: 1fr; gap: 18px; }
+          .home-grid aside { position: static; }
         }
       `}</style>
     </>
