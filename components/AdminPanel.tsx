@@ -587,8 +587,8 @@ export default function AdminPanel() {
         }}
       >
         <div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', fontFamily: 'Georgia,serif' }}>⚡ NaijaToday Admin</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>Publish and manage your articles</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#fff', fontFamily: 'Georgia,serif' }}>⚡ NaijaToday Editorial Workspace</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>Draft, review and manage NaijaToday content</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 16px', fontSize: 13, color: '#fff' }}>👤 {userEmail}</div>
