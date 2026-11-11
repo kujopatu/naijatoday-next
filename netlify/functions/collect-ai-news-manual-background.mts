@@ -118,6 +118,7 @@ export default async function collectNewsManually(event: NetlifyEvent) {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await logEvent(db, 'ai_newsroom_manual_collection_failed', message);
+    await logEvent(db, 'ai_newsroom_cycle', 'Manual collection ended with an error: ' + message);
     return { statusCode: 500, body: JSON.stringify({ error: message }) };
   }
 }
