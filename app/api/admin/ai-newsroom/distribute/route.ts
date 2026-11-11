@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { ADMIN_EMAIL } from '@/lib/auth';
+import { CATEGORIES } from '@/lib/theme';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,6 +21,11 @@ async function isAdmin(request: NextRequest) {
   const auth = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data, error } = await auth.auth.getUser(token);
   return !error && data.user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+}
+const FORUM_CATEGORIES = CATEGORIES.map((category) => category.name);
+function safeForumCategory(value: unknown) {
+  const candidate = safeText(value, 80);
+  return FORUM_CATEGORIES.find((category) => category.toLowerCase() === candidate.toLowerCase()) || 'Forum';
 }
 function safeText(value: unknown, max = 500) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -64,7 +70,7 @@ async function classify(item: any) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('Gemini is not configured. Add GEMINI_API_KEY and redeploy.');
   const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
-  const prompt = `Classify this Nigerian news-feed item for NaijaToday. Return ONLY JSON with destination ("forum_thread", "job", "scholarship", or "news"), confidence (0-100), reason, and payload. For forum_thread payload use title, body, category. For job use title, company, location, salary, type, experience_level, deadline, category, apply_url, description, requirements. For scholarship use title, provider, deadline, country, fully (boolean), level, field, apply_url. Never invent missing facts, URLs, dates, employers or providers; use empty strings/null where absent. Only classify as job or scholarship if the source clearly describes a real opportunity and provides a specific application URL; otherwise use news or forum_thread. Forum payload must be a neutral discussion starter with a question and source attribution. Do not treat ordinary news about hiring or education policy as an actual vacancy or scholarship. Use confidence carefully: 90-100 only when the source explicitly supports the destination and key details; 70-89 when the fit is strong but some non-essential details are missing; below 70 when uncertain. Prefer destination news when the story is not clearly an actionable vacancy or scholarship. For jobs, require a specific role, identifiable employer and direct HTTPS application URL. For scholarships, require a named award/provider and direct HTTPS application URL. Do not infer that a deadline is open or current unless the source says so.
+  const prompt = `Classify this Nigerian news-feed item for NaijaToday. Return ONLY JSON with destination ("forum_thread", "job", "scholarship", or "news"), confidence (0-100), reason, and payload. For forum_thread payload use title, body, category. The category MUST be exactly one of these existing NaijaToday Forum categories: Entertainment, Music, Celebrity, Politics, Business, Technology, Sports, Education, Jobs, Scholarships, Health, Lifestyle, Relationship, Religion, Viral, Forum. Choose the closest matching category; never invent a category. For job use title, company, location, salary, type, experience_level, deadline, category, apply_url, description, requirements. For scholarship use title, provider, deadline, country, fully (boolean), level, field, apply_url. Never invent missing facts, URLs, dates, employers or providers; use empty strings/null where absent. Only classify as job or scholarship if the source clearly describes a real opportunity and provides a specific application URL; otherwise use news or forum_thread. Forum payload must be a neutral discussion starter with a question and source attribution. Do not treat ordinary news about hiring or education policy as an actual vacancy or scholarship. Use confidence carefully: 90-100 only when the source explicitly supports the destination and key details; 70-89 when the fit is strong but some non-essential details are missing; below 70 when uncertain. Prefer destination news when the story is not clearly an actionable vacancy or scholarship. For jobs, require a specific role, identifiable employer and direct HTTPS application URL. For scholarships, require a named award/provider and direct HTTPS application URL. Do not infer that a deadline is open or current unless the source says so.
 Headline: ${item.source_title}
 Publisher: ${item.source_name}
 Source URL: ${item.source_url}
@@ -80,7 +86,9 @@ Generated summary: ${item.generated_excerpt || ''}`;
   const parsed = JSON.parse(raw.replace(/^```(?:json)?|\`\`\`$/g, '').trim());
   const allowed = ['forum_thread','job','scholarship','news'];
   if (!allowed.includes(parsed.destination)) throw new Error('AI returned an unsupported destination.');
-  return { destination: parsed.destination, confidence: Math.max(0, Math.min(100, Number(parsed.confidence) || 0)), reason: safeText(parsed.reason, 800), payload: parsed.payload || {} };
+  const payload = parsed.payload && typeof parsed.payload === 'object' ? parsed.payload : {};
+  if (parsed.destination === 'forum_thread') payload.category = safeForumCategory(payload.category);
+  return { destination: parsed.destination, confidence: Math.max(0, Math.min(100, Number(parsed.confidence) || 0)), reason: safeText(parsed.reason, 800), payload };
 }
 
 async function findExistingTarget(db: ReturnType<typeof dbClient>, destination: string, payload: any) {
@@ -156,7 +164,7 @@ export async function POST(request: NextRequest) {
           ...payload,
           title: safeText(payload.title, 240) || 'Discussion: ' + headline,
           body: safeText(payload.body, 5000) || `This story was reported by ${publisher}: “${headline}”. What are your views on this development and its possible impact? Please keep the discussion respectful and focus on verified information.`,
-          category: safeText(payload.category, 80) || 'Nigeria',
+          category: safeForumCategory(payload.category),
         };
       }
       const { data: priorDistribution } = await db.from('ai_newsroom_distributions').select('id,status').eq('item_id', itemId).eq('destination', destination).maybeSingle();
@@ -199,7 +207,7 @@ export async function POST(request: NextRequest) {
             ...p,
             title: title || 'Discussion: ' + headline,
             body: bodyText || `This story was reported by ${publisher}: “${headline}”. What are your views on this development and its possible impact? Please keep the discussion respectful and focus on verified information.`,
-            category: safeText(p.category, 80) || 'Nigeria',
+            category: safeForumCategory(p.category),
           };
           title = safeText(p.title, 240);
           bodyText = safeText(p.body, 5000);
@@ -207,7 +215,7 @@ export async function POST(request: NextRequest) {
           if (repairError) throw repairError;
         }
         const { data: created, error: insertError } = await db.from('forum_threads').insert({
-          title, body: bodyText, preview: bodyText.slice(0, 240), category: safeText(p.category, 80) || 'Nigeria',
+          title, body: bodyText, preview: bodyText.slice(0, 240), category: safeForumCategory(p.category),
           author: 'NaijaToday Desk', author_email: 'system@naijatoday', status: 'pending',
           replies: 0, views: 'New', hot: false, pinned: false, closed: false, upvotes: 0,
         }).select('id').single();
