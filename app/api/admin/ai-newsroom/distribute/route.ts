@@ -145,12 +145,29 @@ export async function POST(request: NextRequest) {
         if (updateError) throw updateError;
         return NextResponse.json({ ok: true, status: 'rejected' });
       }
-      const p = record.payload || {};
+      let p = record.payload || {};
       let targetId: number | null = null;
       if (record.destination === 'forum_thread') {
-        const title = safeText(p.title, 240);
-        const bodyText = safeText(p.body, 5000);
-        if (!title || !bodyText) return NextResponse.json({ error: 'Forum title and discussion text must be completed before approval.' }, { status: 400 });
+        let title = safeText(p.title, 240);
+        let bodyText = safeText(p.body, 5000);
+        // Repair older pending entries that were queued with an empty forum payload.
+        if (!title || !bodyText) {
+          const { data: sourceItem, error: sourceError } = await db.from('ai_newsroom_items')
+            .select('source_title,source_name').eq('id', record.item_id).single();
+          if (sourceError || !sourceItem) return NextResponse.json({ error: 'The forum draft is incomplete and its source story could not be loaded. Reject it and add it to the approval queue again.' }, { status: 400 });
+          const headline = safeText(sourceItem.source_title, 200) || 'A current Nigerian news story';
+          const publisher = safeText(sourceItem.source_name, 120) || 'the source publisher';
+          p = {
+            ...p,
+            title: title || 'Discussion: ' + headline,
+            body: bodyText || `This story was reported by ${publisher}: “${headline}”. What are your views on this development and its possible impact? Please keep the discussion respectful and focus on verified information.`,
+            category: safeText(p.category, 80) || 'Nigeria',
+          };
+          title = safeText(p.title, 240);
+          bodyText = safeText(p.body, 5000);
+          const { error: repairError } = await db.from('ai_newsroom_distributions').update({ payload: p }).eq('id', id);
+          if (repairError) throw repairError;
+        }
         const { data: created, error: insertError } = await db.from('forum_threads').insert({
           title, body: bodyText, preview: bodyText.slice(0, 240), category: safeText(p.category, 80) || 'Nigeria',
           author: 'NaijaToday Desk', author_email: 'system@naijatoday', status: 'pending',
