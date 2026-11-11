@@ -11,23 +11,23 @@ import AdminPanel from '@/components/AdminPanel';
 // so a visitor can't get admin powers by messing with the browser, even
 // if they somehow got past this screen.
 export default function AdminPage() {
-  const { loading, loggedIn, canModerate, openModal } = useAuth();
+  const { loading, loggedIn, canAccessAdmin, openModal } = useAuth();
   const { card, border, text, muted } = useTheme();
 
   if (loading) {
     return <div style={{ textAlign: 'center', padding: 80, color: muted }}>Loading…</div>;
   }
 
-  if (!loggedIn || !canModerate) {
+  if (!loggedIn || !canAccessAdmin) {
     return (
       <div style={{ maxWidth: 420, margin: '80px auto', padding: '0 16px', textAlign: 'center' }}>
         <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: 32 }}>
           <div style={{ fontSize: 44, marginBottom: 12 }}>🔒</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: text, marginBottom: 8 }}>Admin Access Only</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: text, marginBottom: 8 }}>Editorial Team Access</div>
           <div style={{ fontSize: 14, color: muted, marginBottom: 20 }}>
             {loggedIn
-              ? "Your account doesn't have admin or moderator access."
-              : 'Sign in with an admin or moderator account to continue.'}
+              ? "Your account doesn't have editorial, moderator or administrator access."
+              : 'Sign in with an authorised NaijaToday team account to continue.'}
           </div>
           {!loggedIn && (
             <button
