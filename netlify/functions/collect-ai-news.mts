@@ -5,6 +5,29 @@ export const config = { schedule: '0 */2 * * *' };
 const ALLOWED = ['channelstv.com','premiumtimesng.com','punchng.com','guardian.ng','vanguardngr.com','thenationonlineng.net','thisdaylive.com','dailytrust.com','thecable.ng','businessday.ng','arise.tv','bbc.com','reuters.com'];
 const dbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const ADMIN_EMAIL = 'kujopatu@gmail.com';
+
+async function recordAutomationEvent(db: any, action: string, detail: string, notify = false) {
+  try {
+    const { error } = await db.from('admin_activity_log').insert({
+      action, detail: detail.slice(0, 2000), admin_email: 'system@naijatoday',
+    });
+    if (error) console.error('Could not write AI Newsroom activity log:', error.message);
+  } catch (error) {
+    console.error('AI Newsroom activity log failed:', error);
+  }
+  if (notify) {
+    try {
+      const { error } = await db.from('notifications').insert({
+        recipient_email: ADMIN_EMAIL, type: 'system', message: 'NaijaToday AI Newsroom needs attention',
+        preview: detail.slice(0, 500), read: false, post_id: null,
+      });
+      if (error) console.error('Could not create AI Newsroom failure notification:', error.message);
+    } catch (error) {
+      console.error('AI Newsroom failure notification failed:', error);
+    }
+  }
+}
 
 function approved(url: string) {
   try { const u = new URL(url); return u.protocol === 'https:' && ALLOWED.some(d => u.hostname === d || u.hostname.endsWith('.' + d)); }
@@ -121,9 +144,10 @@ export default async function collectAndDraftNews() {
   const db=createClient(dbUrl,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
   const {data:sources,error}=await db.from('ai_newsroom_sources').select('*').eq('is_active',true).limit(20);
   if(error) { console.error('Could not load AI newsroom feeds',error.message); return new Response('Source query failed',{status:500}); }
-  let discovered=0, drafted=0, failed=0;
+  let discovered=0, drafted=0, failed=0, feedsChecked=0;
   for(const source of sources||[]) {
     if(!approved(source.feed_url)) continue;
+    feedsChecked++;
     try {
       const response=await fetch(source.feed_url,{headers:{'User-Agent':'NaijaTodayNewsroom/1.0',Accept:'application/rss+xml, application/atom+xml, application/xml, text/xml'},redirect:'error',signal:AbortSignal.timeout(12000)});
       if(!response.ok) throw new Error('Feed HTTP '+response.status);
@@ -138,21 +162,32 @@ export default async function collectAndDraftNews() {
         if(insertError) { if(insertError.code!=='23505') { failed++; console.error('Feed item insert failed',insertError.message); } }
         else if(item) discovered++;
       }
-    } catch(error) { failed++; console.error('Feed fetch failed for',source.name,error); }
+    } catch(error) { failed++; console.error('Feed fetch failed for',source.name,error); await recordAutomationEvent(db,'ai_newsroom_feed_failed',`${source.name}: ${error instanceof Error ? error.message : String(error)}`); }
   }
 
   if(process.env.GEMINI_API_KEY) {
     const {data:queue,error:queueError}=await db.from('ai_newsroom_items').select('*').eq('status','discovered').order('created_at',{ascending:true}).limit(5);
-    if(queueError) { console.error('Could not load draft queue',queueError.message); }
+    if(queueError) { failed++; console.error('Could not load draft queue',queueError.message); await recordAutomationEvent(db,'ai_newsroom_queue_failed',queueError.message,true); }
     for(const item of queue||[]) {
       try {
         const generated=await generate(item);
         const {error:updateError}=await db.from('ai_newsroom_items').update(generated).eq('id',item.id).eq('status','discovered');
         if(updateError) throw updateError;
         drafted++;
-      } catch(error) { failed++; console.error('AI draft generation failed for',item.source_title,error); }
+      } catch(error) {
+        failed++;
+        const message = error instanceof Error ? error.message.slice(0, 1000) : 'AI draft generation failed.';
+        console.error('AI draft generation failed for',item.source_title,message);
+        const { error: statusError } = await db.from('ai_newsroom_items').update({
+          status: 'generation_failed', generation_error: message, updated_at: new Date().toISOString(),
+        }).eq('id',item.id).eq('status','discovered');
+        if (statusError) console.error('Could not mark failed AI draft:',statusError.message);
+        await recordAutomationEvent(db,'ai_newsroom_draft_failed',`${item.source_title}: ${message}`);
+      }
     }
   }
-  console.log(`AI Newsroom cycle complete: ${discovered} new stories, ${drafted} drafts generated, ${failed} errors.`);
-  return new Response(JSON.stringify({discovered,drafted,failed}),{headers:{'Content-Type':'application/json'}});
+  const detail = `Checked ${feedsChecked} feeds; discovered ${discovered} new stories; generated ${drafted} drafts; ${failed} errors.${!process.env.GEMINI_API_KEY ? ' Automatic drafting skipped because GEMINI_API_KEY is not configured.' : ''}`;
+  console.log('AI Newsroom cycle complete:',detail);
+  await recordAutomationEvent(db,'ai_newsroom_cycle',detail,failed > 0);
+  return new Response(JSON.stringify({discovered,drafted,failed,feedsChecked}),{headers:{'Content-Type':'application/json'}});
 }
