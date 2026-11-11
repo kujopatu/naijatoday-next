@@ -32,8 +32,17 @@ export default function AINewsDistribution({ items }: { items: NewsItem[] }) {
       method, headers: { Authorization: `Bearer ${accessToken}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}), cache: 'no-store',
     });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.error || 'Distribution request failed.');
+    const responseText = await response.text();
+    let result: any = {};
+    try { result = responseText ? JSON.parse(responseText) : {}; }
+    catch {
+      const contentType = response.headers.get('content-type') || 'unknown response';
+      const detail = responseText.replace(/\\s+/g, ' ').slice(0, 240);
+      throw new Error(`Distribution API returned HTTP ${response.status} (${contentType}). ${detail || response.statusText || 'No response body.'}`);
+    }
+    if (!response.ok) {
+      throw new Error(result.error || `Distribution API returned HTTP ${response.status} ${response.statusText}.`);
+    }
     return result;
   };
   const refresh = async () => { const result = await call('GET'); setQueue(result.distributions || []); };
