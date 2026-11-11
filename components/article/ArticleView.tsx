@@ -31,7 +31,7 @@ function goBack(router: ReturnType<typeof useRouter>) {
   router.push('/');
 }
 
-export default function ArticleView({ post, html, related }: { post: Post; html: string; related: Post[] }) {
+export default function ArticleView({ post, html, related, authorProfile }: { post: Post; html: string; related: Post[]; authorProfile: { bio?: string | null; avatar_url?: string | null; role_title?: string | null } | null }) {
   const { card, border, text, muted } = useTheme();
   const { loggedIn, userEmail } = useAuth();
   const { showToast } = useToast();
@@ -111,23 +111,30 @@ export default function ArticleView({ post, html, related }: { post: Post; html:
         <ArticleActions post={post} />
 
         <div style={{ display: 'flex', gap: 14, alignItems: 'center', background: card, border: `1px solid ${border}`, borderRadius: 14, padding: 18, margin: '24px 0' }}>
-          <div style={{ width: 52, height: 52, borderRadius: '50%', background: G.green, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, flexShrink: 0 }}>
-            {(post.author || 'N')[0].toUpperCase()}
-          </div>
-          <div>
-            <div style={{ fontWeight: 700, color: text }}>
-              {post.author ? <Link href={`/author/${encodeURIComponent(post.author)}`} style={{ color: 'inherit', textDecoration: 'none' }}>{post.author}</Link> : 'NaijaToday Desk'}
+          {authorProfile?.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={authorProfile.avatar_url} alt={post.author || 'NaijaToday'} style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+          ) : (
+            <div aria-hidden="true" style={{ width: 60, height: 60, borderRadius: '50%', background: G.green, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 22, flexShrink: 0 }}>
+              {(post.author || 'N')[0].toUpperCase()}
             </div>
-            <div style={{ fontSize: 12.5, color: muted, marginTop: 2 }}>
-              {isDesk ? 'The NaijaToday newsroom — Staff Writers based in Lagos, Nigeria.' : 'Staff Writer · NaijaToday'}
+          )}
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 800, color: text }}>
+              {post.author && !isDesk ? <Link href={`/author/${encodeURIComponent(post.author)}`} style={{ color: 'inherit', textDecoration: 'none' }}>{post.author} ↗</Link> : 'NaijaToday Desk'}
             </div>
-            <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>📍 Lagos, Nigeria</div>
+            <div style={{ fontSize: 12.5, color: muted, marginTop: 3 }}>
+              {isDesk ? 'The NaijaToday newsroom' : (authorProfile?.role_title || 'NaijaToday Contributor')}
+            </div>
+            {authorProfile?.bio && <p style={{ fontSize: 12, lineHeight: 1.55, color: muted, margin: '7px 0 0' }}>{authorProfile.bio}</p>}
+            {!isDesk && <Link href={`/author/${encodeURIComponent(post.author || '')}`} style={{ display: 'inline-block', marginTop: 7, color: G.green, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>View author profile →</Link>}
           </div>
         </div>
 
         {related.length > 0 && (
           <div style={{ margin: '32px 0' }}>
-            <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Georgia,serif', marginBottom: 12, color: text }}>Related Articles</div>
+            <div style={{ fontSize: 18, fontWeight: 800, fontFamily: 'Georgia,serif', marginBottom: 4, color: text }}>More Stories to Explore</div>
+            <div style={{ fontSize: 12, color: muted, marginBottom: 13 }}>More reporting selected from NaijaToday, based on topics and categories.</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
               {related.map((r) => {
                 const img = toCloudinaryWm(r.image, 400);
