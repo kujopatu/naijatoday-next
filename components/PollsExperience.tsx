@@ -20,7 +20,7 @@ type Poll = {
   closes_at: string | null;
   postTitle?: string;
 };
-type Vote = { poll_id: number; option_index: number; voter_key: string };
+type Vote = { poll_id: number; option_index: number; vote_count: number; is_mine: boolean };
 
 export default function PollsExperience({ featuredOnly = false }: { featuredOnly?: boolean }) {
   const { userEmail } = useAuth();
@@ -46,14 +46,14 @@ export default function PollsExperience({ featuredOnly = false }: { featuredOnly
         (posts ?? []).forEach((p: {id:string;title:string}) => { titles[p.id] = p.title; });
       }
       const enriched = data.map(p => ({ ...p, options: Array.isArray(p.options) ? p.options : [], postTitle: p.post_id ? titles[p.post_id] : undefined })) as Poll[];
-      const { data: voteRows } = await supabase.from('poll_votes').select('poll_id,option_index,voter_key').in('poll_id', enriched.map(p => p.id));
+      const key = getVoterKey(userEmail);
+      const { data: voteRows } = await supabase.rpc('get_poll_results', { p_poll_ids: enriched.map(p => p.id), p_voter_key: key });
       if (!live) return;
       const allVotes = (voteRows ?? []) as Vote[];
       setPolls(enriched);
       setVotes(allVotes);
-      const key = getVoterKey(userEmail);
       const own: Record<number, number> = {};
-      allVotes.forEach(v => { if (v.voter_key === key) own[v.poll_id] = v.option_index; });
+      allVotes.forEach(v => { if (v.is_mine) own[v.poll_id] = v.option_index; });
       setMyVotes(own);
       setLoading(false);
     })();
@@ -71,13 +71,12 @@ export default function PollsExperience({ featuredOnly = false }: { featuredOnly
     setBusy(poll.id);
     const key = getVoterKey(userEmail);
     const { error } = await supabase.from('poll_votes').insert({ poll_id: poll.id, option_index: optionIndex, voter_key: key });
-    if (error) {
-      if (error.code === '23505') {
-        setMyVotes(v => ({ ...v, [poll.id]: optionIndex }));
-      }
-    } else {
-      setVotes(v => [...v, { poll_id: poll.id, option_index: optionIndex, voter_key: key }]);
-      setMyVotes(v => ({ ...v, [poll.id]: optionIndex }));
+    const { data: refreshed } = await supabase.rpc('get_poll_results', { p_poll_ids: [poll.id], p_voter_key: key });
+    if (!error || error.code === '23505') {
+      const fresh = (refreshed ?? []) as Vote[];
+      setVotes(v => [...v.filter(row => row.poll_id !== poll.id), ...fresh]);
+      const own = fresh.find(row => row.is_mine);
+      if (own) setMyVotes(v => ({ ...v, [poll.id]: own.option_index }));
     }
     setBusy(null);
   };
@@ -87,7 +86,7 @@ export default function PollsExperience({ featuredOnly = false }: { featuredOnly
 
   const renderPoll = (poll: Poll, compact = false) => {
     const pollVotes = countFor(poll.id);
-    const total = pollVotes.length;
+    const total = pollVotes.reduce((sum, row) => sum + Number(row.vote_count), 0);
     const myVote = myVotes[poll.id];
     const hasVoted = myVote !== undefined;
     const open = isOpen(poll);
@@ -104,7 +103,7 @@ export default function PollsExperience({ featuredOnly = false }: { featuredOnly
         {poll.thread_id && <div style={{ fontSize: 12, color: muted, marginBottom: 14 }}>From the NaijaToday Forum</div>}
         <div style={{ display: 'grid', gap: 9, marginTop: 14 }}>
           {poll.options.map((option, i) => {
-            const count = pollVotes.filter(v => v.option_index === i).length;
+            const count = Number(pollVotes.find(v => v.option_index === i)?.vote_count ?? 0);
             const pct = total ? Math.round(count / total * 100) : 0;
             const selected = myVote === i;
             return (
