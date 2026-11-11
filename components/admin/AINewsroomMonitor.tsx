@@ -83,12 +83,13 @@ export default function AINewsroomMonitor() {
       setActionMessage(typeof payload.feedsChecked === 'number'
         ? 'Collection finished: checked ' + payload.feedsChecked + ' feeds, discovered ' + payload.storiesAdded + ' new stories, generated ' + payload.drafted + ' drafts, with ' + payload.failed + ' errors.'
         : payload.message || 'News collection has started in the background. Refresh the monitor in a few moments to see the results.');
+      if (typeof payload.feedsChecked === 'number') await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not start news collection.');
     } finally {
       setCollectionRunning(false);
     }
-  }, []);
+  }, [load]);
 
   const retryDraft = useCallback(async (itemId: string) => {
     setRetryingId(itemId);
