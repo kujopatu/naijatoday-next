@@ -8,6 +8,7 @@ import HomeFeed from '@/components/HomeFeed';
 import MostReadSidebar from '@/components/MostReadSidebar';
 import SubscribeBox from '@/components/SubscribeBox';
 import SidebarWidgets from '@/components/SidebarWidgets';
+import PollsExperience from '@/components/PollsExperience';
 import JsonLd from '@/components/JsonLd';
 import { SITE_URL } from '@/lib/site';
 import { postPath } from '@/lib/posts';
@@ -57,6 +58,7 @@ export default async function HomePage() {
         <main style={{ minWidth: 0 }}>
           <FeaturedCarousel posts={featuredList} />
           <TrendingTicker />
+          <PollsExperience featuredOnly />
           <HomeFeed posts={allPosts} />
         </main>
         <aside>
