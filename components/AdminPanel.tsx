@@ -103,6 +103,7 @@ export default function AdminPanel() {
   const [selectedPosts, setSelectedPosts] = useState<string[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
+  const [commentTotal, setCommentTotal] = useState<number>(0);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<ArticleForm>(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -149,7 +150,15 @@ export default function AdminPanel() {
         )
         .order('created_at', { ascending: false })
         .limit(300);
-      if (!error && data) setPosts(data as AdminPostRow[]);
+      if (!error && data) {
+        setPosts(data as AdminPostRow[]);
+        const { count: visibleCommentCount, error: commentsError } = await supabase
+          .from('comments')
+          .select('id', { count: 'exact', head: true })
+          .eq('is_hidden', false);
+        if (!commentsError) setCommentTotal(visibleCommentCount ?? 0);
+        else console.error('Could not load visible comment total:', commentsError.message);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -530,7 +539,7 @@ export default function AdminPanel() {
 
   const totalViews = posts.reduce((s, p) => s + (p.views || 0), 0);
   const totalUpvotes = posts.reduce((s, p) => s + (p.upvotes || 0), 0);
-  const totalComments = posts.reduce((s, p) => s + (p.comments || 0), 0);
+
   const publishedCount = posts.filter((p) => p.published !== false).length;
   const unpublishedCount = posts.length - publishedCount;
   const catCounts: Record<string, number> = {};
@@ -672,7 +681,7 @@ export default function AdminPanel() {
               <div style={{ fontSize: 11, color: muted, textTransform: 'uppercase' }}>Total Upvotes</div>
             </div>
             <div style={statCard}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: G.green }}>{totalComments.toLocaleString()}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: G.green }}>{commentTotal.toLocaleString()}</div>
               <div style={{ fontSize: 11, color: muted, textTransform: 'uppercase' }}>Total Comments</div>
             </div>
             <div style={statCard}>
