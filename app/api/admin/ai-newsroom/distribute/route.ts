@@ -69,7 +69,7 @@ async function classify(item: any) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('Gemini is not configured. Add GEMINI_API_KEY and redeploy.');
   const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
-  const prompt = `Classify this Nigerian news-feed item for NaijaToday. Return ONLY JSON with destination ("forum_thread", "job", "scholarship", or "news"), confidence (0-100), reason, and payload. For forum_thread payload use title, body, category. For job use title, company, location, salary, type, experience_level, deadline, category, apply_url, description, requirements. For scholarship use title, provider, deadline, country, fully (boolean), level, field, apply_url. Never invent missing facts, URLs, dates, employers or providers; use empty strings/null where absent. Only classify as job or scholarship if the source clearly describes a real opportunity and provides a specific application URL; otherwise use news or forum_thread. Forum payload must be a neutral discussion starter with a question and source attribution. Do not treat ordinary news about hiring or education policy as an actual vacancy or scholarship.
+  const prompt = `Classify this Nigerian news-feed item for NaijaToday. Return ONLY JSON with destination ("forum_thread", "job", "scholarship", or "news"), confidence (0-100), reason, and payload. For forum_thread payload use title, body, category. For job use title, company, location, salary, type, experience_level, deadline, category, apply_url, description, requirements. For scholarship use title, provider, deadline, country, fully (boolean), level, field, apply_url. Never invent missing facts, URLs, dates, employers or providers; use empty strings/null where absent. Only classify as job or scholarship if the source clearly describes a real opportunity and provides a specific application URL; otherwise use news or forum_thread. Forum payload must be a neutral discussion starter with a question and source attribution. Do not treat ordinary news about hiring or education policy as an actual vacancy or scholarship. Use confidence carefully: 90-100 only when the source explicitly supports the destination and key details; 70-89 when the fit is strong but some non-essential details are missing; below 70 when uncertain. Prefer destination news when the story is not clearly an actionable vacancy or scholarship. For jobs, require a specific role, identifiable employer and direct HTTPS application URL. For scholarships, require a named award/provider and direct HTTPS application URL. Do not infer that a deadline is open or current unless the source says so.
 Headline: ${item.source_title}
 Publisher: ${item.source_name}
 Source URL: ${item.source_url}
@@ -164,6 +164,8 @@ export async function POST(request: NextRequest) {
           category: safeText(payload.category, 80) || 'Nigeria',
         };
       }
+      const { data: priorDistribution } = await db.from('ai_newsroom_distributions').select('id,status').eq('item_id', itemId).eq('destination', destination).maybeSingle();
+      if (priorDistribution?.status === 'published') return NextResponse.json({ error: 'This story has already been distributed to this destination. Check Distribution history instead of queueing it again.' }, { status: 409 });
       const { data, error } = await db.from('ai_newsroom_distributions').upsert({
         item_id: itemId, destination, payload, confidence: Math.max(0, Math.min(100, Number(body.confidence) || 0)),
         reason: safeText(body.reason, 800), status: 'pending',
