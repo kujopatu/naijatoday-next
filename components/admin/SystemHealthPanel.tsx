@@ -24,11 +24,27 @@ export default function SystemHealthPanel() {
       { label: 'Advertising campaigns', value: 'Checking…', detail: 'Checking campaign register access', state: 'loading' },
     ]);
 
-    const [postsResult, activityResult, campaignsResult] = await Promise.all([
+    const [postsResult, campaignsResult, sessionResult] = await Promise.all([
       supabase.from('posts').select('id,published,seo_title,seo_description,image', { count: 'exact' }).limit(1000),
-      supabase.from('admin_activity_log').select('id', { count: 'exact', head: true }),
       supabase.from('ad_campaigns').select('id', { count: 'exact', head: true }),
+      supabase.auth.getSession(),
     ]);
+    let activityResult: { ok: boolean; count: number; error?: string } = { ok: false, count: 0, error: 'Administrator session unavailable.' };
+    const accessToken = sessionResult.data.session?.access_token;
+    if (accessToken) {
+      try {
+        const response = await fetch('/api/admin/activity-log?countOnly=1', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          cache: 'no-store',
+        });
+        const result = await response.json();
+        activityResult = response.ok
+          ? { ok: true, count: Number(result.count || 0) }
+          : { ok: false, count: 0, error: result.error || 'Activity log check failed.' };
+      } catch {
+        activityResult = { ok: false, count: 0, error: 'Could not reach the activity log endpoint.' };
+      }
+    }
 
     const next: Check[] = [];
     if (postsResult.error) {
@@ -49,9 +65,9 @@ export default function SystemHealthPanel() {
       next.push({ label: 'Article images', value: `${missingImages} missing`, detail: `${cloudinaryImages} Cloudinary image URLs found in the checked records`, state: missingImages ? 'warn' : 'ok' });
     }
 
-    next.push(activityResult.error
-      ? { label: 'Admin activity log', value: 'Unavailable', detail: activityResult.error.message, state: 'warn' }
-      : { label: 'Admin activity log', value: 'Accessible', detail: `${activityResult.count ?? 0} recorded actions`, state: 'ok' });
+    next.push(!activityResult.ok
+      ? { label: 'Admin activity log', value: 'Unavailable', detail: activityResult.error || 'Access check failed.', state: 'warn' }
+      : { label: 'Admin activity log', value: 'Accessible', detail: `${activityResult.count.toLocaleString('en-NG')} recorded actions`, state: 'ok' });
     next.push(campaignsResult.error
       ? { label: 'Advertising campaigns', value: 'Unavailable', detail: campaignsResult.error.message, state: 'warn' }
       : { label: 'Advertising campaigns', value: 'Accessible', detail: `${campaignsResult.count ?? 0} campaign records`, state: 'ok' });
