@@ -11,7 +11,7 @@ import { useToast } from '../ToastProvider';
 
 export default function ArticleActions({ post }: { post: Post }) {
   const { card, border, text, muted } = useTheme();
-  const { userEmail } = useAuth();
+  const { loggedIn, userEmail, openModal } = useAuth();
   const { isSaved, toggleSaved } = useSavedPosts();
   const { showToast } = useToast();
   const [upvotes, setUpvotes] = useState(post.upvotes ?? 0);
@@ -26,18 +26,21 @@ export default function ArticleActions({ post }: { post: Post }) {
   }, [post.id, userEmail]);
 
   const toggleVote = async () => {
+    if (!loggedIn) {
+      openModal('login');
+      return;
+    }
     if (busy) return;
     setBusy(true);
     const key = getVoterKey(userEmail);
-    if (voted) {
-      setVoted(false); setUpvotes((n) => Math.max(0, n - 1));
-      await supabase.from('post_votes').delete().eq('post_id', post.id).eq('voter_key', key);
-      await supabase.rpc('decrement_post_upvotes', { p_id: post.id });
+    const result = voted
+      ? await supabase.from('post_votes').delete().eq('post_id', post.id).eq('voter_key', key)
+      : await supabase.from('post_votes').insert({ post_id: post.id, voter_key: key });
+    if (result.error) {
+      showToast('Vote could not be saved: ' + result.error.message);
     } else {
-      setVoted(true); setUpvotes((n) => n + 1);
-      const { error } = await supabase.from('post_votes').insert({ post_id: post.id, voter_key: key });
-      if (error) { setVoted(false); setUpvotes((n) => Math.max(0, n - 1)); }
-      else await supabase.rpc('increment_post_upvotes', { p_id: post.id });
+      setVoted(!voted);
+      setUpvotes((n) => Math.max(0, n + (voted ? -1 : 1)));
     }
     setBusy(false);
   };
