@@ -24,6 +24,9 @@ export default function PollAnalyticsPanel() {
   const [polls, setPolls] = useState<EnrichedPoll[]>([]);
   const [loading, setLoading] = useState(true);
   const [closeDateValues, setCloseDateValues] = useState<Record<number, string>>({});
+  const [newQuestion, setNewQuestion] = useState('');
+  const [newOptions, setNewOptions] = useState(['', '']);
+  const [creating, setCreating] = useState(false);
 
   const loadPolls = async () => {
     setLoading(true);
@@ -66,6 +69,33 @@ export default function PollAnalyticsPanel() {
     loadPolls();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const createPoll = async () => {
+    const question = newQuestion.trim();
+    const options = newOptions.map((option) => option.trim()).filter(Boolean);
+    if (!question || options.length < 2) {
+      showToast('Enter a poll question and at least two options.');
+      return;
+    }
+    setCreating(true);
+    const { error } = await supabase.from('polls').insert({
+      question,
+      options,
+      is_active: true,
+      is_featured: false,
+      post_id: null,
+      thread_id: null,
+    });
+    setCreating(false);
+    if (error) {
+      showToast('Could not create poll: ' + error.message);
+      return;
+    }
+    setNewQuestion('');
+    setNewOptions(['', '']);
+    showToast('Poll published to the public polls page.');
+    loadPolls();
+  };
+
   const updatePoll = async (poll: EnrichedPoll, changes: Partial<Pick<Poll, 'is_active' | 'is_featured' | 'closes_at'>>) => {
     try {
       if (changes.is_featured) {
@@ -104,6 +134,24 @@ export default function PollAnalyticsPanel() {
         <button onClick={loadPolls} style={{ background: 'none', border: `1px solid ${border}`, color: muted, borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer' }}>
           🔄 Refresh
         </button>
+      </div>
+
+      <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 12, padding: 18, marginBottom: 18 }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: text, marginBottom: 12 }}>＋ Create a public poll</div>
+        <input value={newQuestion} onChange={(e) => setNewQuestion(e.target.value)} placeholder="Ask a question for NaijaToday readers…" maxLength={240}
+          style={{ width: '100%', boxSizing: 'border-box', background: darkMode ? '#111520' : '#f5f7fa', color: text, border: `1px solid ${border}`, borderRadius: 8, padding: '11px 12px', marginBottom: 10 }} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 8 }}>
+          {newOptions.map((option, index) => <input key={index} value={option} onChange={(e) => setNewOptions((items) => items.map((item, i) => i === index ? e.target.value : item))}
+            placeholder={`Option ${index + 1}`} maxLength={100}
+            style={{ width: '100%', boxSizing: 'border-box', background: darkMode ? '#111520' : '#f5f7fa', color: text, border: `1px solid ${border}`, borderRadius: 8, padding: '10px 12px' }} />)}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {newOptions.length < 6 && <button onClick={() => setNewOptions((items) => [...items, ''])} style={{ background: 'transparent', color: G.green, border: `1px solid ${G.green}`, borderRadius: 7, padding: '7px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>＋ Add option</button>}
+            {newOptions.length > 2 && <button onClick={() => setNewOptions((items) => items.slice(0, -1))} style={{ background: 'transparent', color: muted, border: `1px solid ${border}`, borderRadius: 7, padding: '7px 10px', fontSize: 12, cursor: 'pointer' }}>Remove last</button>}
+          </div>
+          <button onClick={createPoll} disabled={creating} style={{ background: G.green, color: '#fff', border: 0, borderRadius: 8, padding: '9px 16px', fontSize: 12, fontWeight: 900, cursor: creating ? 'wait' : 'pointer', opacity: creating ? .7 : 1 }}>{creating ? 'Publishing…' : 'Publish public poll'}</button>
+        </div>
       </div>
 
       {loading ? (
