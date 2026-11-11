@@ -34,7 +34,7 @@ export default function PollAnalyticsPanel() {
         return;
       }
 
-      const { data: voteData } = await supabase.from('poll_votes').select('poll_id, option_index');
+      const { data: voteData } = await supabase.rpc('get_poll_results', { p_poll_ids: (pollData as Poll[]).map((p) => p.id), p_voter_key: null });
 
       const postIds = (pollData as Poll[]).filter((p) => p.post_id).map((p) => p.post_id as string);
       const postTitles: Record<string, string> = {};
@@ -43,11 +43,11 @@ export default function PollAnalyticsPanel() {
         if (posts) (posts as { id: string; title: string }[]).forEach((p) => (postTitles[p.id] = p.title));
       }
 
-      const votes = (voteData ?? []) as { poll_id: number; option_index: number }[];
+      const votes = (voteData ?? []) as { poll_id: number; option_index: number; vote_count: number }[];
       const enriched: EnrichedPoll[] = (pollData as Poll[]).map((poll) => {
         const pollVotes = votes.filter((v) => v.poll_id === poll.id);
-        const totalVotes = pollVotes.length;
-        const optionCounts = (poll.options || []).map((_, i) => pollVotes.filter((v) => v.option_index === i).length);
+        const totalVotes = pollVotes.reduce((sum, v) => sum + Number(v.vote_count), 0);
+        const optionCounts = (poll.options || []).map((_, i) => Number(pollVotes.find((v) => v.option_index === i)?.vote_count ?? 0));
         return {
           ...poll,
           totalVotes,
