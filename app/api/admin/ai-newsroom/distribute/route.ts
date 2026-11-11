@@ -88,6 +88,43 @@ Generated summary: ${item.generated_excerpt || ''}`;
   return { destination: parsed.destination, confidence: Math.max(0, Math.min(100, Number(parsed.confidence) || 0)), reason: safeText(parsed.reason, 800), payload: parsed.payload || {} };
 }
 
+async function findExistingTarget(db: ReturnType<typeof dbClient>, destination: string, payload: any) {
+  if (destination === 'forum_thread') {
+    const title = safeText(payload.title, 240);
+    if (!title) return null;
+    const { data } = await db.from('forum_threads').select('id').eq('title', title).limit(1).maybeSingle();
+    return data?.id ? Number(data.id) : null;
+  }
+  if (destination === 'job') {
+    const applyUrl = safeHttps(payload.apply_url);
+    const title = safeText(payload.title, 240);
+    const company = safeText(payload.company, 180);
+    if (applyUrl) {
+      const { data } = await db.from('jobs').select('id').eq('apply_url', applyUrl).limit(1).maybeSingle();
+      if (data?.id) return Number(data.id);
+    }
+    if (title && company) {
+      const { data } = await db.from('jobs').select('id').ilike('title', title).ilike('company', company).limit(1).maybeSingle();
+      if (data?.id) return Number(data.id);
+    }
+    return null;
+  }
+  if (destination === 'scholarship') {
+    const applyUrl = safeHttps(payload.apply_url);
+    const title = safeText(payload.title, 240);
+    const provider = safeText(payload.provider, 180);
+    if (applyUrl) {
+      const { data } = await db.from('scholarships').select('id').eq('apply_url', applyUrl).limit(1).maybeSingle();
+      if (data?.id) return Number(data.id);
+    }
+    if (title && provider) {
+      const { data } = await db.from('scholarships').select('id').ilike('title', title).ilike('provider', provider).limit(1).maybeSingle();
+      if (data?.id) return Number(data.id);
+    }
+  }
+  return null;
+}
+
 export async function GET(request: NextRequest) {
   if (!(await isAdmin(request))) return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
   const db = dbClient();
@@ -147,7 +184,11 @@ export async function POST(request: NextRequest) {
       }
       let p = record.payload || {};
       let targetId: number | null = null;
-      if (record.destination === 'forum_thread') {
+      const existingTargetId = await findExistingTarget(db, record.destination, p);
+      const duplicate = existingTargetId !== null;
+      if (duplicate) {
+        targetId = existingTargetId;
+      } else if (record.destination === 'forum_thread') {
         let title = safeText(p.title, 240);
         let bodyText = safeText(p.body, 5000);
         // Repair older pending entries that were queued with an empty forum payload.
@@ -197,10 +238,10 @@ export async function POST(request: NextRequest) {
         if (insertError) throw insertError;
         targetId = created.id;
       }
-      const { error: updateError } = await db.from('ai_newsroom_distributions').update({ status: 'published', reviewed_at: new Date().toISOString(), payload: { ...p, target_id: targetId } }).eq('id', id);
+      const { error: updateError } = await db.from('ai_newsroom_distributions').update({ status: 'published', reviewed_at: new Date().toISOString(), payload: { ...p, target_id: targetId, duplicate_detected: duplicate } }).eq('id', id);
       if (updateError) throw updateError;
       await db.from('admin_activity_log').insert({ action: 'ai_newsroom_distribution_approved', detail: record.destination + ' distribution approved for ' + safeText(p.title, 180), admin_email: 'system@naijatoday' });
-      return NextResponse.json({ ok: true, status: 'published', target_id: targetId });
+      return NextResponse.json({ ok: true, status: 'published', target_id: targetId, duplicate });
     }
     return NextResponse.json({ error: 'Unknown distribution action.' }, { status: 400 });
   } catch (error) {
