@@ -153,7 +153,11 @@ export default async function collectAndDraftNews() {
   if(error) { console.error('Could not load AI newsroom feeds',error.message); return new Response('Source query failed',{status:500}); }
   let discovered=0, drafted=0, failed=0, feedsChecked=0;
   for(const source of sources||[]) {
-    if(!approved(source.feed_url)) continue;
+    if(!approved(source.feed_url)) {
+      failed++;
+      await recordAutomationEvent(db,'ai_newsroom_feed_failed',`${source.name}: feed URL is outside the approved source domains.`);
+      continue;
+    }
     feedsChecked++;
     try {
       const response=await fetch(source.feed_url,{headers:{'User-Agent':'NaijaTodayNewsroom/1.0',Accept:'application/rss+xml, application/atom+xml, application/xml, text/xml'},redirect:'error',signal:AbortSignal.timeout(12000)});
