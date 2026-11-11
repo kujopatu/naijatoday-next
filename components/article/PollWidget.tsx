@@ -73,7 +73,7 @@ export default function PollWidget({ postId }: { postId: string }) {
           </button>
         );
       })}
-      <div style={{ fontSize: 11, color: muted }}>{total} vote{total !== 1 ? 's' : ''}{!pollOpen ? ' · Voting closed' : voted ? ' · Results are live' : ' · Vote to see results'}</div>
+      <div style={{ fontSize: 11, color: muted }}>{total} vote{total !== 1 ? 's' : ''}{!pollOpen ? ' · Voting closed' : mine !== null ? ' · Results are live' : ' · Vote to see results'}</div>
     </div>
   );
 }
