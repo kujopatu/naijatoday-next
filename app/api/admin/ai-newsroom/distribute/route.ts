@@ -45,7 +45,7 @@ async function callGeminiForClassification(key: string, model: string, requestBo
         signal: AbortSignal.timeout(9000),
       });
       if (response.ok) return await response.json();
-      const detail = (await response.text()).replace(/\\s+/g, ' ').slice(0, 220);
+      const detail = (await response.text()).replace(/\s+/g, ' ').slice(0, 220);
       lastError = response.status === 429
         ? `Gemini model ${candidate} is rate-limited or its quota is exhausted (429).${detail ? ' ' + detail : ''}`
         : `Gemini model ${candidate} returned HTTP ${response.status}.${detail ? ' ' + detail : ''}`;
