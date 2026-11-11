@@ -171,7 +171,24 @@ async function geminiDraft(item: Record<string, unknown>, format: 'news' | 'arti
   const readDraft = (result: any) => {
     const responseText = result?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || '').join('');
     if (!responseText) throw new Error('Gemini returned an empty response. Check the API key, model access and quota.');
-    const value = JSON.parse(responseText.replace(/^```(?:json)?|\```$/g, '').trim());
+    const cleaned = responseText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    if (start < 0 || end <= start) throw new Error('Gemini returned text that was not a complete JSON article. Please retry generation.');
+    const jsonText = cleaned.slice(start, end + 1);
+    let value: any;
+    try {
+      value = JSON.parse(jsonText);
+    } catch (firstError) {
+      // Gemini occasionally emits a trailing comma despite JSON response mode.
+      const repaired = jsonText.replace(/,\s*([}\]])/g, '$1');
+      try {
+        value = JSON.parse(repaired);
+      } catch {
+        const detail = firstError instanceof Error ? firstError.message : 'Invalid JSON';
+        throw new Error('Gemini returned malformed article JSON (' + detail + '). Please retry; if it repeats, check the selected Gemini model and response quota.');
+      }
+    }
     if (!value.title || !value.excerpt || !value.content_html) throw new Error('Gemini response was missing required article fields.');
     return value;
   };
