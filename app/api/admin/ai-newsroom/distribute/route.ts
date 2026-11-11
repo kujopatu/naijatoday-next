@@ -28,6 +28,43 @@ function safeHttps(value: unknown) {
   try { const u = new URL(String(value || '')); return u.protocol === 'https:' ? u.toString() : ''; }
   catch { return ''; }
 }
+async function callGeminiForClassification(key: string, model: string, requestBody: unknown) {
+  // Keep classification resilient in the same way as article generation:
+  // try the configured primary model, then the configured fallback model.
+  const fallback = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite';
+  const models = [...new Set([model, fallback])];
+  let lastError = 'Gemini is temporarily unavailable.';
+  for (const candidate of models) {
+    // A 429 commonly indicates model quota/rate limits. Move to the fallback
+    // immediately instead of repeatedly consuming the same exhausted quota.
+    const maxAttempts = 2;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(candidate)}:generateContent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+          body: JSON.stringify(requestBody),
+          signal: AbortSignal.timeout(45000),
+        });
+        if (response.ok) return await response.json();
+        const detail = (await response.text()).replace(/\\s+/g, ' ').slice(0, 220);
+        lastError = response.status === 429
+          ? `Gemini model ${candidate} is rate-limited or its quota is exhausted (429).${detail ? ' ' + detail : ''}`
+          : `Gemini model ${candidate} returned HTTP ${response.status}.${detail ? ' ' + detail : ''}`;
+        if (![429, 500, 502, 503, 504].includes(response.status)) throw new Error(lastError);
+        if (response.status === 429) break;
+      } catch (error) {
+        if (error instanceof Error && !error.message.includes('fetch failed') && !error.name.includes('Timeout') && !error.name.includes('Abort')) throw error;
+        lastError = error instanceof Error && error.name.includes('Timeout')
+          ? `Gemini model ${candidate} timed out.`
+          : 'Could not reach Gemini. Please check the connection and retry.';
+      }
+      if (attempt < maxAttempts - 1) await new Promise(resolve => setTimeout(resolve, 1800));
+    }
+  }
+  throw new Error(lastError + ' The primary and fallback models could not complete classification. Check the Gemini API quota or set GEMINI_FALLBACK_MODEL to an available model in Netlify environment variables.');
+}
+
 async function classify(item: any) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error('Gemini is not configured. Add GEMINI_API_KEY and redeploy.');
@@ -39,13 +76,10 @@ Source URL: ${item.source_url}
 Summary: ${String(item.source_summary || '').slice(0, 3500)}
 Generated headline: ${item.generated_title || ''}
 Generated summary: ${item.generated_excerpt || ''}`;
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-    body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, responseMimeType: 'application/json' } }),
-    signal: AbortSignal.timeout(45000),
+  const result = await callGeminiForClassification(key, model, {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
   });
-  if (!response.ok) throw new Error('Gemini classification failed (HTTP ' + response.status + ').');
-  const result = await response.json();
   const raw = result?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || '').join('');
   if (!raw) throw new Error('Gemini returned an empty classification.');
   const parsed = JSON.parse(raw.replace(/^```(?:json)?|\`\`\`$/g, '').trim());
