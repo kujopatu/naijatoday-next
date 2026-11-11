@@ -56,18 +56,28 @@ export default function AINewsDistribution({ items }: { items: NewsItem[] }) {
     try {
       const result = await call('POST', { action: 'classify', item_id: selected });
       const value = result.classification;
-      if (value.destination === 'news') {
+      const sourceItem = items.find((item) => item.id === selected);
+      const headline = sourceItem?.generated_title || sourceItem?.source_title || 'this news development';
+      if (value.destination === 'news' || value.destination === 'forum_thread') {
+        const forumPayload = {
+          ...(value.payload || {}),
+          title: value.payload?.title || `Discussion: ${headline}`,
+          body: value.payload?.body || `This story has been reported by NaijaToday. What are your views on this development, and how might it affect people or communities in Nigeria? Please keep the discussion respectful and focus on verified information.`,
+          category: value.payload?.category || 'National',
+        };
         setDestination('forum_thread');
-        setPayloadText(JSON.stringify({ title: '', body: '', category: 'Nigeria' }, null, 2));
-        setReason(value.reason || 'AI recommends keeping this in the main news workflow.');
+        setPayloadText(JSON.stringify(forumPayload, null, 2));
+        setReason(value.reason || (value.destination === 'news' ? 'This is a general news story, not a verified job or scholarship opportunity.' : 'AI recommends a forum discussion.'));
         setConfidence(value.confidence || 0);
-        setMessage('AI recommends keeping this story in the main News Articles workflow. You can still prepare a forum discussion manually if appropriate.');
+        setMessage(value.destination === 'news'
+          ? 'This is general news, so it is not being sent to Jobs or Scholarships. A suggested Forum discussion has been prepared; review it before queueing.'
+          : 'Forum discussion prepared. Review the title, discussion text and category before queueing.');
       } else {
         setDestination(value.destination);
         setPayloadText(JSON.stringify(value.payload || {}, null, 2));
         setReason(value.reason || '');
         setConfidence(value.confidence || 0);
-        setMessage('Classification ready. Review and edit the content below before adding it to the approval queue.');
+        setMessage('Classification ready. Review the extracted opportunity details and application link before adding it to the approval queue.');
       }
     } catch (e) { setError(e instanceof Error ? e.message : 'Classification failed.'); }
     finally { setBusy(false); }
