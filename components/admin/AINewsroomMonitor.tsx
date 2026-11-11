@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { G } from '@/lib/theme';
 import { useAuth } from '../AuthProvider';
 import { useTheme } from '../ThemeProvider';
+import AINewsDistribution from './AINewsDistribution';
 
 type Source = { id: string; name: string; is_active: boolean; feed_url: string };
 type Item = {
@@ -224,6 +225,8 @@ export default function AINewsroomMonitor() {
           <div style={{ color: muted, fontSize: 10, marginTop: 10 }}>The publishing worker checks for due articles every five minutes.</div>
         </section>
       </div>
+
+      <AINewsDistribution items={items.map((item) => ({ id: item.id, source_title: item.source_title, source_name: item.source_name, status: item.status, generated_title: item.generated_title }))} />
 
       <section style={{ ...panel, marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
