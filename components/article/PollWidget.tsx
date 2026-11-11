@@ -8,6 +8,7 @@ import { useAuth } from '../AuthProvider';
 import { useTheme } from '../ThemeProvider';
 
 type Poll = { id: string; question: string; options: string[]; post_id?: string | null; is_active?: boolean; closes_at?: string | null };
+type PollResult = { option_index: number; vote_count: number; is_mine: boolean };
 
 // Shows the poll attached to this article (polls.post_id), if any. One vote
 // per member/device, stored in poll_votes.
@@ -25,13 +26,13 @@ export default function PollWidget({ postId }: { postId: string }) {
       if (!active || !p) return;
       const options: string[] = Array.isArray(p.options) ? p.options : [];
       setPoll({ ...p, options } as Poll);
-      const { data: votes } = await supabase.from('poll_votes').select('option_index, voter_key').eq('poll_id', p.id);
-      if (!active) return;
-      const c = options.map(() => 0);
-      (votes ?? []).forEach((v) => { if (c[v.option_index] !== undefined) c[v.option_index]++; });
-      setCounts(c);
       const key = getVoterKey(userEmail);
-      const own = (votes ?? []).find((v) => v.voter_key === key);
+      const { data: votes } = await supabase.rpc('get_poll_results', { p_poll_ids: [p.id], p_voter_key: key });
+      if (!active) return;
+      const rows = (votes ?? []) as PollResult[];
+      const c = options.map((_, i) => Number(rows.find(v => v.option_index === i)?.vote_count ?? 0));
+      setCounts(c);
+      const own = rows.find(v => v.is_mine);
       if (own) setMine(own.option_index);
     })();
     return () => { active = false; };
@@ -45,10 +46,14 @@ export default function PollWidget({ postId }: { postId: string }) {
     if (mine !== null || !pollOpen) return;
     setMine(i);
     setCounts((c) => c.map((n, idx) => (idx === i ? n + 1 : n)));
-    const { error } = await supabase.from('poll_votes').insert({ poll_id: poll.id, option_index: i, voter_key: getVoterKey(userEmail) });
-    if (error) {
-      setMine(null);
-      setCounts((c) => c.map((n, idx) => (idx === i ? n - 1 : n)));
+    const key = getVoterKey(userEmail);
+    const { error } = await supabase.from('poll_votes').insert({ poll_id: poll.id, option_index: i, voter_key: key });
+    const { data: refreshed } = await supabase.rpc('get_poll_results', { p_poll_ids: [Number(poll.id)], p_voter_key: key });
+    if (!error || error.code === '23505') {
+      const rows = (refreshed ?? []) as PollResult[];
+      setCounts(poll.options.map((_, idx) => Number(rows.find(v => v.option_index === idx)?.vote_count ?? 0)));
+      const own = rows.find(v => v.is_mine);
+      if (own) setMine(own.option_index);
     }
   };
 
