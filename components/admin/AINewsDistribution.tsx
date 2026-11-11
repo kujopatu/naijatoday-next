@@ -116,7 +116,7 @@ export default function AINewsDistribution({ items }: { items: NewsItem[] }) {
         <select value={destination} onChange={(e) => setDestination(e.target.value)} style={input}>
           <option value="forum_thread">Forum thread</option><option value="job">Job vacancy</option><option value="scholarship">Scholarship</option>
         </select>
-        <div style={{ color: muted, fontSize: 10, alignSelf: 'center' }}>AI confidence: {confidence}% · {reason}</div>
+        <div style={{ color: muted, fontSize: 10, alignSelf: 'center' }}>AI confidence: {confidence}% ({confidence >= 90 ? 'High' : confidence >= 70 ? 'Medium' : 'Low'} confidence) · {reason}</div>
       </div>
       <label style={{ color: muted, fontSize: 10, display: 'block', marginBottom: 5 }}>Review and edit the proposed content (JSON)</label>
       <textarea value={payloadText} onChange={(e) => setPayloadText(e.target.value)} rows={8} style={{ ...input, resize: 'vertical', fontFamily: 'monospace' }} />
@@ -131,7 +131,7 @@ export default function AINewsDistribution({ items }: { items: NewsItem[] }) {
       <div style={{ color: text, fontSize: 12, fontWeight: 800, marginBottom: 8 }}>Awaiting distribution approval ({pending.length})</div>
       {pending.length === 0 ? <div style={{ color: muted, fontSize: 11 }}>No items waiting for approval.</div> : pending.map((entry) => <div key={entry.id} style={{ borderTop: `1px solid ${border}`, padding: '10px 0' }}>
         <div style={{ color: text, fontSize: 12, fontWeight: 700 }}>{entry.payload?.title || entry.ai_newsroom_items?.source_title || 'Untitled distribution'}</div>
-        <div style={{ color: muted, fontSize: 10, margin: '4px 0 8px' }}>{labels[entry.destination] || entry.destination} · AI confidence {entry.confidence}% · {entry.reason || 'No reason supplied'}</div>
+        <div style={{ color: muted, fontSize: 10, margin: '4px 0 8px' }}>{labels[entry.destination] || entry.destination} · AI confidence {entry.confidence}% ({entry.confidence >= 90 ? 'High' : entry.confidence >= 70 ? 'Medium' : 'Low'}) · {entry.reason || 'No reason supplied'}</div>
         <div style={{ display: 'flex', gap: 7 }}>
           <button disabled={busy} onClick={() => void review(entry.id, 'approve')} style={{ background: G.green, color: '#fff', border: 0, borderRadius: 6, padding: '7px 10px', fontSize: 10, fontWeight: 800 }}>Approve &amp; send</button>
           <button disabled={busy} onClick={() => void review(entry.id, 'reject')} style={{ background: 'transparent', color: G.red, border: `1px solid ${G.red}`, borderRadius: 6, padding: '7px 10px', fontSize: 10, fontWeight: 800 }}>Reject</button>
