@@ -101,6 +101,8 @@ export default function AdminPanel() {
   const [posts, setPosts] = useState<AdminPostRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedPosts, setSelectedPosts] = useState<string[]>([]);
+  const [articleStatusFilter, setArticleStatusFilter] = useState<'all' | 'published' | 'unpublished'>('all');
+  const [articleSearch, setArticleSearch] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
   const [commentTotal, setCommentTotal] = useState<number>(0);
@@ -346,7 +348,20 @@ export default function AdminPanel() {
   };
 
   const togglePostSelect = (id: string) => setSelectedPosts((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
-  const toggleSelectAll = () => setSelectedPosts((s) => (s.length === posts.length ? [] : posts.map((p) => p.id)));
+  const visibleManagePosts = posts.filter((post) => {
+    const matchesStatus = articleStatusFilter === 'all'
+      || (articleStatusFilter === 'published' && post.published !== false)
+      || (articleStatusFilter === 'unpublished' && post.published === false);
+    const query = articleSearch.trim().toLowerCase();
+    const matchesSearch = !query || [post.title, post.category, post.author].some((value) => (value || '').toLowerCase().includes(query));
+    return matchesStatus && matchesSearch;
+  });
+  const toggleSelectAll = () => setSelectedPosts((selected) => {
+    const visibleIds = visibleManagePosts.map((post) => post.id);
+    return visibleIds.length > 0 && visibleIds.every((id) => selected.includes(id))
+      ? selected.filter((id) => !visibleIds.includes(id))
+      : [...new Set([...selected, ...visibleIds])];
+  });
 
   const handleBulkDelete = async () => {
     if (selectedPosts.length === 0) return;
@@ -995,16 +1010,36 @@ export default function AdminPanel() {
       {activeSection === 'manage' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: text, fontFamily: 'Georgia,serif' }}>📋 All Articles ({posts.length})</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: text, fontFamily: 'Georgia,serif' }}>📋 Manage Articles ({visibleManagePosts.length} of {posts.length})</div>
             <button onClick={loadPosts} style={{ background: 'none', border: `1px solid ${border}`, color: muted, borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer' }}>
               🔄 Refresh
             </button>
           </div>
 
-          {!isWriter && posts.length > 0 && (
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+            <input
+              type="search"
+              value={articleSearch}
+              onChange={(event) => setArticleSearch(event.target.value)}
+              placeholder="Search by article title, category or author…"
+              style={{ flex: '1 1 240px', minWidth: 180, padding: '10px 12px', borderRadius: 8, border: `1px solid ${border}`, background: card, color: text, fontSize: 13, outline: 'none' }}
+            />
+            <select
+              value={articleStatusFilter}
+              onChange={(event) => { setArticleStatusFilter(event.target.value as 'all' | 'published' | 'unpublished'); setSelectedPosts([]); }}
+              aria-label="Filter articles by publication status"
+              style={{ flex: '0 1 210px', minWidth: 170, padding: '10px 12px', borderRadius: 8, border: `1px solid ${border}`, background: card, color: text, fontSize: 13, cursor: 'pointer' }}
+            >
+              <option value="all">All articles</option>
+              <option value="published">Published</option>
+              <option value="unpublished">Draft / Unpublished</option>
+            </select>
+          </div>
+
+          {!isWriter && visibleManagePosts.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap', background: card, border: `1px solid ${border}`, borderRadius: 10, padding: '10px 14px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: text, cursor: 'pointer' }}>
-                <input type="checkbox" checked={selectedPosts.length === posts.length} onChange={toggleSelectAll} style={{ width: 16, height: 16, accentColor: G.green }} />
+                <input type="checkbox" checked={visibleManagePosts.length > 0 && visibleManagePosts.every((post) => selectedPosts.includes(post.id))} onChange={toggleSelectAll} style={{ width: 16, height: 16, accentColor: G.green }} />
                 {selectedPosts.length > 0 ? `${selectedPosts.length} selected` : 'Select all'}
               </label>
               {selectedPosts.length > 0 && (
@@ -1031,17 +1066,15 @@ export default function AdminPanel() {
 
           {loading ? (
             <div style={{ textAlign: 'center', padding: 40, color: muted }}>Loading articles…</div>
-          ) : posts.length === 0 ? (
+          ) : visibleManagePosts.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 60, color: muted }}>
               <div style={{ fontSize: 48, marginBottom: 12 }}>📝</div>
-              <div style={{ fontSize: 16, marginBottom: 8 }}>No articles yet</div>
-              <div style={{ fontSize: 13, marginBottom: 20 }}>Click &quot;Write New Article&quot; to publish your first story</div>
-              <button onClick={() => setActiveSection('new')} style={{ background: G.green, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, cursor: 'pointer' }}>
-                Write First Article
-              </button>
+              <div style={{ fontSize: 16, marginBottom: 8 }}>{posts.length === 0 ? 'No articles yet' : 'No articles match this filter'}</div>
+              <div style={{ fontSize: 13, marginBottom: 20 }}>{posts.length === 0 ? 'Click “Write New Article” to publish your first story' : 'Try another publication status or search term.'}</div>
+              {posts.length === 0 && <button onClick={() => setActiveSection('new')} style={{ background: G.green, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, cursor: 'pointer' }}>Write First Article</button>}
             </div>
           ) : (
-            posts.map((post) => (
+            visibleManagePosts.map((post) => (
               <div
                 key={post.id}
                 style={{
