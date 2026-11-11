@@ -169,6 +169,7 @@ export default async function collectAndDraftNews() {
         if(insertError) { if(insertError.code!=='23505') { failed++; console.error('Feed item insert failed',insertError.message); } }
         else if(item) discovered++;
       }
+      await recordAutomationEvent(db,'ai_newsroom_feed_checked',`${source.name}: checked successfully; feed parsed and new stories recorded.`);
     } catch(error) { failed++; console.error('Feed fetch failed for',source.name,error); await recordAutomationEvent(db,'ai_newsroom_feed_failed',`${source.name}: ${error instanceof Error ? error.message : String(error)}`); }
   }
 
