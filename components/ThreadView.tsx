@@ -49,10 +49,15 @@ export default function ThreadView({ thread: initial }: { thread: ForumThread })
     }
     setLoadingReplies(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initial.id, userEmail]);
+  }, [initial.id, userEmail, loggedIn]);
 
   // Which of these has this member / device already upvoted?
   const loadReplyVotes = async (ids: number[]) => {
+    if (!loggedIn || !userEmail) {
+      setThreadUpvoted(false);
+      setReplyUpvoted({});
+      return;
+    }
     const voterKey = getVoterKey(userEmail);
     try {
       const { data } = await supabase.from('forum_votes').select('target_type, target_id').eq('voter_key', voterKey).in('target_type', ['thread', 'reply']);
