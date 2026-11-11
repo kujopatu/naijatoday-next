@@ -1265,7 +1265,7 @@ export default function AdminPanel() {
       )}
 
       {activeSection === 'ai-newsroom' && <AINewsroomMonitor />}
-      {activeSection === 'breaking' && <BreakingNewsManager />
+      {activeSection === 'breaking' && <BreakingNewsManager />}
       {activeSection === 'jobs' && <JobsScholarshipsManager />}
       {activeSection === 'forum' && <ForumManager />}
       {activeSection === 'trends' && <TrendManagerPanel />}
