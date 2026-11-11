@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { getVoterKey } from '@/lib/voter';
@@ -61,8 +61,8 @@ export default function PollsExperience({ featuredOnly = false }: { featuredOnly
   }, [userEmail]);
 
   const isOpen = (p: Poll) => p.is_active && (!p.closes_at || new Date(p.closes_at).getTime() > Date.now());
-  const activePolls = useMemo(() => polls.filter(isOpen), [polls]);
-  const closedPolls = useMemo(() => polls.filter(p => !isOpen(p)), [polls]);
+  const activePolls = polls.filter(isOpen);
+  const closedPolls = polls.filter(p => !isOpen(p));
   const featured = activePolls.find(p => p.is_featured) ?? activePolls[0] ?? null;
   const visible = featuredOnly ? (featured ? [featured] : []) : (tab === 'active' ? activePolls : closedPolls);
   const countFor = (pollId: number) => votes.filter(v => v.poll_id === pollId);
