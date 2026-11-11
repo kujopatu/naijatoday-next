@@ -16,8 +16,12 @@ type AuthCtx = {
   username: string;
   userEmail: string;
   isAdmin: boolean;
+  isEditor: boolean;
+  isWriter: boolean;
   isModerator: boolean;
   canModerate: boolean;
+  canAccessAdmin: boolean;
+  canEditArticles: boolean;
   modal: ModalKind;
   openModal: (m: ModalKind) => void;
   closeModal: () => void;
@@ -29,14 +33,15 @@ type AuthCtx = {
 
 const Ctx = createContext<AuthCtx | null>(null);
 
-type SessionUser = { email: string; name: string };
+type SessionUser = { id: string; email: string; name: string };
+type AccountRole = 'admin' | 'editor' | 'writer' | 'moderator' | 'user';
 
 // Same display-name rule as the original: first word of the full name given
 // at signup, falling back to the part of the email before the "@".
 function toSessionUser(u: User | null | undefined): SessionUser | null {
   if (!u?.email) return null;
   const full = (u.user_metadata as { full_name?: string } | undefined)?.full_name;
-  return { email: u.email, name: full?.split(' ')[0] || u.email.split('@')[0] };
+  return { id: u.id, email: u.email, name: full?.split(' ')[0] || u.email.split('@')[0] };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -44,6 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<SessionUser | null>(null);
   const [moderators, setModerators] = useState<string[]>([]);
+  const [accountRole, setAccountRole] = useState<AccountRole>('user');
+  const [roleLoading, setRoleLoading] = useState(true);
   const [modal, setModal] = useState<ModalKind>(null);
 
   // Restore the session on page load, then stay in sync with sign-in /
@@ -63,6 +70,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const email = user?.email.toLowerCase() ?? '';
+
+  useEffect(() => {
+    if (!user?.id) {
+      setAccountRole('user');
+      setRoleLoading(false);
+      return;
+    }
+    let active = true;
+    setRoleLoading(true);
+    supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+      .then(({ data, error }) => {
+        if (!active) return;
+        const role = !error ? String(data?.role ?? 'user') : 'user';
+        setAccountRole(['admin', 'editor', 'writer', 'moderator'].includes(role) ? role as AccountRole : 'user');
+      })
+      .catch(() => { if (active) setAccountRole('user'); })
+      .finally(() => { if (active) setRoleLoading(false); });
+    return () => { active = false; };
+  }, [user?.id]);
 
   // Moderators are listed in the `moderators` table (as in the original).
   // Only fetched for logged-in visitors — anonymous readers never need it.
@@ -151,16 +177,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [showToast]);
 
   const value = useMemo<AuthCtx>(() => {
-    const isAdmin = !!email && email === ADMIN_EMAIL.toLowerCase();
-    const isModerator = !!email && !isAdmin && moderators.includes(email);
+    const isAdmin = accountRole === 'admin' || (!!email && email === ADMIN_EMAIL.toLowerCase());
+    const isEditor = !isAdmin && accountRole === 'editor';
+    const isWriter = !isAdmin && accountRole === 'writer';
+    const isModerator = !isAdmin && (accountRole === 'moderator' || moderators.includes(email));
+    const canAccessAdmin = isAdmin || isEditor || isWriter || isModerator;
     return {
-      loading,
+      loading: loading || roleLoading,
       loggedIn: !!user,
       username: user?.name ?? '',
       userEmail: user?.email ?? '',
       isAdmin,
+      isEditor,
+      isWriter,
       isModerator,
       canModerate: isAdmin || isModerator,
+      canAccessAdmin,
+      canEditArticles: isAdmin || isEditor || isModerator,
       modal,
       openModal: setModal,
       closeModal: () => setModal(null),
@@ -169,7 +202,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sendPasswordReset,
       logout,
     };
-  }, [loading, user, email, moderators, modal, login, register, sendPasswordReset, logout]);
+  }, [loading, roleLoading, user, email, accountRole, moderators, modal, login, register, sendPasswordReset, logout]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
