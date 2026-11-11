@@ -88,8 +88,8 @@ export default function PollAnalyticsPanel() {
   const deletePoll = async (pollId: number) => {
     if (!window.confirm('Delete this poll and all its votes?')) return;
     try {
-      await supabase.from('poll_votes').delete().eq('poll_id', pollId);
-      await supabase.from('polls').delete().eq('id', pollId);
+      const { error } = await supabase.from('polls').delete().eq('id', pollId);
+      if (error) throw error;
       setPolls((p) => p.filter((x) => x.id !== pollId));
       showToast('Poll deleted');
     } catch {
