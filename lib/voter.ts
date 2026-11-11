@@ -1,8 +1,7 @@
-// Same idea as the original: a logged-in member votes under their email,
-// everyone else under a random device id kept in the browser, so one device
-// can't vote twice on the same thing.
+// Authenticated votes use a normalized account email. Anonymous IDs remain
+// available for non-voting features that need a temporary visitor label.
 export function getVoterKey(userEmail?: string | null): string {
-  if (userEmail) return userEmail;
+  if (userEmail) return userEmail.toLowerCase();
   try {
     let id = localStorage.getItem('naija_anon_id');
     if (!id) {
