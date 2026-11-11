@@ -218,12 +218,13 @@ export default function PollAnalyticsPanel() {
                 <input value={editQuestion} onChange={(e) => setEditQuestion(e.target.value)} maxLength={240} aria-label="Edit poll question"
                   style={{ width: '100%', boxSizing: 'border-box', background: card, color: text, border: `1px solid ${border}`, borderRadius: 7, padding: 9, marginBottom: 8 }} />
                 {editOptions.map((option, index) => <div key={index} style={{ display: 'flex', gap: 7, marginBottom: 7 }}>
-                  <input value={option} onChange={(e) => setEditOptions((items) => items.map((item, i) => i === index ? e.target.value : item))} maxLength={100} aria-label={`Edit option ${index + 1}`}
+                  <input value={option} disabled={poll.totalVotes > 0} onChange={(e) => setEditOptions((items) => items.map((item, i) => i === index ? e.target.value : item))} maxLength={100} aria-label={`Edit option ${index + 1}`}
                     style={{ flex: 1, minWidth: 0, background: card, color: text, border: `1px solid ${border}`, borderRadius: 7, padding: 8 }} />
-                  {editOptions.length > 2 && <button onClick={() => setEditOptions((items) => items.filter((_, i) => i !== index))} style={{ color: G.red, background: 'transparent', border: `1px solid ${G.red}55`, borderRadius: 6, padding: '0 9px' }}>×</button>}
+                  {poll.totalVotes === 0 && editOptions.length > 2 && <button onClick={() => setEditOptions((items) => items.filter((_, i) => i !== index))} style={{ color: G.red, background: 'transparent', border: `1px solid ${G.red}55`, borderRadius: 6, padding: '0 9px' }}>×</button>}
                 </div>)}
+                {poll.totalVotes > 0 && <div style={{ color: muted, fontSize: 11, marginBottom: 8 }}>This poll already has votes. You can edit the question, but its options are locked to preserve existing results.</div>}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {editOptions.length < 6 && <button onClick={() => setEditOptions((items) => [...items, ''])} style={{ background: 'transparent', color: G.green, border: `1px solid ${G.green}`, borderRadius: 6, padding: '6px 9px', fontSize: 11 }}>＋ Option</button>}
+                  {poll.totalVotes === 0 && editOptions.length < 6 && <button onClick={() => setEditOptions((items) => [...items, ''])} style={{ background: 'transparent', color: G.green, border: `1px solid ${G.green}`, borderRadius: 6, padding: '6px 9px', fontSize: 11 }}>＋ Option</button>}
                   <button onClick={() => savePollEdit(poll)} style={{ background: G.green, color: '#fff', border: 0, borderRadius: 6, padding: '6px 12px', fontSize: 11, fontWeight: 800 }}>Save changes</button>
                   <button onClick={() => setEditingPollId(null)} style={{ background: 'transparent', color: muted, border: `1px solid ${border}`, borderRadius: 6, padding: '6px 12px', fontSize: 11 }}>Cancel</button>
                 </div>
