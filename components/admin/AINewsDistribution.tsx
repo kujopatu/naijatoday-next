@@ -20,6 +20,8 @@ export default function AINewsDistribution({ items }: { items: NewsItem[] }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyStatus, setHistoryStatus] = useState('all');
 
   const token = async () => {
     const { data, error } = await supabase.auth.getSession();
@@ -85,8 +87,8 @@ export default function AINewsDistribution({ items }: { items: NewsItem[] }) {
   const review = async (id: string, decision: 'approve' | 'reject') => {
     setBusy(true); setError(''); setMessage('');
     try {
-      await call('POST', { action: 'review', id, decision });
-      setMessage(decision === 'approve' ? (queue.find((entry) => entry.id === id)?.destination === 'forum_thread' ? 'Approved and sent to Forum moderation. It will appear publicly after moderator approval.' : 'Approved and sent to its destination.') : 'Distribution rejected.');
+      const result = await call('POST', { action: 'review', id, decision });
+      setMessage(decision === 'approve' ? (result.duplicate ? 'This item was already in its destination. No duplicate was created; the existing entry has been linked to this distribution.' : (queue.find((entry) => entry.id === id)?.destination === 'forum_thread' ? 'Approved and sent to Forum moderation. It will appear publicly after moderator approval.' : 'Approved and sent to its destination.')) : 'Distribution rejected.');
       await refresh();
     } catch (e) { setError(e instanceof Error ? e.message : 'Review failed.'); }
     finally { setBusy(false); }
@@ -94,6 +96,9 @@ export default function AINewsDistribution({ items }: { items: NewsItem[] }) {
   const panel: React.CSSProperties = { background: card, border: `1px solid ${border}`, borderRadius: 11, padding: 15, marginBottom: 14 };
   const input: React.CSSProperties = { width: '100%', background: 'transparent', color: text, border: `1px solid ${border}`, borderRadius: 7, padding: 9, fontSize: 12 };
   const pending = queue.filter((x) => x.status === 'pending');
+  const publishedCount = queue.filter((x) => x.status === 'published').length;
+  const rejectedCount = queue.filter((x) => x.status === 'rejected').length;
+  const history = queue.filter((x) => x.status !== 'pending' && (historyStatus === 'all' || x.status === historyStatus) && ((x.payload?.title || x.ai_newsroom_items?.source_title || '').toLowerCase().includes(historySearch.toLowerCase()) || (x.ai_newsroom_items?.source_name || '').toLowerCase().includes(historySearch.toLowerCase())));
   return <section style={panel}>
     <div style={{ color: text, fontSize: 14, fontWeight: 800, marginBottom: 5 }}>🧭 Intelligent News Distribution</div>
     <div style={{ color: muted, fontSize: 11, marginBottom: 12 }}>AI recommends a destination. You review the extracted details, then approve each item before it reaches the Forum or Jobs & Scholarships.</div>
@@ -117,6 +122,11 @@ export default function AINewsDistribution({ items }: { items: NewsItem[] }) {
       <textarea value={payloadText} onChange={(e) => setPayloadText(e.target.value)} rows={8} style={{ ...input, resize: 'vertical', fontFamily: 'monospace' }} />
       <button disabled={busy} onClick={() => void addToQueue()} style={{ marginTop: 8, background: G.gold, color: '#111', border: 0, borderRadius: 7, padding: '9px 13px', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>Add to approval queue</button>
     </div>}
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+      <div style={{ border: `1px solid ${border}`, borderRadius: 7, padding: '7px 10px', color: text, fontSize: 10 }}>Published / linked: <strong>{publishedCount}</strong></div>
+      <div style={{ border: `1px solid ${border}`, borderRadius: 7, padding: '7px 10px', color: text, fontSize: 10 }}>Rejected: <strong>{rejectedCount}</strong></div>
+      <div style={{ border: `1px solid ${border}`, borderRadius: 7, padding: '7px 10px', color: text, fontSize: 10 }}>Awaiting review: <strong>{pending.length}</strong></div>
+    </div>
     <div style={{ borderTop: `1px solid ${border}`, marginTop: 14, paddingTop: 12 }}>
       <div style={{ color: text, fontSize: 12, fontWeight: 800, marginBottom: 8 }}>Awaiting distribution approval ({pending.length})</div>
       {pending.length === 0 ? <div style={{ color: muted, fontSize: 11 }}>No items waiting for approval.</div> : pending.map((entry) => <div key={entry.id} style={{ borderTop: `1px solid ${border}`, padding: '10px 0' }}>
@@ -127,6 +137,22 @@ export default function AINewsDistribution({ items }: { items: NewsItem[] }) {
           <button disabled={busy} onClick={() => void review(entry.id, 'reject')} style={{ background: 'transparent', color: G.red, border: `1px solid ${G.red}`, borderRadius: 6, padding: '7px 10px', fontSize: 10, fontWeight: 800 }}>Reject</button>
         </div>
       </div>)}
+    <div style={{ borderTop: `1px solid ${border}`, marginTop: 14, paddingTop: 12 }}>
+      <div style={{ color: text, fontSize: 12, fontWeight: 800, marginBottom: 8 }}>Distribution history ({history.length} shown)</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(110px,1fr)', gap: 8, marginBottom: 8 }}>
+        <input aria-label="Search distribution history" placeholder="Search title or publisher…" value={historySearch} onChange={(e) => setHistorySearch(e.target.value)} style={input} />
+        <select aria-label="Filter distribution history" value={historyStatus} onChange={(e) => setHistoryStatus(e.target.value)} style={input}>
+          <option value="all">All results</option><option value="published">Published / linked</option><option value="rejected">Rejected</option>
+        </select>
+      </div>
+      {history.length === 0 ? <div style={{ color: muted, fontSize: 11 }}>No matching reviewed distributions yet.</div> : history.map((entry) => <div key={entry.id} style={{ borderTop: `1px solid ${border}`, padding: '9px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
+          <div style={{ color: text, fontSize: 11, fontWeight: 700 }}>{entry.payload?.title || entry.ai_newsroom_items?.source_title || 'Untitled distribution'}</div>
+          <span style={{ color: entry.status === 'published' ? G.green : G.red, fontSize: 9, fontWeight: 800, whiteSpace: 'nowrap' }}>{entry.status === 'published' ? (entry.payload?.duplicate_detected ? 'ALREADY EXISTS' : 'PUBLISHED') : 'REJECTED'}</span>
+        </div>
+        <div style={{ color: muted, fontSize: 10, marginTop: 3 }}>{labels[entry.destination] || entry.destination} · {entry.ai_newsroom_items?.source_name || 'Unknown publisher'} · Confidence {entry.confidence}%</div>
+      </div>)}
+    </div>
     </div>
   </section>;
 }
