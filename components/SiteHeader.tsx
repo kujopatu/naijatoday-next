@@ -13,6 +13,7 @@ import NotificationBell from './NotificationBell';
 const PRIMARY_NAV: [string, string][] = [
   ['/', 'Home'],
   ['/trending', 'Trending'],
+  ['/polls', 'Polls'],
   ['/forum', 'Forum'],
   ['/jobs', 'Jobs & Scholarships'],
   ['/resources', 'Resources'],
