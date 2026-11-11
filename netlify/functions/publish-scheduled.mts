@@ -6,6 +6,30 @@ export const config = {
   schedule: '*/5 * * * *',
 };
 
+const ADMIN_EMAIL = 'kujopatu@gmail.com';
+
+async function recordPublishingEvent(supabase: any, action: string, detail: string, notify = false) {
+  try {
+    const { error } = await supabase.from('admin_activity_log').insert({
+      action, detail: detail.slice(0, 2000), admin_email: 'system@naijatoday',
+    });
+    if (error) console.error('Could not write scheduled-publishing activity log:', error.message);
+  } catch (error) {
+    console.error('Scheduled-publishing activity log failed:', error);
+  }
+  if (notify) {
+    try {
+      const { error } = await supabase.from('notifications').insert({
+        recipient_email: ADMIN_EMAIL, type: 'system', message: 'NaijaToday scheduled publishing needs attention',
+        preview: detail.slice(0, 500), read: false, post_id: null,
+      });
+      if (error) console.error('Could not create scheduled-publishing notification:', error.message);
+    } catch (error) {
+      console.error('Scheduled-publishing notification failed:', error);
+    }
+  }
+}
+
 export default async function publishScheduledArticles() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -36,6 +60,7 @@ export default async function publishScheduledArticles() {
 
   if (error) {
     console.error('Scheduled article publishing failed:', error.message);
+    await recordPublishingEvent(supabase, 'scheduled_publishing_failed', error.message, true);
     return new Response('Scheduled publishing failed.', { status: 500 });
   }
 
@@ -45,10 +70,15 @@ export default async function publishScheduledArticles() {
       .from('ai_newsroom_items')
       .update({ status: 'published', updated_at: now })
       .in('post_id', publishedIds);
-    if (newsroomError) console.error('Could not sync AI newsroom publication statuses:', newsroomError.message);
+    if (newsroomError) {
+      console.error('Could not sync AI newsroom publication statuses:', newsroomError.message);
+      await recordPublishingEvent(supabase, 'scheduled_publishing_sync_failed', newsroomError.message, true);
+    }
   }
 
-  console.log(`Published ${data?.length || 0} scheduled NaijaToday article(s).`);
+  const publishedCount = data?.length || 0;
+  console.log(`Published ${publishedCount} scheduled NaijaToday article(s).`);
+  if (publishedCount > 0) await recordPublishingEvent(supabase, 'scheduled_articles_published', `Published ${publishedCount} article(s): ${(data || []).map((row: { title?: string }) => row.title || 'Untitled').join('; ').slice(0, 1500)}`);
   return new Response(JSON.stringify({ published: data?.length || 0 }), {
     headers: { 'Content-Type': 'application/json' },
   });
