@@ -13,3 +13,5 @@ create table if not exists public.ai_newsroom_distributions (
 create index if not exists ai_newsroom_distributions_status_created_idx
   on public.ai_newsroom_distributions(status, created_at desc);
 alter table public.ai_newsroom_distributions enable row level security;
+revoke all on public.ai_newsroom_distributions from anon, authenticated;
+grant all on public.ai_newsroom_distributions to service_role;
