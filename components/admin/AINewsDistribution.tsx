@@ -37,7 +37,7 @@ export default function AINewsDistribution({ items }: { items: NewsItem[] }) {
     try { result = responseText ? JSON.parse(responseText) : {}; }
     catch {
       const contentType = response.headers.get('content-type') || 'unknown response';
-      const detail = responseText.replace(/\\s+/g, ' ').slice(0, 240);
+      const detail = responseText.replace(/\s+/g, ' ').slice(0, 240);
       throw new Error(`Distribution API returned HTTP ${response.status} (${contentType}). ${detail || response.statusText || 'No response body.'}`);
     }
     if (!response.ok) {
@@ -86,7 +86,7 @@ export default function AINewsDistribution({ items }: { items: NewsItem[] }) {
     setBusy(true); setError(''); setMessage('');
     try {
       await call('POST', { action: 'review', id, decision });
-      setMessage(decision === 'approve' ? 'Approved and sent to its destination.' : 'Distribution rejected.');
+      setMessage(decision === 'approve' ? (queue.find((entry) => entry.id === id)?.destination === 'forum_thread' ? 'Approved and sent to Forum moderation. It will appear publicly after moderator approval.' : 'Approved and sent to its destination.') : 'Distribution rejected.');
       await refresh();
     } catch (e) { setError(e instanceof Error ? e.message : 'Review failed.'); }
     finally { setBusy(false); }
