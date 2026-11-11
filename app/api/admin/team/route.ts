@@ -14,7 +14,7 @@ function serviceClient() {
 }
 
 async function authorisedAdmin(request: NextRequest) {
-  const token = (request.headers.get('authorization') || '').replace(/^Bearer\\s+/i, '');
+  const token = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
   if (!token) return null;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json() as { email?: string; role?: string };
     const email = String(body.email || '').trim().toLowerCase();
     const role = String(body.role || '') as TeamRole;
-    if (!email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+    if (!email || !/^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'Enter a valid account email.' }, { status: 400 });
     }
     if (!['editor', 'writer', 'moderator', 'user'].includes(role)) {
