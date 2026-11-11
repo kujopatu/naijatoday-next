@@ -992,7 +992,7 @@ export default function AdminPanel() {
             </button>
           </div>
 
-          {posts.length > 0 && (
+          {!isWriter && posts.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap', background: card, border: `1px solid ${border}`, borderRadius: 10, padding: '10px 14px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: text, cursor: 'pointer' }}>
                 <input type="checkbox" checked={selectedPosts.length === posts.length} onChange={toggleSelectAll} style={{ width: 16, height: 16, accentColor: G.green }} />
@@ -1047,12 +1047,12 @@ export default function AdminPanel() {
                   flexWrap: 'wrap',
                 }}
               >
-                <input
+                {!isWriter && <input
                   type="checkbox"
                   checked={selectedPosts.includes(post.id)}
                   onChange={() => togglePostSelect(post.id)}
                   style={{ width: 16, height: 16, accentColor: G.green, marginTop: 4, flexShrink: 0 }}
-                />
+                />}
                 <div style={{ width: 56, height: 56, borderRadius: 8, background: darkMode ? '#1e2535' : '#f0f4f8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, flexShrink: 0, overflow: 'hidden' }}>
                   {post.image && post.image.startsWith('http') ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -1078,7 +1078,7 @@ export default function AdminPanel() {
                   <button onClick={() => handleEdit(post)} style={{ background: G.green + '22', color: G.green, border: `1px solid ${G.green}33`, borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                     ✏️ Edit
                   </button>
-                  {deleteConfirm === post.id ? (
+                  {!isWriter && (deleteConfirm === post.id ? (
                     <div style={{ display: 'flex', gap: 4 }}>
                       <button onClick={() => handleDelete(post.id)} style={{ background: G.red, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                         Delete
