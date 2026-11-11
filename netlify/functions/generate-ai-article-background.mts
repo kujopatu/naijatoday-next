@@ -43,7 +43,7 @@ async function fetchSourceMaterial(sourceUrl: unknown) {
     const response = await fetch(parsed.toString(), {
       headers: { 'User-Agent': 'NaijaTodayNewsroomBot/1.0' },
       signal: AbortSignal.timeout(12000),
-      redirect: 'follow',
+      redirect: 'error',
     });
     if (!response.ok || !/text\/(html|plain)/i.test(response.headers.get('content-type') || '')) return '';
     const html = (await response.text()).slice(0, 1000000);
