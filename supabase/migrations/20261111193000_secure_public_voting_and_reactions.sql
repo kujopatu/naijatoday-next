@@ -95,10 +95,12 @@ GRANT SELECT ON TABLE public.post_reactions TO anon, authenticated;
 
 REVOKE ALL PRIVILEGES ON TABLE public.post_votes FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, DELETE ON TABLE public.post_votes TO authenticated;
+REVOKE ALL PRIVILEGES ON SEQUENCE public.post_votes_id_seq FROM PUBLIC, anon, authenticated;
 GRANT USAGE, SELECT ON SEQUENCE public.post_votes_id_seq TO authenticated;
 
 REVOKE ALL PRIVILEGES ON TABLE public.forum_votes FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, DELETE ON TABLE public.forum_votes TO authenticated;
+REVOKE ALL PRIVILEGES ON SEQUENCE public.forum_votes_id_seq FROM PUBLIC, anon, authenticated;
 GRANT USAGE, SELECT ON SEQUENCE public.forum_votes_id_seq TO authenticated;
 
 DROP POLICY IF EXISTS "Public read access for post_votes" ON public.post_votes;
