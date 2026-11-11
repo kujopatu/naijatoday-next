@@ -43,9 +43,7 @@ export default async function collectNewsManually(event: NetlifyEvent) {
     return { statusCode: 409, body: JSON.stringify({ error: 'A manual collection is already running. Refresh the monitor shortly.' }) };
   }
 
-  const host = headers.host || headers['x-forwarded-host'] || '';
-  const safeHost = /^[a-z0-9.-]+(?::\d+)?$/i.test(host) ? host : '';
-  const baseUrl = (process.env.URL || process.env.DEPLOY_PRIME_URL || (safeHost ? 'https://' + safeHost : '')).replace(/\/$/, '');
+  const baseUrl = (process.env.URL || process.env.DEPLOY_PRIME_URL || '').replace(/\/$/, '');
   if (!baseUrl) return { statusCode: 500, body: JSON.stringify({ error: 'Could not determine the newsroom site URL.' }) };
 
   await logEvent(db, 'ai_newsroom_manual_collection_started', 'Administrator started a manual feed collection and draft-generation cycle.');
