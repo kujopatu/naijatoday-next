@@ -21,7 +21,7 @@ const count = (items: Item[], status: string) => items.filter((item) => item.sta
 
 export default function AINewsroomMonitor() {
   const { isAdmin } = useAuth();
-  const { card, border, text, muted, darkMode } = useTheme();
+  const { card, border, text, muted } = useTheme();
   const [sources, setSources] = useState<Source[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [activity, setActivity] = useState<Activity[]>([]);
