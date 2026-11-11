@@ -89,11 +89,13 @@ export default function ThreadView({ thread: initial }: { thread: ForumThread })
     }
     (async () => {
       try {
-        const { data } = await supabase.from('forum_threads').select('views').eq('id', initial.id).maybeSingle();
-        const n = Number.parseInt(String(data?.views ?? '0'), 10);
-        const next = (Number.isFinite(n) ? n : 0) + 1;
-        const { error } = await supabase.from('forum_threads').update({ views: String(next) }).eq('id', initial.id);
-        if (!error) setThread((t) => ({ ...t, views: next }));
+        const { error } = await supabase.rpc('increment_forum_thread_views', { p_id: initial.id });
+        if (!error) {
+          setThread((t) => {
+            const current = Number.parseInt(String(t.views ?? '0'), 10);
+            return { ...t, views: (Number.isFinite(current) ? current : 0) + 1 };
+          });
+        }
       } catch {
         /* view counting is best-effort */
       }
@@ -125,7 +127,7 @@ export default function ThreadView({ thread: initial }: { thread: ForumThread })
         setPosting(false);
         return;
       }
-      await supabase.from('forum_threads').update({ replies: replies.length + 1 }).eq('id', thread.id);
+      // The database trigger maintains the parent thread's reply count.
       setReply('');
       await loadReplies();
       showToast('Reply posted! 🎉');
