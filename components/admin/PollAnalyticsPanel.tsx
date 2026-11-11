@@ -23,6 +23,7 @@ export default function PollAnalyticsPanel() {
   const { card, border, text, muted, darkMode } = useTheme();
   const [polls, setPolls] = useState<EnrichedPoll[]>([]);
   const [loading, setLoading] = useState(true);
+  const [closeDateValues, setCloseDateValues] = useState<Record<number, string>>({});
 
   const loadPolls = async () => {
     setLoading(true);
@@ -65,7 +66,7 @@ export default function PollAnalyticsPanel() {
     loadPolls();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const updatePoll = async (poll: EnrichedPoll, changes: Partial<Pick<Poll, 'is_active' | 'is_featured'>>) => {
+  const updatePoll = async (poll: EnrichedPoll, changes: Partial<Pick<Poll, 'is_active' | 'is_featured' | 'closes_at'>>) => {
     try {
       if (changes.is_featured) {
         const { error: clearError } = await supabase.from('polls').update({ is_featured: false }).neq('id', poll.id);
@@ -138,6 +139,20 @@ export default function PollAnalyticsPanel() {
                 </div>
               </div>
 
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 14px' }}>
+                <label style={{ fontSize: 12, color: muted, fontWeight: 700 }}>Close voting at</label>
+                <input
+                  type="datetime-local"
+                  value={closeDateValues[poll.id] ?? (poll.closes_at ? new Date(poll.closes_at).toISOString().slice(0, 16) : '')}
+                  onChange={(e) => setCloseDateValues((v) => ({ ...v, [poll.id]: e.target.value }))}
+                  style={{ background: darkMode ? '#111520' : '#f5f7fa', color: text, border: `1px solid ${border}`, borderRadius: 7, padding: '7px 9px', fontSize: 12 }}
+                />
+                <button onClick={() => {
+                  const value = closeDateValues[poll.id] ?? (poll.closes_at ? new Date(poll.closes_at).toISOString().slice(0, 16) : '');
+                  updatePoll(poll, { closes_at: value ? new Date(value).toISOString() : null });
+                }} style={{ background: G.green, color: '#fff', border: 0, borderRadius: 7, padding: '7px 11px', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>Save schedule</button>
+                <span style={{ fontSize: 11, color: muted }}>Leave blank for no automatic closing time.</span>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {(poll.options || []).map((opt, i) => {
                   const count = poll.optionCounts[i] || 0;
