@@ -4,7 +4,6 @@ import BreakingNewsBar from '@/components/BreakingNewsBar';
 import CategoryPills from '@/components/CategoryPills';
 import FeaturedCarousel from '@/components/FeaturedCarousel';
 import TrendingTicker from '@/components/TrendingTicker';
-import HomeDiscovery from '@/components/HomeDiscovery';
 import HomeFeed from '@/components/HomeFeed';
 import MostReadSidebar from '@/components/MostReadSidebar';
 import SubscribeBox from '@/components/SubscribeBox';
@@ -49,7 +48,6 @@ export default async function HomePage() {
         <main style={{ minWidth: 0 }}>
           <FeaturedCarousel posts={featuredList} />
           <TrendingTicker />
-          <HomeDiscovery />
           <HomeFeed posts={allPosts} />
           <div style={{ marginTop: 24 }}>
             <PollsExperience featuredOnly />
