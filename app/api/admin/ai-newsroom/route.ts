@@ -294,7 +294,16 @@ export async function POST(request: NextRequest) {
       const { data: item, error } = await db.from('ai_newsroom_items').select('*').eq('id', body.item_id).single();
       if (error || !item) return NextResponse.json({ error: 'Story not found.' }, { status: 404 });
       const format = body.format === 'article' ? 'article' : 'news';
-      const generated = await geminiDraft(item, format);
+      let generated: Awaited<ReturnType<typeof geminiDraft>>;
+      try {
+        generated = await geminiDraft(item, format);
+      } catch (generationError) {
+        const message = generationError instanceof Error ? generationError.message.slice(0, 1000) : 'AI draft generation failed.';
+        await db.from('ai_newsroom_items').update({
+          status: 'generation_failed', generation_error: message, updated_at: new Date().toISOString(),
+        }).eq('id', item.id);
+        return NextResponse.json({ error: message }, { status: 500 });
+      }
       const { error: updateError } = await db.from('ai_newsroom_items').update({
         generated_title: generated.title, generated_excerpt: generated.excerpt,
         generated_content: generated.content, generated_category: generated.category,
