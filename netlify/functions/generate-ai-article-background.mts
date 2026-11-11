@@ -104,8 +104,19 @@ async function generateArticle(item: Record<string, unknown>, db: any) {
   const text = candidate?.content?.parts?.map((p: { text?: string }) => p.text || '').join('');
   if (!text) throw new Error('Gemini returned an empty response. Check the API key, model access and quota.');
   let parsed: any;
-  try { parsed = JSON.parse(text.replace(/^\`\`\`(?:json)?|\`\`\`$/g, '').trim()); }
-  catch { throw new Error('Gemini returned an incomplete response instead of valid article JSON. Retry generation.'); }
+  const cleanText = text.replace(/^\`\`\`(?:json)?\s*/i, '').replace(/\s*\`\`\`$/, '').trim();
+  const jsonStart = cleanText.indexOf('{');
+  const jsonEnd = cleanText.lastIndexOf('}');
+  if (jsonStart < 0 || jsonEnd <= jsonStart) throw new Error('Gemini returned text that was not a complete JSON article. Retry generation.');
+  const jsonText = cleanText.slice(jsonStart, jsonEnd + 1);
+  try { parsed = JSON.parse(jsonText); }
+  catch (firstError) {
+    try { parsed = JSON.parse(jsonText.replace(/,\s*([}\]])/g, '$1')); }
+    catch {
+      const detail = firstError instanceof Error ? firstError.message : 'Invalid JSON';
+      throw new Error('Gemini returned malformed article JSON (' + detail + '). Retry generation or check Gemini model availability.');
+    }
+  }
   if (!parsed.title || !parsed.excerpt || !parsed.content_html) throw new Error('Gemini response was missing required article fields.');
   let content = safeHtml(String(parsed.content_html));
   let words = wordCount(content);
