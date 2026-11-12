@@ -109,6 +109,7 @@ export default function StorySubmissionsPanel() {
         sponsored: false,
         tags: ['reader tip', item.category.toLowerCase()],
         published: false,
+        workflow_status: 'draft',
         views: 0,
         upvotes: 0,
         comments: 0,
