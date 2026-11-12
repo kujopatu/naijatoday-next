@@ -32,6 +32,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${cat.name} News — NaijaToday`,
     description: `Latest ${cat.name} news, updates and stories from Nigeria — NaijaToday.`,
+    alternates: { canonical: `https://naijatodayblog.com.ng/category/${categorySlug(cat.name)}` },
+    openGraph: { title: `${cat.name} News — NaijaToday`, description: `Latest ${cat.name} news, updates and stories from Nigeria — NaijaToday.`, type: 'website', url: `https://naijatodayblog.com.ng/category/${categorySlug(cat.name)}` },
   };
 }
 
