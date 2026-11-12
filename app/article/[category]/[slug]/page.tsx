@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getPostBySlug, getAllPublishedPostPaths } from '@/lib/posts';
 import { toCloudinaryWm, watermarkHtml } from '@/lib/watermark';
@@ -62,6 +62,10 @@ export default async function ArticlePage({ params }: Props) {
   const { category, slug } = await params;
   const post = await getPostBySlug(category, slug);
   if (!post) notFound();
+
+  // Normalize legacy article URLs (older punctuation/dash variants) to one stable URL.
+  const canonicalPath = postPath(post);
+  if (`/article/${category}/${slug}` !== canonicalPath) permanentRedirect(canonicalPath);
 
   const [{ data: recent }, { count: articleCount }, { count: memberCount }, { data: authorProfile }] = await Promise.all([
     supabase.from('posts').select('*').eq('published', true).neq('id', post.id).order('created_at', { ascending: false }).limit(60),
