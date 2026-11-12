@@ -21,16 +21,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!post) return {};
 
   // Link previews (WhatsApp, Facebook, X) carry the NaijaToday watermark, as on the old site.
-  const image = toCloudinaryWm(post.image, 1200, 'jpg') ?? '/og-image.jpg';
+  const image = new URL(toCloudinaryWm(post.image, 1200, 'jpg') ?? '/og-image.jpg', SITE_URL).toString();
+  const shareTitle = post.seo_title?.trim() || post.title;
+  const shareDescription = post.seo_description?.trim() || post.excerpt || undefined;
 
   return {
     title: `${post.seo_title?.trim() || post.title} | NaijaToday`,
     description: post.seo_description?.trim() || post.excerpt || undefined,
     keywords: post.tags?.length ? post.tags : [post.category, 'Nigeria news'].filter(Boolean),
     openGraph: {
-      title: post.seo_title?.trim() || post.title,
-      description: post.seo_description?.trim() || post.excerpt || undefined,
-      images: [{ url: image }],
+      title: shareTitle,
+      description: shareDescription,
+      siteName: 'NaijaToday',
+      locale: 'en_NG',
+      images: [{ url: image, alt: shareTitle }],
       type: 'article',
       publishedTime: post.created_at,
       modifiedTime: post.updated_at || post.created_at,
@@ -39,11 +43,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
-      title: post.seo_title?.trim() || post.title,
-      description: post.seo_description?.trim() || post.excerpt || undefined,
-      images: [image],
+      title: shareTitle,
+      description: shareDescription,
+      images: [{ url: image, alt: shareTitle }],
     },
-    alternates: { canonical: postPath(post) },
+    alternates: { canonical: new URL(postPath(post), SITE_URL).toString() },
   };
 }
 
