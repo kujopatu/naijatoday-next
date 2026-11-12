@@ -52,6 +52,24 @@ export default function ArticleActions({ post }: { post: Post }) {
   const url = () => (typeof window !== 'undefined' ? window.location.href : '');
   const open = (href: string) => window.open(href, '_blank', 'noopener,noreferrer,width=600,height=500');
   const enc = encodeURIComponent;
+  const shareArticle = async () => {
+    const shareData = { title: post.title, text: post.excerpt || 'Read this story on NaijaToday', url: url() };
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share(shareData);
+      } catch (error) {
+        if (error instanceof Error && error.name !== 'AbortError') showToast('Sharing was not completed');
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(shareData.url);
+      showToast('Your device does not support direct sharing. Link copied instead.');
+    } catch {
+      showToast('Sharing is not supported on this browser. Copy the page link from the address bar.');
+    }
+  };
+
   const saved = isSaved(post.id);
 
   const btn = (active: boolean): React.CSSProperties => ({
@@ -65,7 +83,8 @@ export default function ArticleActions({ post }: { post: Post }) {
       <button style={btn(saved)} onClick={() => toggleSaved(post)}>
         {saved ? '🔖 Saved' : '🔖 Save'}
       </button>
-      <span style={{ fontSize: 12, color: muted, marginLeft: 6 }}>Share:</span>
+      <button style={btn(false)} onClick={shareArticle}>↗ Share</button>
+      <span style={{ fontSize: 12, color: muted, marginLeft: 6 }}>Or share via:</span>
       <button style={btn(false)} onClick={() => open(`https://wa.me/?text=${enc(post.title + ' ' + url())}`)}>WhatsApp</button>
       <button style={btn(false)} onClick={() => open(`https://www.facebook.com/sharer/sharer.php?u=${enc(url())}`)}>Facebook</button>
       <button style={btn(false)} onClick={() => open(`https://twitter.com/intent/tweet?text=${enc(post.title)}&url=${enc(url())}`)}>X</button>
