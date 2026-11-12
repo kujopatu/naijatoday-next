@@ -16,6 +16,9 @@ type WorkflowPost = {
   scheduled_at: string | null;
   published_at: string | null;
   created_at: string | null;
+  submitted_at: string | null;
+  reviewed_at?: string | null;
+  updated_at?: string | null;
 };
 
 type Props = { onNavigate: (section: string) => void };
@@ -32,7 +35,7 @@ export default function EditorialWorkflowDashboard({ onNavigate }: Props) {
     setError('');
     const [postResult, newTips, reviewingTips, acceptedTips] = await Promise.all([
       supabase.from('posts')
-        .select('id,title,category,author,workflow_status,published,assigned_to,scheduled_at,published_at,created_at')
+        .select('id,title,category,author,workflow_status,published,assigned_to,scheduled_at,published_at,created_at,submitted_at')
         .order('created_at', { ascending: false })
         .limit(500),
       supabase.from('story_submissions').select('id', { count: 'exact', head: true }).eq('status', 'new'),
@@ -62,7 +65,28 @@ export default function EditorialWorkflowDashboard({ onNavigate }: Props) {
       const name = post.assigned_to as string;
       assignments.set(name, (assignments.get(name) || 0) + 1);
     });
-    return { drafts, review, scheduled, published, recent, assignments: [...assignments.entries()].sort((a, b) => b[1] - a[1]) };
+    const submittedStatuses = ['submitted', 'in_review', 'review', 'pending', 'awaiting_review'];
+    const approved = unpublished.filter(post => (post.workflow_status || '').toLowerCase() === 'approved');
+    const submitted = posts.filter(post => submittedStatuses.includes((post.workflow_status || '').toLowerCase()) || !!post.submitted_at);
+    const since = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const recentPosts = posts.filter(post => {
+      const date = post.published_at || post.submitted_at || post.created_at;
+      return !!date && new Date(date).getTime() >= since;
+    });
+    const writerMap = new Map<string, { total: number; published: number; submitted: number; drafts: number; recent: number }>();
+    posts.forEach(post => {
+      const name = (post.author || 'NaijaToday Desk').trim() || 'NaijaToday Desk';
+      const item = writerMap.get(name) || { total: 0, published: 0, submitted: 0, drafts: 0, recent: 0 };
+      item.total += 1;
+      if (post.published === true) item.published += 1;
+      if (submittedStatuses.includes((post.workflow_status || '').toLowerCase()) || !!post.submitted_at) item.submitted += 1;
+      if (post.published === false && !submittedStatuses.includes((post.workflow_status || '').toLowerCase())) item.drafts += 1;
+      const date = post.published_at || post.submitted_at || post.created_at;
+      if (date && new Date(date).getTime() >= since) item.recent += 1;
+      writerMap.set(name, item);
+    });
+    const writers = [...writerMap.entries()].map(([name, values]) => ({ name, ...values })).sort((a, b) => b.recent - a.recent || b.total - a.total).slice(0, 8);
+    return { drafts, review, scheduled, published, approved, submitted, recent, recentPosts, writers, assignments: [...assignments.entries()].sort((a, b) => b[1] - a[1]) };
   }, [posts]);
 
   const statCards = [
@@ -100,6 +124,58 @@ export default function EditorialWorkflowDashboard({ onNavigate }: Props) {
             <div style={{ fontSize: 10, color: G.green, marginTop: 8 }}>Open section →</div>
           </button>
         ))}
+      </div>
+
+      <div style={{ ...panel, marginBottom: 14 }}>
+        <div style={{ color: text, fontWeight: 800, fontSize: 14, marginBottom: 4 }}>📈 Editorial performance · Last 30 days</div>
+        <div style={{ color: muted, fontSize: 11, marginBottom: 12 }}>Based on the latest article records available to this dashboard.</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 10 }}>
+          {[
+            ['Articles created / active', stats.recentPosts.length, G.green],
+            ['Submitted for review', stats.submitted.filter(post => {
+              const date = post.submitted_at || post.created_at;
+              return !!date && new Date(date).getTime() >= Date.now() - 30 * 24 * 60 * 60 * 1000;
+            }).length, '#6478d3'],
+            ['Approved', stats.approved.filter(post => {
+              const date = post.reviewed_at || post.updated_at || post.created_at;
+              return !!date && new Date(date).getTime() >= Date.now() - 30 * 24 * 60 * 60 * 1000;
+            }).length, '#0d9488'],
+            ['Published', stats.published.filter(post => {
+              const date = post.published_at || post.created_at;
+              return !!date && new Date(date).getTime() >= Date.now() - 30 * 24 * 60 * 60 * 1000;
+            }).length, G.gold],
+          ].map(([label, value, color]) => (
+            <div key={String(label)} style={{ border: `1px solid ${border}`, borderRadius: 9, padding: 12 }}>
+              <div style={{ color: String(color), fontSize: 23, fontWeight: 900 }}>{loading ? '…' : Number(value).toLocaleString()}</div>
+              <div style={{ color: muted, fontSize: 11, fontWeight: 700 }}>{label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ ...panel, marginBottom: 14 }}>
+        <div style={{ color: text, fontWeight: 800, fontSize: 14, marginBottom: 4 }}>✍️ Writer productivity</div>
+        <div style={{ color: muted, fontSize: 11, marginBottom: 12 }}>Ranked by articles created in the last 30 days; includes each writer’s overall totals in the latest records.</div>
+        {loading ? <div style={{ color: muted, fontSize: 12 }}>Calculating writer activity…</div> : stats.writers.length === 0 ? (
+          <div style={{ color: muted, fontSize: 12 }}>No writer activity found in the latest article records.</div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520, fontSize: 12 }}>
+              <thead><tr style={{ color: muted, textAlign: 'left' }}>
+                {['Writer / byline', 'Last 30 days', 'Total', 'Published', 'In progress'].map(label => <th key={label} style={{ padding: '9px 8px', borderBottom: `1px solid ${border}` }}>{label}</th>)}
+              </tr></thead>
+              <tbody>{stats.writers.map(writer => (
+                <tr key={writer.name} style={{ color: text }}>
+                  <td style={{ padding: '10px 8px', borderBottom: `1px solid ${border}`, fontWeight: 700 }}>{writer.name}</td>
+                  <td style={{ padding: '10px 8px', borderBottom: `1px solid ${border}`, color: G.green, fontWeight: 800 }}>{writer.recent}</td>
+                  <td style={{ padding: '10px 8px', borderBottom: `1px solid ${border}` }}>{writer.total}</td>
+                  <td style={{ padding: '10px 8px', borderBottom: `1px solid ${border}` }}>{writer.published}</td>
+                  <td style={{ padding: '10px 8px', borderBottom: `1px solid ${border}` }}>{writer.drafts + writer.submitted}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(270px,1fr))', gap: 14 }}>
