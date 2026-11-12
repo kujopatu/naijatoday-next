@@ -60,6 +60,8 @@ export default function ArticleView({ post, html, related, authorProfile }: { po
   const tags = (post.tags ?? []).filter(Boolean);
   const date = post.created_at ? new Date(post.created_at).toLocaleDateString('en-NG', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
   const isDesk = !post.author || post.author === 'NaijaToday Desk';
+  // Nigeria is presented to readers under the National category route.
+  const categoryHref = `/category/${post.category?.toLowerCase() === 'nigeria' ? 'national' : categorySlug(post.category)}`;
 
   return (
     <>
@@ -69,9 +71,9 @@ export default function ArticleView({ post, html, related, authorProfile }: { po
           <button onClick={() => goBack(router)} style={{ background: card, color: text, border: `1px solid ${border}`, borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>← Back</button>
           <Link href="/" style={{ background: G.green, color: '#fff', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>🏠 Home</Link>
         </div>
-        <Breadcrumbs items={[{ label: post.category ?? 'News', href: `/category/${categorySlug(post.category ?? '')}` }, { label: post.title }]} />
+        <Breadcrumbs items={[{ label: post.category ?? 'News', href: categoryHref }, { label: post.title }]} />
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-          <Link href={`/category/${(post.category ?? '').toLowerCase().replace(/\s+/g, '-')}`} style={{ background: cat?.color ?? G.green, color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textDecoration: 'none' }}>
+          <Link href={categoryHref} style={{ background: cat?.color ?? G.green, color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, textDecoration: 'none' }}>
             {cat?.icon} {post.category}
           </Link>
           {post.hot && <span style={{ background: G.red, color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>🔥 HOT</span>}
