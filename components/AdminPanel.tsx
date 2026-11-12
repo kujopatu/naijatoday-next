@@ -27,6 +27,7 @@ import RichTextEditor from './admin/RichTextEditor';
 import SitemapPanel from './admin/SitemapPanel';
 import AINewsroomMonitor from './admin/AINewsroomMonitor';
 import StorySubmissionsPanel from './admin/StorySubmissionsPanel';
+import EditorialWorkflowDashboard from './admin/EditorialWorkflowDashboard';
 
 const CLOUDINARY_CLOUD = 'dywtb9ky3';
 const CLOUDINARY_PRESET = 'naijatorday_upload';
@@ -68,7 +69,7 @@ const emptyForm: ArticleForm = {
 
 const ADMIN_MENU_GROUPS: { label: string; items: [string, string][] }[] = [
   { label: 'Dashboard', items: [['overview', '📊 Analytics']] },
-  { label: 'Articles & Publishing', items: [['new', '✍️ Write New Article'], ['manage', '📋 Manage Articles'], ['story-tips', '📨 Reader News Tips'], ['breaking', '🔴 Breaking News'], ['ai-newsroom', '🤖 AI Newsroom Monitor']] },
+  { label: 'Articles & Publishing', items: [['editorial-workflow', '🗂️ Editorial Workflow'], ['new', '✍️ Write New Article'], ['manage', '📋 Manage Articles'], ['story-tips', '📨 Reader News Tips'], ['breaking', '🔴 Breaking News'], ['ai-newsroom', '🤖 AI Newsroom Monitor']] },
   { label: 'Community & Users', items: [['forum', '💬 Forum Manager'], ['reports', '🚩 Reports'], ['moderators', '🛡️ Moderators'], ['users', '👥 User Management'], ['team', '🧑‍💻 Editorial Team'], ['authors', '✍️ Author Profiles']] },
   { label: 'Content & Engagement', items: [['trends', '🔥 Trend Manager'], ['social', '🔗 Social Links'], ['polls', '🗳️ Poll Analytics'], ['products', '🛍️ Products / Resources']] },
   { label: 'Services & Updates', items: [['jobs', '💼 Jobs & Scholarships'], ['fuel', '⛽ Fuel Prices'], ['dataplans', '📱 Data Plans'], ['fixtures', '⚽ Fixtures & Scores']] },
@@ -78,19 +79,19 @@ const ADMIN_MENU_GROUPS: { label: string; items: [string, string][] }[] = [
 // Tabs with a real implementation below. Everything else in TABS renders
 // a plain "coming soon" placeholder — kept visible so the panel's shape
 // matches the original, but honest about what's actually built.
-const BUILT_TABS = new Set(['overview', 'new', 'manage', 'story-tips', 'ai-newsroom', 'moderators', 'reports', 'breaking', 'jobs', 'forum', 'trends', 'dataplans', 'fuel', 'social', 'products', 'fixtures', 'polls', 'users', 'team', 'authors', 'tools', 'sitemap']);
+const BUILT_TABS = new Set(['overview', 'new', 'manage', 'story-tips', 'editorial-workflow', 'ai-newsroom', 'moderators', 'reports', 'breaking', 'jobs', 'forum', 'trends', 'dataplans', 'fuel', 'social', 'products', 'fixtures', 'polls', 'users', 'team', 'authors', 'tools', 'sitemap']);
 
 export default function AdminPanel() {
   const { userEmail, isAdmin, isEditor, isWriter, isModerator, canModerate } = useAuth();
   const { showToast } = useToast();
   const { darkMode, card, border, text, muted } = useTheme();
 
-  const [activeSection, setActiveSection] = useState(isAdmin ? 'overview' : isModerator ? 'forum' : isEditor ? 'story-tips' : 'new');
+  const [activeSection, setActiveSection] = useState(isAdmin ? 'overview' : isModerator ? 'forum' : isEditor ? 'editorial-workflow' : 'new');
   const visibleMenuGroups = isAdmin ? ADMIN_MENU_GROUPS : isModerator
     ? ADMIN_MENU_GROUPS.filter((group) => group.label === 'Community & Users').map((group) => ({ ...group, items: group.items.filter(([key]) => key === 'forum' || key === 'reports') }))
     : ADMIN_MENU_GROUPS.filter((group) => group.label === 'Articles & Publishing').map((group) => ({
         ...group,
-        items: group.items.filter(([key]) => key === 'new' || key === 'manage' || (isEditor && key === 'story-tips')),
+        items: group.items.filter(([key]) => key === 'new' || key === 'manage' || (isEditor && (key === 'story-tips' || key === 'editorial-workflow'))),
       }));
   const [pendingCount, setPendingCount] = useState(0);
   // Count of forum threads waiting for approval (shown on the Queue tab).
@@ -1322,6 +1323,7 @@ export default function AdminPanel() {
         </div>
       )}
 
+      {(isAdmin || isEditor) && activeSection === 'editorial-workflow' && <EditorialWorkflowDashboard onNavigate={setActiveSection} />}
       {(isAdmin || isEditor) && activeSection === 'story-tips' && <StorySubmissionsPanel />}
       {isAdmin && activeSection === 'ai-newsroom' && <AINewsroomMonitor />}
       {isAdmin && activeSection === 'breaking' && <BreakingNewsManager />}
