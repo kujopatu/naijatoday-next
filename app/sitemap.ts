@@ -15,9 +15,9 @@ const STATIC: [string, Freq, number][] = [
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  let posts: { id: string; title: string; category: string; image: string | null; created_at: string; updated_at: string | null }[] = [];
+  let posts: { id: string; title: string; category: string; image: string | null; created_at: string; published_at: string | null; updated_at: string | null }[] = [];
   try {
-    const { data } = await supabase.from('posts').select('id, title, category, image, created_at, updated_at').eq('published', true).order('created_at', { ascending: false });
+    const { data } = await supabase.from('posts').select('id, title, category, image, created_at, published_at, updated_at').eq('published', true).order('created_at', { ascending: false });
     posts = data ?? [];
   } catch { /* fall back to static pages only */ }
 
@@ -26,7 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...CATEGORIES.map((c) => ({ url: `${SITE_URL}/category/${categorySlug(c.name)}`, lastModified: new Date(), changeFrequency: 'daily' as Freq, priority: 0.7 })),
     ...posts.map((p) => ({
       url: `${SITE_URL}${postPath(p)}`,
-      lastModified: p.updated_at || p.created_at,
+      lastModified: p.updated_at || p.published_at || p.created_at,
       changeFrequency: 'weekly' as Freq,
       priority: 0.9,
       images: p.image && /^https?:\/\//.test(p.image.trim()) ? [p.image.trim()] : undefined,
