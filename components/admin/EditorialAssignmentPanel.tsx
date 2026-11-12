@@ -94,7 +94,7 @@ export default function EditorialAssignmentPanel() {
   const visible = articles.filter(article => filter === 'all' || article.workflow_status === filter);
   const panel: React.CSSProperties = { background: card, border: `1px solid ${border}`, borderRadius: 12, padding: 16, marginBottom: 12 };
   const input: React.CSSProperties = { width: '100%', padding: '9px 10px', border: `1px solid ${border}`, borderRadius: 8, background: darkMode ? '#111520' : '#fff', color: text, fontSize: 12, boxSizing: 'border-box' };
-  const button = (color = G.green): React.CSSProperties => ({ border: 0, borderRadius: 7, padding: '8px 11px', background: color, color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer' });
+  const button = (color: string = G.green): React.CSSProperties => ({ border: 0, borderRadius: 7, padding: '8px 11px', background: color, color: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer' });
   const overdue = (date: string | null) => !!date && new Date(date).getTime() < Date.now();
 
   return <section>
