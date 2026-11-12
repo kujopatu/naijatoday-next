@@ -43,4 +43,5 @@ export type Post = {
   seo_title?: string | null;
   seo_description?: string | null;
   updated_at: string;
+  published_at?: string | null;
 };
