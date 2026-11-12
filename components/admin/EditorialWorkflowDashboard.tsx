@@ -35,7 +35,7 @@ export default function EditorialWorkflowDashboard({ onNavigate }: Props) {
     setError('');
     const [postResult, newTips, reviewingTips, acceptedTips] = await Promise.all([
       supabase.from('posts')
-        .select('id,title,category,author,workflow_status,published,assigned_to,scheduled_at,published_at,created_at,submitted_at')
+        .select('id,title,category,author,workflow_status,published,assigned_to,scheduled_at,published_at,created_at,submitted_at,reviewed_at,updated_at')
         .order('created_at', { ascending: false })
         .limit(500),
       supabase.from('story_submissions').select('id', { count: 'exact', head: true }).eq('status', 'new'),
