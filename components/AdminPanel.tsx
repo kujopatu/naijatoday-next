@@ -26,6 +26,7 @@ import AdminToolsHub from './admin/AdminToolsHub';
 import RichTextEditor from './admin/RichTextEditor';
 import SitemapPanel from './admin/SitemapPanel';
 import AINewsroomMonitor from './admin/AINewsroomMonitor';
+import StorySubmissionsPanel from './admin/StorySubmissionsPanel';
 
 const CLOUDINARY_CLOUD = 'dywtb9ky3';
 const CLOUDINARY_PRESET = 'naijatorday_upload';
@@ -67,7 +68,7 @@ const emptyForm: ArticleForm = {
 
 const ADMIN_MENU_GROUPS: { label: string; items: [string, string][] }[] = [
   { label: 'Dashboard', items: [['overview', '📊 Analytics']] },
-  { label: 'Articles & Publishing', items: [['new', '✍️ Write New Article'], ['manage', '📋 Manage Articles'], ['breaking', '🔴 Breaking News'], ['ai-newsroom', '🤖 AI Newsroom Monitor']] },
+  { label: 'Articles & Publishing', items: [['new', '✍️ Write New Article'], ['manage', '📋 Manage Articles'], ['story-tips', '📨 Reader News Tips'], ['breaking', '🔴 Breaking News'], ['ai-newsroom', '🤖 AI Newsroom Monitor']] },
   { label: 'Community & Users', items: [['forum', '💬 Forum Manager'], ['reports', '🚩 Reports'], ['moderators', '🛡️ Moderators'], ['users', '👥 User Management'], ['team', '🧑‍💻 Editorial Team'], ['authors', '✍️ Author Profiles']] },
   { label: 'Content & Engagement', items: [['trends', '🔥 Trend Manager'], ['social', '🔗 Social Links'], ['polls', '🗳️ Poll Analytics'], ['products', '🛍️ Products / Resources']] },
   { label: 'Services & Updates', items: [['jobs', '💼 Jobs & Scholarships'], ['fuel', '⛽ Fuel Prices'], ['dataplans', '📱 Data Plans'], ['fixtures', '⚽ Fixtures & Scores']] },
@@ -77,7 +78,7 @@ const ADMIN_MENU_GROUPS: { label: string; items: [string, string][] }[] = [
 // Tabs with a real implementation below. Everything else in TABS renders
 // a plain "coming soon" placeholder — kept visible so the panel's shape
 // matches the original, but honest about what's actually built.
-const BUILT_TABS = new Set(['overview', 'new', 'manage', 'ai-newsroom', 'moderators', 'reports', 'breaking', 'jobs', 'forum', 'trends', 'dataplans', 'fuel', 'social', 'products', 'fixtures', 'polls', 'users', 'team', 'authors', 'tools', 'sitemap']);
+const BUILT_TABS = new Set(['overview', 'new', 'manage', 'story-tips', 'ai-newsroom', 'moderators', 'reports', 'breaking', 'jobs', 'forum', 'trends', 'dataplans', 'fuel', 'social', 'products', 'fixtures', 'polls', 'users', 'team', 'authors', 'tools', 'sitemap']);
 
 export default function AdminPanel() {
   const { userEmail, isAdmin, isWriter, isModerator, canModerate } = useAuth();
@@ -1321,7 +1322,8 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {isAdmin && activeSection === 'ai-newsroom' && <AINewsroomMonitor />}
+      {isAdmin && activeSection === 'story-tips' && <StorySubmissionsPanel />}
+      {isAdmin && activeSection === 'ai-newsroom' && <AINewsroomMonitor />
       {isAdmin && activeSection === 'breaking' && <BreakingNewsManager />}
       {isAdmin && activeSection === 'jobs' && <JobsScholarshipsManager />}
       {canModerate && activeSection === 'forum' && <ForumManager />}
