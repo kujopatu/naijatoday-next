@@ -62,7 +62,6 @@ export default function BreakingNewsBar() {
               body: item.text.replace(/^🔴\\s*BREAKING:\\s*/i, ''),
               icon: '/icon-192.png',
               tag: `naijatoday-breaking-${item.id}`,
-              renotify: false,
             });
             notification.onclick = () => {
               window.focus();
