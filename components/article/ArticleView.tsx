@@ -95,6 +95,8 @@ export default function ArticleView({ post, html, related, authorProfile }: { po
           <blockquote style={{ borderLeft: `4px solid ${G.green}`, margin: '0 0 22px', padding: '4px 0 4px 16px', fontSize: 17, fontStyle: 'italic', color: muted }}>{post.excerpt}</blockquote>
         )}
 
+        <ArticleActions post={post} />
+
         <div id="article-body" className="article-body" style={{ color: text }} dangerouslySetInnerHTML={{ __html: html }} />
 
         {tags.length > 0 && (
@@ -108,28 +110,6 @@ export default function ArticleView({ post, html, related, authorProfile }: { po
         <ProductCTA category={post.category} />
         <PollWidget postId={post.id} />
         <ReactionBar postId={post.id} />
-        <ArticleActions post={post} />
-
-        <div style={{ display: 'flex', gap: 14, alignItems: 'center', background: card, border: `1px solid ${border}`, borderRadius: 14, padding: 18, margin: '24px 0' }}>
-          {authorProfile?.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={authorProfile.avatar_url} alt={post.author || 'NaijaToday'} style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-          ) : (
-            <div aria-hidden="true" style={{ width: 60, height: 60, borderRadius: '50%', background: G.green, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 22, flexShrink: 0 }}>
-              {(post.author || 'N')[0].toUpperCase()}
-            </div>
-          )}
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 800, color: text }}>
-              {post.author && !isDesk ? <Link href={`/author/${encodeURIComponent(post.author)}`} style={{ color: 'inherit', textDecoration: 'none' }}>{post.author} ↗</Link> : 'NaijaToday Desk'}
-            </div>
-            <div style={{ fontSize: 12.5, color: muted, marginTop: 3 }}>
-              {isDesk ? 'The NaijaToday newsroom' : (authorProfile?.role_title || 'NaijaToday Contributor')}
-            </div>
-            {authorProfile?.bio && <p style={{ fontSize: 12, lineHeight: 1.55, color: muted, margin: '7px 0 0' }}>{authorProfile.bio}</p>}
-            {!isDesk && <Link href={`/author/${encodeURIComponent(post.author || '')}`} style={{ display: 'inline-block', marginTop: 7, color: G.green, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>View author profile →</Link>}
-          </div>
-        </div>
 
         {related.length > 0 && (
           <div style={{ margin: '32px 0' }}>
@@ -153,16 +133,40 @@ export default function ArticleView({ post, html, related, authorProfile }: { po
             </div>
           </div>
         )}
-      </article>
+  
+
+        <div style={{ display: 'flex', gap: 14, alignItems: 'center', background: card, border: `1px solid ${border}`, borderRadius: 14, padding: 18, margin: '24px 0' }}>
+          {authorProfile?.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={authorProfile.avatar_url} alt={post.author || 'NaijaToday'} style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+          ) : (
+            <div aria-hidden="true" style={{ width: 60, height: 60, borderRadius: '50%', background: G.green, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 22, flexShrink: 0 }}>
+              {(post.author || 'N')[0].toUpperCase()}
+            </div>
+          )}
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 800, color: text }}>
+              {post.author && !isDesk ? <Link href={`/author/${encodeURIComponent(post.author)}`} style={{ color: 'inherit', textDecoration: 'none' }}>{post.author} ↗</Link> : 'NaijaToday Desk'}
+            </div>
+            <div style={{ fontSize: 12.5, color: muted, marginTop: 3 }}>
+              {isDesk ? 'The NaijaToday newsroom' : (authorProfile?.role_title || 'NaijaToday Contributor')}
+            </div>
+            {authorProfile?.bio && <p style={{ fontSize: 12, lineHeight: 1.55, color: muted, margin: '7px 0 0' }}>{authorProfile.bio}</p>}
+            {!isDesk && <Link href={`/author/${encodeURIComponent(post.author || '')}`} style={{ display: 'inline-block', marginTop: 7, color: G.green, fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>View author profile →</Link>}
+          </div>
+        </div>
+
+    </article>
 
       <section style={{ maxWidth: 760, margin: '0 auto', padding: '0 16px 40px' }}>
         <CommentsSection postId={post.id} postTitle={post.title} postAuthorEmail={isDesk ? ADMIN_EMAIL : null} />
       </section>
 
       <style>{`
-        .article-title { overflow-wrap: anywhere; }
+        .article-title { overflow-wrap: anywhere; letter-spacing: -0.35px; }
+        @media (max-width: 680px) { article { padding-top: 16px !important; } }
         .article-hero-image { display: block; max-height: 520px; object-fit: cover; object-position: center; }
-        .article-body { font-size: 17px; line-height: 1.8; overflow-wrap: anywhere; }
+        .article-body { max-width: 720px; font-size: 18px; line-height: 1.85; overflow-wrap: anywhere; }
         @media (max-width: 680px) {
           .article-title { font-size: 26px !important; line-height: 1.22 !important; }
           .article-hero-image { max-height: 340px; }
