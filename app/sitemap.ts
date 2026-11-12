@@ -1,7 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { supabase } from '@/lib/supabase';
 import { categorySlug, postPath } from '@/lib/posts';
-import { CATEGORIES } from '@/lib/theme';
 import { SITE_URL } from '@/lib/site';
 
 export const revalidate = 3600;
@@ -21,15 +20,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     posts = data ?? [];
   } catch { /* fall back to static pages only */ }
 
+  // List only categories that currently contain published articles.
+  // The legacy "Nigeria" category is represented by the site's "National" page.
+  const activeCategories = [...new Set(posts.map((post) =>
+    categorySlug(post.category?.toLowerCase() === 'nigeria' ? 'National' : post.category)
+  ))];
+
   return [
     ...STATIC.map(([path, changeFrequency, priority]) => ({ url: `${SITE_URL}${path}`, lastModified: new Date(), changeFrequency, priority })),
-    ...CATEGORIES.map((c) => ({ url: `${SITE_URL}/category/${categorySlug(c.name)}`, lastModified: new Date(), changeFrequency: 'daily' as Freq, priority: 0.7 })),
+    ...activeCategories.map((slug) => ({ url: `${SITE_URL}/category/${slug}`, lastModified: new Date(), changeFrequency: 'daily' as Freq, priority: 0.7 })),
     ...posts.map((p) => ({
       url: `${SITE_URL}${postPath(p)}`,
       lastModified: p.updated_at || p.published_at || p.created_at,
       changeFrequency: 'weekly' as Freq,
       priority: 0.9,
-      images: p.image && /^https?:\/\//.test(p.image.trim()) ? [p.image.trim()] : undefined,
+      images: p.image && /^https?:\\/\\//.test(p.image.trim()) ? [p.image.trim()] : undefined,
     })),
   ];
 }
