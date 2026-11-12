@@ -6,10 +6,19 @@ import { CATEGORIES, G } from '@/lib/theme';
 import { categorySlug } from '@/lib/posts';
 import { useTheme } from './ThemeProvider';
 
+// Keep navigation focused on categories that currently contain published stories.
+// "Nigeria" is represented by the canonical National category.
+const ACTIVE_CATEGORY_NAMES = new Set([
+  'National', 'Business', 'Celebrity', 'Education', 'Entertainment', 'Forum',
+  'Health', 'Jobs', 'Lifestyle', 'Music', 'Politics', 'Relationship',
+  'Religion', 'Scholarships', 'Sports', 'Technology', 'Viral',
+]);
+
 export default function CategoryPills() {
   const { darkMode, border, muted } = useTheme();
   const pathname = usePathname();
   const activeCategorySlug = pathname?.startsWith('/category/') ? pathname.split('/')[2] : null;
+  const visibleCategories = CATEGORIES.filter((cat) => ACTIVE_CATEGORY_NAMES.has(cat.name));
 
   return (
     <div style={{ background: darkMode ? '#111520' : '#fff', borderBottom: `1px solid ${border}`, position: 'relative' }}>
@@ -31,7 +40,7 @@ export default function CategoryPills() {
             🌐 All
           </span>
         </Link>
-        {CATEGORIES.map((cat) => {
+        {visibleCategories.map((cat) => {
           const slug = categorySlug(cat.name);
           const active = activeCategorySlug === slug;
           return (
