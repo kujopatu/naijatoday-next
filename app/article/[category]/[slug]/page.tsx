@@ -70,6 +70,9 @@ export default async function ArticlePage({ params }: Props) {
     supabase.from('author_profiles').select('bio,avatar_url,role_title').eq('author_name', post.author || '').maybeSingle(),
   ]);
 
+  // Use the same optimized image for structured data and social previews.
+  const image = new URL(toCloudinaryWm(post.image, 1200, 'jpg') ?? '/og-image.jpg', SITE_URL).toString();
+
   // Rank related stories by shared tags and category; use newest published stories as a fallback.
   const myTags = new Set((post.tags ?? []).map((t: string) => t.toLowerCase()));
   const related = ((recent ?? []) as Post[])
