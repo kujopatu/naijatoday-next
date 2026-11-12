@@ -21,7 +21,7 @@ type WorkflowPost = {
 type Props = { onNavigate: (section: string) => void };
 
 export default function EditorialWorkflowDashboard({ onNavigate }: Props) {
-  const { card, border, text, muted, darkMode } = useTheme();
+  const { card, border, text, muted } = useTheme();
   const [posts, setPosts] = useState<WorkflowPost[]>([]);
   const [tips, setTips] = useState({ new: 0, reviewing: 0, accepted: 0 });
   const [loading, setLoading] = useState(true);
