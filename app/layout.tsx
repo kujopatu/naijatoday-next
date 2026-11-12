@@ -47,6 +47,9 @@ export const metadata: Metadata = {
   description: SITE_DESC,
   keywords: ["Nigeria news", "Naija news today", "Nigerian entertainment", "celebrity gist", "Nigerian politics", "Lagos news", "Abuja news", "Afrobeats", "Nollywood", "jobs in Nigeria", "scholarships for Nigerians"],
   authors: [{ name: "NaijaToday Media" }],
+  ...(process.env.GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }
+    : {}),
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 } },
   applicationName: "NaijaToday",
   appleWebApp: { capable: true, title: "NaijaToday", statusBarStyle: "black-translucent" },
