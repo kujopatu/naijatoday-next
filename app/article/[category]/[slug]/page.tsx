@@ -71,6 +71,9 @@ export async function generateStaticParams() {
 
 export default async function ArticlePage({ params }: Props) {
   const { category, slug } = await params;
+  const duplicateRedirect = duplicateArticleRedirects[slug.slice(-6).toLowerCase()];
+  if (duplicateRedirect) permanentRedirect(duplicateRedirect);
+
   const post = await getPostBySlug(category, slug);
   if (!post) notFound();
 
