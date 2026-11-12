@@ -10,7 +10,7 @@ type Submission = {
   id: string; headline: string; category: string; location: string; details: string;
   witnessed_at: string | null; source_type: string; submitter_name: string;
   contact_email: string | null; contact_phone: string | null; photo_path: string | null;
-  status: 'new' | 'reviewing' | 'accepted' | 'rejected'; editor_notes: string | null; created_at: string;
+  status: 'new' | 'reviewing' | 'accepted' | 'rejected'; editor_notes: string | null; created_at: string; converted_post_id: string | null; converted_at: string | null;
 };
 
 const statusLabels: Record<Submission['status'], string> = { new: 'NEW', reviewing: 'IN REVIEW', accepted: 'ACCEPTED', rejected: 'REJECTED' };
@@ -73,6 +73,72 @@ export default function StorySubmissionsPanel() {
     setBusy(null);
   };
 
+  const convertToDraft = async (item: Submission) => {
+    if (item.converted_post_id) {
+      showToast('This submission has already been converted to an article draft.');
+      return;
+    }
+    if (item.status !== 'accepted') {
+      showToast('Accept the tip after editorial review before creating a draft.');
+      return;
+    }
+    if (!window.confirm('Create an UNPUBLISHED article draft from this reader tip? The submitter’s contact details and name will not be copied into the article.')) return;
+    setBusy(item.id);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const excerpt = item.details.trim().replace(/\\s+/g, ' ').slice(0, 220);
+      const reportContext = [
+        item.location ? 'Reported location: ' + item.location : '',
+        item.witnessed_at ? 'Reported date: ' + new Date(item.witnessed_at).toLocaleString('en-NG') : '',
+        'Source: Reader-submitted tip (requires independent verification).',
+        '',
+        item.details.trim(),
+      ].filter(Boolean).join('\\n\\n');
+      const now = new Date().toISOString();
+      const { data: post, error: postError } = await supabase.from('posts').insert([{
+        title: item.headline,
+        excerpt,
+        content: reportContext,
+        category: item.category,
+        image: '📰',
+        author: 'NaijaToday Editorial Desk',
+        read_time: '3 min',
+        breaking: false,
+        hot: false,
+        featured: false,
+        sponsored: false,
+        tags: ['reader tip', item.category.toLowerCase()],
+        published: false,
+        views: 0,
+        upvotes: 0,
+        comments: 0,
+        created_at: now,
+        updated_at: now,
+        created_by: userData.user?.id || null,
+      }]).select('id').single();
+      if (postError || !post) throw new Error(postError?.message || 'The article draft could not be created.');
+
+      const { error: linkError } = await supabase.from('story_submissions').update({
+        converted_post_id: post.id,
+        converted_at: now,
+        status: 'accepted',
+        reviewed_by: userData.user?.id || null,
+        reviewed_at: now,
+        editor_notes: notes[item.id]?.trim() || item.editor_notes || null,
+      }).eq('id', item.id).is('converted_post_id', null);
+      if (linkError) {
+        showToast('Draft created, but the submission link could not be saved. Do not convert it again; check Manage Articles for: ' + item.headline);
+      } else {
+        showToast('Unpublished article draft created and linked to this reader tip.');
+      }
+      await load();
+    } catch (error) {
+      showToast('Could not create article draft: ' + (error instanceof Error ? error.message : 'Connection error'));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const remove = async (item: Submission) => {
     if (!window.confirm('Permanently delete this reader submission?')) return;
     setBusy(item.id);
@@ -118,11 +184,14 @@ export default function StorySubmissionsPanel() {
               {item.witnessed_at && <span>Reported date: {new Date(item.witnessed_at).toLocaleString('en-NG')}</span>}
             </div>
             {item.photo_path && (photos[item.photo_path] ? <a href={photos[item.photo_path]} target="_blank" rel="noreferrer"><img src={photos[item.photo_path]} alt="Reader-submitted supporting photo" style={{ display: 'block', maxWidth: '100%', maxHeight: 320, objectFit: 'contain', borderRadius: 8, marginTop: 14, background: darkMode ? '#080b10' : '#f1f4f2' }} /></a> : <div style={{ color: muted, fontSize: 12, marginTop: 10 }}>Photo preview unavailable. Refresh to try again.</div>)}
+            {item.converted_post_id && <div style={{ marginTop: 12, padding: 10, borderRadius: 8, background: G.green + '12', color: G.green, fontSize: 12, fontWeight: 700 }}>✓ Converted to an unpublished article draft · {item.converted_at ? new Date(item.converted_at).toLocaleString('en-NG') : 'Draft linked'}</div>}
             <label style={{ display: 'block', color: text, fontSize: 12, fontWeight: 700, margin: '16px 0 6px' }} htmlFor={`notes-${item.id}`}>Internal editorial notes (not public)</label>
             <textarea id={`notes-${item.id}`} rows={3} value={notes[item.id] || ''} onChange={e => setNotes(current => ({ ...current, [item.id]: e.target.value }))} placeholder="Verification notes, follow-up required, editorial decision…" style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${border}`, borderRadius: 8, padding: 10, background: darkMode ? '#111520' : '#f7f9f8', color: text, fontSize: 13, resize: 'vertical' }} />
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
               <button disabled={!!busy} onClick={() => void update(item, 'reviewing')} style={{ border: `1px solid ${border}`, background: 'transparent', color: text, borderRadius: 7, padding: '9px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{busy === item.id ? 'Saving…' : 'Mark in review'}</button>
               <button disabled={!!busy} onClick={() => void update(item, 'accepted')} style={{ border: 0, background: G.green, color: '#fff', borderRadius: 7, padding: '9px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Accept tip</button>
+              {item.status === 'accepted' && !item.converted_post_id && <button disabled={!!busy} onClick={() => void convertToDraft(item)} style={{ border: '1px solid ' + G.green, background: G.green + '12', color: G.green, borderRadius: 7, padding: '9px 12px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>{busy === item.id ? 'Creating draft…' : 'Create article draft'}</button>}
+              {item.converted_post_id && <span style={{ alignSelf: 'center', color: G.green, fontSize: 12, fontWeight: 800 }}>Draft created</span>}
               <button disabled={!!busy} onClick={() => void update(item, 'rejected')} style={{ border: '1px solid #c65b55', background: 'transparent', color: '#c65b55', borderRadius: 7, padding: '9px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Reject</button>
               <button disabled={!!busy} onClick={() => void remove(item)} style={{ border: `1px solid ${border}`, background: 'transparent', color: muted, borderRadius: 7, padding: '9px 12px', fontSize: 12, cursor: 'pointer', marginLeft: 'auto' }}>Delete</button>
             </div>
