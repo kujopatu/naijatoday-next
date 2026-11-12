@@ -13,6 +13,7 @@ import SiteFooter from "@/components/SiteFooter";
 import CookieBanner from "@/components/CookieBanner";
 import ScrollButtons from "@/components/ScrollButtons";
 import InstallPrompt from "@/components/InstallPrompt";
+import MobileBottomNav from "@/components/MobileBottomNav";
 import JsonLd from "@/components/JsonLd";
 import "./globals.css";
 
@@ -117,6 +118,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <ToastProvider>
             <AuthProvider>
               <SavedPostsProvider>{children}</SavedPostsProvider>
+              <MobileBottomNav />
               <SiteFooter />
               <ScrollButtons />
               <CookieBanner />
