@@ -66,11 +66,10 @@ export default function EditorialWorkflowDashboard({ onNavigate }: Props) {
       assignments.set(name, (assignments.get(name) || 0) + 1);
     });
     const submittedStatuses = ['submitted', 'in_review', 'review', 'pending', 'awaiting_review'];
-    const approved = unpublished.filter(post => (post.workflow_status || '').toLowerCase() === 'approved');
-    const submitted = posts.filter(post => submittedStatuses.includes((post.workflow_status || '').toLowerCase()) || !!post.submitted_at);
+        const submitted = posts.filter(post => submittedStatuses.includes((post.workflow_status || '').toLowerCase()) || !!post.submitted_at);
     const since = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const recentPosts = posts.filter(post => {
-      const date = post.published_at || post.submitted_at || post.created_at;
+      const date = post.updated_at || post.published_at || post.submitted_at || post.created_at;
       return !!date && new Date(date).getTime() >= since;
     });
     const writerMap = new Map<string, { total: number; published: number; submitted: number; drafts: number; recent: number }>();
@@ -80,13 +79,13 @@ export default function EditorialWorkflowDashboard({ onNavigate }: Props) {
       item.total += 1;
       if (post.published === true) item.published += 1;
       if (submittedStatuses.includes((post.workflow_status || '').toLowerCase()) || !!post.submitted_at) item.submitted += 1;
-      if (post.published === false && !submittedStatuses.includes((post.workflow_status || '').toLowerCase())) item.drafts += 1;
+      if (post.published === false && !post.submitted_at && !submittedStatuses.includes((post.workflow_status || '').toLowerCase())) item.drafts += 1;
       const date = post.published_at || post.submitted_at || post.created_at;
       if (date && new Date(date).getTime() >= since) item.recent += 1;
       writerMap.set(name, item);
     });
     const writers = [...writerMap.entries()].map(([name, values]) => ({ name, ...values })).sort((a, b) => b.recent - a.recent || b.total - a.total).slice(0, 8);
-    return { drafts, review, scheduled, published, approved, submitted, recent, recentPosts, writers, assignments: [...assignments.entries()].sort((a, b) => b[1] - a[1]) };
+    return { drafts, review, scheduled, published, submitted, recent, recentPosts, writers, assignments: [...assignments.entries()].sort((a, b) => b[1] - a[1]) };
   }, [posts]);
 
   const statCards = [
@@ -131,15 +130,11 @@ export default function EditorialWorkflowDashboard({ onNavigate }: Props) {
         <div style={{ color: muted, fontSize: 11, marginBottom: 12 }}>Based on the latest article records available to this dashboard.</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 10 }}>
           {[
-            ['Articles created / active', stats.recentPosts.length, G.green],
+            ['Articles active', stats.recentPosts.length, G.green],
             ['Submitted for review', stats.submitted.filter(post => {
-              const date = post.submitted_at || post.created_at;
+              const date = post.submitted_at || post.updated_at || post.created_at;
               return !!date && new Date(date).getTime() >= Date.now() - 30 * 24 * 60 * 60 * 1000;
             }).length, '#6478d3'],
-            ['Approved', stats.approved.filter(post => {
-              const date = post.reviewed_at || post.updated_at || post.created_at;
-              return !!date && new Date(date).getTime() >= Date.now() - 30 * 24 * 60 * 60 * 1000;
-            }).length, '#0d9488'],
             ['Published', stats.published.filter(post => {
               const date = post.published_at || post.created_at;
               return !!date && new Date(date).getTime() >= Date.now() - 30 * 24 * 60 * 60 * 1000;
