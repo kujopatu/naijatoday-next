@@ -10,7 +10,7 @@ const esc = (value: string) =>
 export async function GET() {
   const { data } = await supabase
     .from('posts')
-    .select('id, title, category, excerpt, image, created_at, author')
+    .select('id, title, category, excerpt, image, created_at, published_at, author')
     .eq('published', true)
     .order('created_at', { ascending: false })
     .limit(30);
@@ -26,7 +26,7 @@ export async function GET() {
       <link>${esc(url)}</link>
       <guid isPermaLink="true">${esc(url)}</guid>
       <description>${esc(description)}</description>
-      <pubDate>${new Date(post.created_at).toUTCString()}</pubDate>
+      <pubDate>${new Date(post.published_at || post.created_at).toUTCString()}</pubDate>
       <category>${esc(post.category || 'News')}</category>
       ${post.author ? `<author>${esc(post.author)}</author>` : ''}
       ${image}
