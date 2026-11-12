@@ -86,14 +86,14 @@ export default function StorySubmissionsPanel() {
     setBusy(item.id);
     try {
       const { data: userData } = await supabase.auth.getUser();
-      const excerpt = item.details.trim().replace(/\\s+/g, ' ').slice(0, 220);
+      const excerpt = item.details.trim().replace(/\s+/g, ' ').slice(0, 220);
       const reportContext = [
         item.location ? 'Reported location: ' + item.location : '',
         item.witnessed_at ? 'Reported date: ' + new Date(item.witnessed_at).toLocaleString('en-NG') : '',
         'Source: Reader-submitted tip (requires independent verification).',
         '',
         item.details.trim(),
-      ].filter(Boolean).join('\\n\\n');
+      ].filter(Boolean).join('\n\n');
       const now = new Date().toISOString();
       const { data: post, error: postError } = await supabase.from('posts').insert([{
         title: item.headline,
