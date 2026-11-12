@@ -11,7 +11,7 @@ const esc = (s: string) =>
 
 export async function GET() {
   const since = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
-  let posts: { id: string; title: string; category: string; created_at: string }[] = [];
+  let posts: { id: string; title: string; category: string; created_at: string; published_at?: string | null }[] = [];
   try {
     const { data } = await supabase
       .from('posts').select('id, title, category, created_at, published_at')
