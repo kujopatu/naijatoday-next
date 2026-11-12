@@ -19,7 +19,8 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function EditorialAssignmentPanel() {
-  const { userEmail, isEditor, isWriter } = useAuth();
+  const { userEmail, isAdmin, isEditor, isWriter } = useAuth();
+  const canReview = isAdmin || isEditor;
   const { showToast } = useToast();
   const { card, border, text, muted, darkMode } = useTheme();
   const [articles, setArticles] = useState<WorkflowArticle[]>([]);
@@ -45,7 +46,7 @@ export default function EditorialAssignmentPanel() {
 
   const recordEvent = async (postId: string, action: string, detail?: string) => {
     const { data } = await supabase.auth.getUser();
-    await supabase.from('article_workflow_events').insert({
+    return await supabase.from('article_workflow_events').insert({
       post_id: postId, actor_id: data.user?.id, actor_email: userEmail || null, action, notes: detail || null,
     });
   };
@@ -123,12 +124,12 @@ export default function EditorialAssignmentPanel() {
           {article.submitted_at && <span>Submitted: {new Date(article.submitted_at).toLocaleDateString('en-NG')}</span>}
         </div>
         {article.review_notes && <div style={{ background: darkMode ? '#1b2432' : '#f1f5f9', color: text, borderRadius: 8, padding: 10, fontSize: 12, marginBottom: 10 }}><strong>Latest editor note:</strong> {article.review_notes}</div>}
-        {isEditor && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 8, marginTop: 10 }}>
+        {canReview && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 8, marginTop: 10 }}>
           <input aria-label="Assign to team member email" placeholder="Assign to team email" value={assignment[article.id] ?? article.assigned_to ?? ''} onChange={e => setAssignment(v => ({ ...v, [article.id]: e.target.value }))} style={input} />
           <input aria-label="Assignment deadline" type="date" value={deadlines[article.id] ?? (article.due_at ? article.due_at.slice(0,10) : '')} onChange={e => setDeadlines(v => ({ ...v, [article.id]: e.target.value }))} style={input} />
           <button disabled={busy === article.id} onClick={() => assign(article)} style={button()}>Save assignment</button>
         </div>}
-        {isEditor && ['submitted','in_review','revision_requested'].includes(article.workflow_status) && <div style={{ marginTop: 10 }}>
+        {canReview && ['submitted','in_review','revision_requested'].includes(article.workflow_status) && <div style={{ marginTop: 10 }}>
           <textarea aria-label="Review note" placeholder="Editor feedback (required for revision request or rejection)" value={notes[article.id] || ''} onChange={e => setNotes(v => ({ ...v, [article.id]: e.target.value }))} rows={2} style={{ ...input, resize: 'vertical', marginBottom: 8 }} />
           <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
             <button disabled={busy === article.id} onClick={() => review(article, 'approved')} style={button(G.green)}>✓ Approve</button>
@@ -136,7 +137,7 @@ export default function EditorialAssignmentPanel() {
             <button disabled={busy === article.id} onClick={() => review(article, 'rejected')} style={button('#dc2626')}>Reject</button>
           </div>
         </div>}
-        {isEditor && article.workflow_status === 'approved' && <button disabled={busy === article.id} onClick={() => publishApproved(article)} style={{ ...button(G.green), marginTop: 10 }}>Publish approved article</button>}
+        {canReview && article.workflow_status === 'approved' && <button disabled={busy === article.id} onClick={() => publishApproved(article)} style={{ ...button(G.green), marginTop: 10 }}>Publish approved article</button>}
         {isWriter && article.created_by && article.workflow_status !== 'submitted' && article.workflow_status !== 'approved' && article.workflow_status !== 'rejected' && <button disabled={busy === article.id} onClick={() => submitForReview(article)} style={{ ...button(), marginTop: 10 }}>Submit for editor review</button>}
         {busy === article.id && <span style={{ color: muted, fontSize: 11, marginLeft: 8 }}>Saving…</span>}
       </article>)}
