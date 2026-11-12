@@ -23,7 +23,11 @@ function findCategoryBySlug(raw: string) {
   let decoded = raw;
   try { decoded = decodeURIComponent(raw); } catch { /* keep raw */ }
   const slug = categorySlug(decoded);
-  return CATEGORIES.find((c) => categorySlug(c.name) === slug);
+  const directMatch = CATEGORIES.find((c) => categorySlug(c.name) === slug);
+  if (directMatch) return directMatch;
+  // Legacy posts saved under "Nigeria" belong on the National category page.
+  if (slug === 'nigeria') return CATEGORIES.find((c) => c.name === 'National');
+  return undefined;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -51,7 +55,7 @@ export default async function CategoryPage({ params }: Props) {
     .from('posts')
     .select('*')
     .eq('published', true)
-    .eq('category', cat?.name ?? slug)
+    .in('category', cat.name === 'National' ? ['National', 'Nigeria', 'News', 'National News'] : [cat.name])
     .order('created_at', { ascending: false })
     .limit(200);
 
