@@ -60,7 +60,7 @@ export default function ArticleActions({ post }: { post: Post }) {
   });
 
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', margin: '20px 0' }}>
+    <div className="article-actions" aria-label="Article actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', margin: '20px 0', padding: '12px 0', borderTop: `1px solid ${border}`, borderBottom: `1px solid ${border}` }}>
       <button style={btn(voted)} onClick={toggleVote}>👍 {upvotes}</button>
       <button style={btn(saved)} onClick={() => toggleSaved(post)}>
         {saved ? '🔖 Saved' : '🔖 Save'}
