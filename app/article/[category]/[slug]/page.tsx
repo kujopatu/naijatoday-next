@@ -17,6 +17,9 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { category, slug } = await params;
+  const duplicateRedirect = duplicateArticleRedirects[slug.slice(-6).toLowerCase()];
+  if (duplicateRedirect) permanentRedirect(duplicateRedirect);
+
   const post = await getPostBySlug(category, slug);
   if (!post) return {};
 
@@ -50,6 +53,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     alternates: { canonical: new URL(postPath(post), SITE_URL).toString() },
   };
 }
+
+const duplicateArticleRedirects: Record<string, string> = {
+  // Older duplicate records now point to the retained canonical article.
+  ecd5f4: '/article/sports/spain-storm-into-the-world-cup-final-how-they-silenced-france-and-who-they-face-next-27a2bb',
+  '9dac17': '/article/lifestyle/10-things-nigerians-do-abroad-that-they-would-never-do-back-home-569c64',
+  '4742e2': '/article/business/how-to-avoid-real-estate-fraud-in-nigeria-even-celebrities-get-caught-out-c929d4',
+  '7788f7': '/article/jobs/the-complete-2026-guide-to-changing-your-state-of-service-4118c3',
+};
 
 export const dynamicParams = true;
 export const revalidate = 3600;
