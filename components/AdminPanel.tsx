@@ -81,16 +81,16 @@ const ADMIN_MENU_GROUPS: { label: string; items: [string, string][] }[] = [
 const BUILT_TABS = new Set(['overview', 'new', 'manage', 'story-tips', 'ai-newsroom', 'moderators', 'reports', 'breaking', 'jobs', 'forum', 'trends', 'dataplans', 'fuel', 'social', 'products', 'fixtures', 'polls', 'users', 'team', 'authors', 'tools', 'sitemap']);
 
 export default function AdminPanel() {
-  const { userEmail, isAdmin, isWriter, isModerator, canModerate } = useAuth();
+  const { userEmail, isAdmin, isEditor, isWriter, isModerator, canModerate } = useAuth();
   const { showToast } = useToast();
   const { darkMode, card, border, text, muted } = useTheme();
 
-  const [activeSection, setActiveSection] = useState(isAdmin ? 'overview' : isModerator ? 'forum' : 'new');
+  const [activeSection, setActiveSection] = useState(isAdmin ? 'overview' : isModerator ? 'forum' : isEditor ? 'story-tips' : 'new');
   const visibleMenuGroups = isAdmin ? ADMIN_MENU_GROUPS : isModerator
     ? ADMIN_MENU_GROUPS.filter((group) => group.label === 'Community & Users').map((group) => ({ ...group, items: group.items.filter(([key]) => key === 'forum' || key === 'reports') }))
     : ADMIN_MENU_GROUPS.filter((group) => group.label === 'Articles & Publishing').map((group) => ({
         ...group,
-        items: group.items.filter(([key]) => key === 'new' || key === 'manage'),
+        items: group.items.filter(([key]) => key === 'new' || key === 'manage' || (isEditor && key === 'story-tips')),
       }));
   const [pendingCount, setPendingCount] = useState(0);
   // Count of forum threads waiting for approval (shown on the Queue tab).
@@ -1322,7 +1322,7 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {isAdmin && activeSection === 'story-tips' && <StorySubmissionsPanel />}
+      {(isAdmin || isEditor) && activeSection === 'story-tips' && <StorySubmissionsPanel />}
       {isAdmin && activeSection === 'ai-newsroom' && <AINewsroomMonitor />
       {isAdmin && activeSection === 'breaking' && <BreakingNewsManager />}
       {isAdmin && activeSection === 'jobs' && <JobsScholarshipsManager />}
