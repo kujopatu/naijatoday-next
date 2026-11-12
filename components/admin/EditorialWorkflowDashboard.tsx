@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { G } from '@/lib/theme';
 import { useTheme } from '../ThemeProvider';
+import EditorialOperationsSuite from './EditorialOperationsSuite';
 
 type WorkflowPost = {
   id: string;
@@ -263,6 +264,8 @@ export default function EditorialWorkflowDashboard({ onNavigate }: Props) {
         </div>
         <div style={{ color: muted, fontSize: 10, marginTop: 10 }}>Reader interactions combine recorded comments and upvotes. Totals reflect stored article counters, not unique visitors.</div>
       </div>
+
+      <EditorialOperationsSuite posts={posts} />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(270px,1fr))', gap: 14 }}>
         <div style={panel}>
