@@ -14,9 +14,9 @@ export async function GET() {
   let posts: { id: string; title: string; category: string; created_at: string }[] = [];
   try {
     const { data } = await supabase
-      .from('posts').select('id, title, category, created_at')
-      .eq('published', true).gte('created_at', since)
-      .order('created_at', { ascending: false }).limit(1000);
+      .from('posts').select('id, title, category, created_at, published_at')
+      .eq('published', true).gte('published_at', since)
+      .order('published_at', { ascending: false }).limit(1000);
     posts = data ?? [];
   } catch { /* serve an empty, valid sitemap */ }
 
@@ -24,7 +24,7 @@ export async function GET() {
     <loc>${esc(SITE_URL + postPath(p))}</loc>
     <news:news>
       <news:publication><news:name>NaijaToday</news:name><news:language>en</news:language></news:publication>
-      <news:publication_date>${new Date(p.created_at).toISOString()}</news:publication_date>
+      <news:publication_date>${new Date(p.published_at || p.created_at).toISOString()}</news:publication_date>
       <news:title>${esc(p.title)}</news:title>
     </news:news>
   </url>`).join('\n');
