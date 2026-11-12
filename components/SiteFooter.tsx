@@ -8,7 +8,12 @@ import { categorySlug } from '@/lib/posts';
 import { G } from '@/lib/theme';
 import { useAuth } from './AuthProvider';
 
-const FOOTER_CATS = ['Entertainment', 'Music', 'Politics', 'Sports', 'Technology', 'Business', 'Health', 'Viral'];
+// Categories with published stories; Nigeria-labelled legacy posts live under National.
+const FOOTER_CATS = [
+  'National', 'Business', 'Celebrity', 'Education', 'Entertainment', 'Forum',
+  'Health', 'Jobs', 'Lifestyle', 'Music', 'Politics', 'Relationship',
+  'Religion', 'Scholarships', 'Sports', 'Technology', 'Viral',
+];
 const mail = (subject: string) => `mailto:kujopatu@gmail.com?subject=${encodeURIComponent(subject)}`;
 
 export default function SiteFooter() {
@@ -44,7 +49,6 @@ export default function SiteFooter() {
           <div>
             <div style={colTitle}>Quick Links</div>
             {[['/', 'Home'], ['/trending', 'Trending'], ['/polls', 'Polls & Opinions'], ['/forum', 'Forum'], ['/jobs', 'Jobs & Scholarships'], ['/resources', 'Resources'], ['/scores', 'Fixtures & Scores'], ['/saved', 'Saved Articles'], ['/about', 'About Us'], ['/submit-story', 'Submit a Story'], ['/advertise', 'Advertise'], ['/contact', 'Contact Us']].map(([h, l]) => <Link key={h} href={h} style={lnk}>{l}</Link>)}
-            
           </div>
 
           <div>
