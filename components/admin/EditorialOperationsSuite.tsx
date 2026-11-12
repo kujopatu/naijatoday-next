@@ -14,7 +14,7 @@ type Article = {
 };
 type EventRow = { id: string; post_id: string; actor_email: string | null; action: string; notes: string | null; created_at: string };
 
-const dateValue = (value: string | null) => value ? new Date(value).getTime() : 0;
+const dateValue = (value: string | null | undefined) => value ? new Date(value).getTime() : 0;
 const dateLabel = (value: string | null) => value ? new Date(value).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : 'Not set';
 const csvCell = (value: unknown) => '"' + String(value ?? '').replace(/"/g, '""') + '"';
 
