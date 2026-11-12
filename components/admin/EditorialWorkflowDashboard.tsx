@@ -112,10 +112,11 @@ export default function EditorialWorkflowDashboard({ onNavigate }: Props) {
       categoryMap.set(name, item);
     });
     const categories = [...categoryMap.entries()].map(([name, values]) => ({ name, ...values })).sort((a, b) => b.views - a.views || b.articles - a.articles).slice(0, 7);
+    const categoryCount = categoryMap.size;
     const topStories = [...publishedPosts].sort((a, b) => Number(b.views || 0) - Number(a.views || 0)).slice(0, 5);
     const engagement = publishedPosts.reduce((sum, post) => sum + Number(post.comments || 0) + Number(post.upvotes || 0), 0);
     const totalViews = publishedPosts.reduce((sum, post) => sum + Number(post.views || 0), 0);
-    return { drafts, review, scheduled, published, submitted, recent, recentPosts, writers, monthly, categories, topStories, totalViews, engagement, assignments: [...assignments.entries()].sort((a, b) => b[1] - a[1]) };
+    return { drafts, review, scheduled, published, submitted, recent, recentPosts, writers, monthly, categories, categoryCount, topStories, totalViews, engagement, assignments: [...assignments.entries()].sort((a, b) => b[1] - a[1]) };
   }, [posts]);
 
   const statCards = [
@@ -211,10 +212,10 @@ export default function EditorialWorkflowDashboard({ onNavigate }: Props) {
           {[
             ['Total article views', stats.totalViews.toLocaleString('en-NG'), G.green],
             ['Reader interactions', stats.engagement.toLocaleString('en-NG'), '#6478d3'],
-            ['Categories covered', stats.categories.length.toLocaleString('en-NG'), G.gold],
+            ['Categories covered', stats.categoryCount.toLocaleString('en-NG'), G.gold],
           ].map(([label, value, color]) => (
             <div key={label} style={{ border: '1px solid ' + border, borderRadius: 9, padding: 12 }}>
-              <div style={{ color, fontSize: 22, fontWeight: 900 }}>{loading ? '…' : value}</div>
+              <div style={{ color: String(color), fontSize: 22, fontWeight: 900 }}>{loading ? '…' : value}</div>
               <div style={{ color: muted, fontSize: 11, fontWeight: 700 }}>{label}</div>
             </div>
           ))}
