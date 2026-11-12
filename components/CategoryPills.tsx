@@ -13,7 +13,7 @@ export default function CategoryPills() {
 
   return (
     <div style={{ background: darkMode ? '#111520' : '#fff', borderBottom: `1px solid ${border}`, position: 'relative' }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', gap: 6, padding: '8px 16px', flexWrap: 'wrap' }}>
+      <div className="naija-category-scroll" style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', gap: 6, padding: '8px 16px', flexWrap: 'wrap' }}>
         <Link href="/" style={{ textDecoration: 'none' }}>
           <span
             style={{
