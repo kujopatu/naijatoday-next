@@ -7,8 +7,6 @@ import { postPath } from '@/lib/posts';
 import { G } from '@/lib/theme';
 import { useTheme } from './ThemeProvider';
 
-type TrendingPost = Pick<Post, 'id' | 'title' | 'category' | 'views' | 'upvotes' | 'comments' | 'created_at' | 'excerpt' | 'content' | 'image' | 'author' | 'read_time' | 'breaking' | 'hot' | 'featured' | 'published' | 'sponsored' | 'updated_at' | 'tags'>;
-
 function activityScore(post: Pick<Post, 'views' | 'upvotes' | 'comments'>) {
   // Views lead the ranking; reactions and discussion add signals of reader interest.
   return (post.views || 0) + (post.upvotes || 0) * 5 + (post.comments || 0) * 3;
