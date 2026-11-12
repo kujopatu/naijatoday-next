@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   description: SITE_DESC,
   keywords: ["Nigeria news", "Naija news today", "Nigerian entertainment", "celebrity gist", "Nigerian politics", "Lagos news", "Abuja news", "Afrobeats", "Nollywood", "jobs in Nigeria", "scholarships for Nigerians"],
   authors: [{ name: "NaijaToday Media" }],
-  robots: { index: true, follow: true },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 } },
   applicationName: "NaijaToday",
   appleWebApp: { capable: true, title: "NaijaToday", statusBarStyle: "black-translucent" },
   icons: { icon: [{ url: "/icon.svg", type: "image/svg+xml" }], apple: "/apple-touch-icon.png" },
@@ -109,7 +109,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               "@type": "NewsMediaOrganization",
               name: "NaijaToday",
               url: SITE_URL,
-              logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png` },
+              logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png`, width: 512, height: 512 },
               address: { "@type": "PostalAddress", addressLocality: "Lagos", addressCountry: "NG" },
             },
           ]}
