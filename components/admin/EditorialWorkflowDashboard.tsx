@@ -14,6 +14,7 @@ type WorkflowPost = {
   workflow_status: string;
   published: boolean | null;
   assigned_to: string | null;
+  due_at: string | null;
   scheduled_at: string | null;
   published_at: string | null;
   created_at: string | null;
@@ -39,7 +40,7 @@ export default function EditorialWorkflowDashboard({ onNavigate }: Props) {
     setError('');
     const [postResult, newTips, reviewingTips, acceptedTips] = await Promise.all([
       supabase.from('posts')
-        .select('id,title,category,author,workflow_status,published,assigned_to,scheduled_at,published_at,created_at,submitted_at,reviewed_at,updated_at,views,comments,upvotes')
+        .select('id,title,category,author,workflow_status,published,assigned_to,due_at,scheduled_at,published_at,created_at,submitted_at,reviewed_at,updated_at,views,comments,upvotes')
         .order('created_at', { ascending: false })
         .limit(500),
       supabase.from('story_submissions').select('id', { count: 'exact', head: true }).eq('status', 'new'),
