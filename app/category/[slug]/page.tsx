@@ -30,15 +30,29 @@ function findCategoryBySlug(raw: string) {
   return undefined;
 }
 
+function categoryValues(name: string) {
+  return name === 'National' ? ['National', 'Nigeria', 'News', 'National News'] : [name];
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const cat = findCategoryBySlug(slug);
   if (!cat) return {};
+
+  const { count, error } = await supabase
+    .from('posts')
+    .select('id', { count: 'exact', head: true })
+    .eq('published', true)
+    .in('category', categoryValues(cat.name));
+
+  const title = `${cat.name} News — NaijaToday`;
+  const description = `Latest ${cat.name} news, updates and stories from Nigeria — NaijaToday.`;
   return {
-    title: `${cat.name} News — NaijaToday`,
-    description: `Latest ${cat.name} news, updates and stories from Nigeria — NaijaToday.`,
+    title,
+    description,
     alternates: { canonical: `${SITE_URL}/category/${categorySlug(cat.name)}` },
-    openGraph: { title: `${cat.name} News — NaijaToday`, description: `Latest ${cat.name} news, updates and stories from Nigeria — NaijaToday.`, type: 'website', url: `${SITE_URL}/category/${categorySlug(cat.name)}` },
+    openGraph: { title, description, type: 'website', url: `${SITE_URL}/category/${categorySlug(cat.name)}` },
+    ...(!error && (count ?? 0) === 0 ? { robots: { index: false, follow: true } } : {}),
   };
 }
 
@@ -51,15 +65,17 @@ export default async function CategoryPage({ params }: Props) {
   const cat = findCategoryBySlug(slug);
   if (!cat) notFound();
 
-  const { data: posts } = await supabase
+  const { data: posts, error: postsError } = await supabase
     .from('posts')
     .select('*')
     .eq('published', true)
-    .in('category', cat.name === 'National' ? ['National', 'Nigeria', 'News', 'National News'] : [cat.name])
+    .in('category', categoryValues(cat.name))
     .order('created_at', { ascending: false })
     .limit(200);
 
   const allPosts = posts ?? [];
+  if (!postsError && allPosts.length === 0) notFound();
+
   const { count: memberCount } = await supabase
     .from('profiles')
     .select('*', { count: 'exact', head: true })
@@ -72,8 +88,8 @@ export default async function CategoryPage({ params }: Props) {
       <CategoryPills />
       <div className="home-grid" style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 16px' }}>
         <main style={{ minWidth: 0 }}>
-          <Breadcrumbs items={[{ label: cat ? cat.name : 'Category' }]} />
-          <HomeFeed posts={allPosts} title={cat ? `${cat.icon} ${cat.name}` : 'Category'} />
+          <Breadcrumbs items={[{ label: cat.name }]} />
+          <HomeFeed posts={allPosts} title={`${cat.icon} ${cat.name}`} />
         </main>
         <aside>
           <MostReadSidebar posts={allPosts} />
