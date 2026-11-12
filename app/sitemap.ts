@@ -34,7 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: p.updated_at || p.published_at || p.created_at,
       changeFrequency: 'weekly' as Freq,
       priority: 0.9,
-      images: p.image && /^https?:\\/\\//.test(p.image.trim()) ? [p.image.trim()] : undefined,
+      images: p.image && p.image.trim().startsWith('http') ? [p.image.trim()] : undefined,
     })),
   ];
 }
