@@ -28,6 +28,7 @@ import SitemapPanel from './admin/SitemapPanel';
 import AINewsroomMonitor from './admin/AINewsroomMonitor';
 import StorySubmissionsPanel from './admin/StorySubmissionsPanel';
 import EditorialWorkflowDashboard from './admin/EditorialWorkflowDashboard';
+import EditorialAssignmentPanel from './admin/EditorialAssignmentPanel';
 
 const CLOUDINARY_CLOUD = 'dywtb9ky3';
 const CLOUDINARY_PRESET = 'naijatorday_upload';
@@ -69,7 +70,7 @@ const emptyForm: ArticleForm = {
 
 const ADMIN_MENU_GROUPS: { label: string; items: [string, string][] }[] = [
   { label: 'Dashboard', items: [['overview', '📊 Analytics']] },
-  { label: 'Articles & Publishing', items: [['editorial-workflow', '🗂️ Editorial Workflow'], ['new', '✍️ Write New Article'], ['manage', '📋 Manage Articles'], ['story-tips', '📨 Reader News Tips'], ['breaking', '🔴 Breaking News'], ['ai-newsroom', '🤖 AI Newsroom Monitor']] },
+  { label: 'Articles & Publishing', items: [['editorial-workflow', '🗂️ Editorial Workflow'], ['assignments', '📝 Assignments & Approval'], ['new', '✍️ Write New Article'], ['manage', '📋 Manage Articles'], ['story-tips', '📨 Reader News Tips'], ['breaking', '🔴 Breaking News'], ['ai-newsroom', '🤖 AI Newsroom Monitor']] },
   { label: 'Community & Users', items: [['forum', '💬 Forum Manager'], ['reports', '🚩 Reports'], ['moderators', '🛡️ Moderators'], ['users', '👥 User Management'], ['team', '🧑‍💻 Editorial Team'], ['authors', '✍️ Author Profiles']] },
   { label: 'Content & Engagement', items: [['trends', '🔥 Trend Manager'], ['social', '🔗 Social Links'], ['polls', '🗳️ Poll Analytics'], ['products', '🛍️ Products / Resources']] },
   { label: 'Services & Updates', items: [['jobs', '💼 Jobs & Scholarships'], ['fuel', '⛽ Fuel Prices'], ['dataplans', '📱 Data Plans'], ['fixtures', '⚽ Fixtures & Scores']] },
@@ -79,7 +80,7 @@ const ADMIN_MENU_GROUPS: { label: string; items: [string, string][] }[] = [
 // Tabs with a real implementation below. Everything else in TABS renders
 // a plain "coming soon" placeholder — kept visible so the panel's shape
 // matches the original, but honest about what's actually built.
-const BUILT_TABS = new Set(['overview', 'new', 'manage', 'story-tips', 'editorial-workflow', 'ai-newsroom', 'moderators', 'reports', 'breaking', 'jobs', 'forum', 'trends', 'dataplans', 'fuel', 'social', 'products', 'fixtures', 'polls', 'users', 'team', 'authors', 'tools', 'sitemap']);
+const BUILT_TABS = new Set(['overview', 'new', 'manage', 'story-tips', 'editorial-workflow', 'assignments', 'ai-newsroom', 'moderators', 'reports', 'breaking', 'jobs', 'forum', 'trends', 'dataplans', 'fuel', 'social', 'products', 'fixtures', 'polls', 'users', 'team', 'authors', 'tools', 'sitemap']);
 
 export default function AdminPanel() {
   const { userEmail, isAdmin, isEditor, isWriter, isModerator, canModerate } = useAuth();
@@ -91,7 +92,7 @@ export default function AdminPanel() {
     ? ADMIN_MENU_GROUPS.filter((group) => group.label === 'Community & Users').map((group) => ({ ...group, items: group.items.filter(([key]) => key === 'forum' || key === 'reports') }))
     : ADMIN_MENU_GROUPS.filter((group) => group.label === 'Articles & Publishing').map((group) => ({
         ...group,
-        items: group.items.filter(([key]) => key === 'new' || key === 'manage' || (isEditor && (key === 'story-tips' || key === 'editorial-workflow'))),
+        items: group.items.filter(([key]) => key === 'new' || key === 'manage' || (isEditor && (key === 'story-tips' || key === 'editorial-workflow' || key === 'assignments')) || (isWriter && key === 'assignments')),
       }));
   const [pendingCount, setPendingCount] = useState(0);
   // Count of forum threads waiting for approval (shown on the Queue tab).
@@ -284,7 +285,8 @@ export default function AdminPanel() {
     setSaving(true);
     const tagsArray = form.tags.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean);
     const { pollQuestion, pollOptions, ...rest } = form;
-    const payload = { ...rest, tags: tagsArray, published: isWriter ? false : publish };
+    const { data: currentUser } = await supabase.auth.getUser();
+    const payload = { ...rest, tags: tagsArray, published: isWriter ? false : publish, ...(editId ? {} : { created_by: currentUser.user?.id ?? null }), ...(isWriter ? { workflow_status: 'draft' } : {}) };
     const validPollOptions = pollOptions.map((o) => o.trim()).filter(Boolean);
 
     try {
@@ -1324,6 +1326,7 @@ export default function AdminPanel() {
       )}
 
       {(isAdmin || isEditor) && activeSection === 'editorial-workflow' && <EditorialWorkflowDashboard onNavigate={setActiveSection} />}
+      {(isAdmin || isEditor || isWriter) && activeSection === 'assignments' && <EditorialAssignmentPanel />}
       {(isAdmin || isEditor) && activeSection === 'story-tips' && <StorySubmissionsPanel />}
       {isAdmin && activeSection === 'ai-newsroom' && <AINewsroomMonitor />}
       {isAdmin && activeSection === 'breaking' && <BreakingNewsManager />}
