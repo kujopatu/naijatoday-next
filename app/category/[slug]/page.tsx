@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { CATEGORIES } from '@/lib/theme';
 import { categorySlug } from '@/lib/posts';
+import { SITE_URL } from '@/lib/site';
 import SiteHeader from '@/components/SiteHeader';
 import BreakingNewsBar from '@/components/BreakingNewsBar';
 import CategoryPills from '@/components/CategoryPills';
@@ -32,8 +33,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${cat.name} News — NaijaToday`,
     description: `Latest ${cat.name} news, updates and stories from Nigeria — NaijaToday.`,
-    alternates: { canonical: `https://naijatodayblog.com.ng/category/${categorySlug(cat.name)}` },
-    openGraph: { title: `${cat.name} News — NaijaToday`, description: `Latest ${cat.name} news, updates and stories from Nigeria — NaijaToday.`, type: 'website', url: `https://naijatodayblog.com.ng/category/${categorySlug(cat.name)}` },
+    alternates: { canonical: `${SITE_URL}/category/${categorySlug(cat.name)}` },
+    openGraph: { title: `${cat.name} News — NaijaToday`, description: `Latest ${cat.name} news, updates and stories from Nigeria — NaijaToday.`, type: 'website', url: `${SITE_URL}/category/${categorySlug(cat.name)}` },
   };
 }
 
