@@ -23,7 +23,7 @@ export default function MostReadSidebar({ posts }: { posts: Post[] }) {
         .from('posts')
         .select('*')
         .eq('published', true)
-        .order('created_at', { ascending: false })
+        .order('views', { ascending: false })
         .limit(200);
       if (!error && data) {
         setLivePosts(data as Post[]);
