@@ -126,7 +126,7 @@ export default function EditorialWorkflowDashboard({ onNavigate }: Props) {
               <span style={{ color: text, overflowWrap: 'anywhere' }}>{name}</span><strong style={{ color: G.green }}>{count} open</strong>
             </div>
           ))}
-          <button onClick={() => onNavigate('manage')} style={{ ...actionButton, marginTop: 13, width: '100%' }}>Manage article assignments →</button>
+          <button onClick={() => onNavigate('assignments')} style={{ ...actionButton, marginTop: 13, width: '100%' }}>Manage article assignments →</button>
         </div>
 
         <div style={panel}>
