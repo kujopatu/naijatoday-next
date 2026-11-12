@@ -1323,7 +1323,7 @@ export default function AdminPanel() {
       )}
 
       {(isAdmin || isEditor) && activeSection === 'story-tips' && <StorySubmissionsPanel />}
-      {isAdmin && activeSection === 'ai-newsroom' && <AINewsroomMonitor />
+      {isAdmin && activeSection === 'ai-newsroom' && <AINewsroomMonitor />}
       {isAdmin && activeSection === 'breaking' && <BreakingNewsManager />}
       {isAdmin && activeSection === 'jobs' && <JobsScholarshipsManager />}
       {canModerate && activeSection === 'forum' && <ForumManager />}
