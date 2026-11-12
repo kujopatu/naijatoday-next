@@ -181,7 +181,7 @@ export default function EditorialWorkflowDashboard({ onNavigate }: Props) {
 
       <div style={{ ...panel, marginBottom: 14 }}>
         <div style={{ color: text, fontWeight: 800, fontSize: 14, marginBottom: 4 }}>✍️ Writer productivity</div>
-        <div style={{ color: muted, fontSize: 11, marginBottom: 12 }}>Ranked by articles created in the last 30 days; includes each writer’s overall totals in the latest records.</div>
+        <div style={{ color: muted, fontSize: 11, marginBottom: 12 }}>Ranked by cumulative views across each writer’s published articles; also shows recent publishing activity.</div>
         {loading ? <div style={{ color: muted, fontSize: 12 }}>Calculating writer activity…</div> : stats.writers.length === 0 ? (
           <div style={{ color: muted, fontSize: 12 }}>No writer activity found in the latest article records.</div>
         ) : (
