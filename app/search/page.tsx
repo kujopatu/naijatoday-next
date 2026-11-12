@@ -16,8 +16,8 @@ const QUICK_CATEGORIES = ['National', 'Politics', 'Business', 'Economy', 'Entert
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const { q, tag } = await searchParams;
-  if (tag) return { title: `#${tag} — NaijaToday` };
-  return { title: q ? `Search: ${q} — NaijaToday` : 'Search — NaijaToday' };
+  if (tag) return { title: `#${tag} — NaijaToday`, robots: { index: false, follow: true } };
+  return { title: q ? `Search: ${q} — NaijaToday` : 'Search — NaijaToday', robots: { index: false, follow: true } };
 }
 
 export default async function SearchPage({ searchParams }: Props) {
