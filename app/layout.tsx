@@ -107,6 +107,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             {
               "@context": "https://schema.org",
               "@type": "NewsMediaOrganization",
+              "@id": `${SITE_URL}/#publisher`,
               name: "NaijaToday",
               url: SITE_URL,
               logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png`, width: 512, height: 512 },
