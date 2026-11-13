@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
-import { Post, supabase } from '@/lib/supabase';
+import { Post } from '@/lib/supabase';
 import { postPath } from '@/lib/posts';
 import { G } from '@/lib/theme';
 import { useTheme } from './ThemeProvider';
@@ -14,35 +14,12 @@ function activityScore(post: Pick<Post, 'views' | 'upvotes' | 'comments'>) {
 
 export default function MostReadSidebar({ posts }: { posts: Post[] }) {
   const { card, border, text, muted } = useTheme();
-  const [livePosts, setLivePosts] = useState<Post[]>(posts);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const refresh = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('published', true)
-        .order('views', { ascending: false })
-        .limit(200);
-      if (!error && data) {
-        setLivePosts(data as Post[]);
-        setLastUpdated(new Date());
-      }
-    } catch {
-      // Keep the last successfully loaded list visible if refresh is unavailable.
-    }
-  }, []);
-
-  useEffect(() => {
-    refresh();
-    const timer = window.setInterval(refresh, 60_000);
-    return () => window.clearInterval(timer);
-  }, [refresh]);
-
+  // Use the posts already supplied by the page. Do not issue a second broad
+  // Supabase query or poll for the same data every minute.
   const top = useMemo(
-    () => [...livePosts].sort((a, b) => activityScore(b) - activityScore(a)).slice(0, 5),
-    [livePosts]
+    () => [...posts].sort((a, b) => activityScore(b) - activityScore(a)).slice(0, 5),
+    [posts]
   );
 
   if (top.length === 0) return null;
@@ -51,7 +28,7 @@ export default function MostReadSidebar({ posts }: { posts: Post[] }) {
     <section aria-label="Trending stories" style={{ background: card, borderRadius: 12, border: `1px solid ${border}`, padding: 17, marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 5 }}>
         <h2 style={{ fontSize: 15, fontWeight: 800, color: text, margin: 0 }}>🔥 Trending Now</h2>
-        <span style={{ fontSize: 9, fontWeight: 800, color: G.green, letterSpacing: '.6px' }}>LIVE</span>
+        <span style={{ fontSize: 9, fontWeight: 800, color: G.green, letterSpacing: '.6px' }}>POPULAR</span>
       </div>
       <div style={{ fontSize: 10, color: muted, marginBottom: 10 }}>
         Ranked by views, reactions and comments
@@ -85,7 +62,7 @@ export default function MostReadSidebar({ posts }: { posts: Post[] }) {
         </Link>
       ))}
       <div style={{ fontSize: 9, color: muted, marginTop: 9 }}>
-        {lastUpdated ? 'Reader activity refreshed just now' : 'Refreshes automatically every minute'}
+        Uses the latest posts loaded with this page
       </div>
     </section>
   );
